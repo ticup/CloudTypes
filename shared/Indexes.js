@@ -14,7 +14,6 @@ function Indexes(indexes) {
 
 Indexes.prototype.forEach = function (callback) {
   for (var i = 0; i<this.names.length; i++) {
-    console.log('type: ' + this.types[i]);
     callback(this.names[i], this.types[i]);
   }
 };

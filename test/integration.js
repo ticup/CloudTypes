@@ -308,9 +308,6 @@ describe('Integration #', function () {
         setTimeout(function () {
           server.state.isConsistent(state1);
           server.state.get("Customer").all().length.should.equal(1);
-          console.log('FOO');
-          server.state.print();
-          console.log(server.state.get("Customer").all()[0]);
           server.state.get("Customer").all()[0].get('name').get().should.equal("Jerry");
 
           customer.delete();

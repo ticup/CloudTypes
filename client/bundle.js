@@ -4423,7 +4423,6 @@ CArrayEntry.prototype.key = function (name) {
   var type = this.cArray.indexes.getType(position);
   var value =  this.indexes[position];
   if (type === 'int') {
-    console.log('parsing int: ' + this.indexes);
     value = parseInt(value, 10);
   }
   if (type !== 'int' && type !== 'string') {
@@ -4868,7 +4867,6 @@ CSetDeclaration.declare = function (elementType) {
 
 
   CSet.newFor = function (entryIndex) {
-    console.log('CREATING CSET for : ' + entryIndex);
     return new CSet(entryIndex);
   };
 
@@ -4939,8 +4937,6 @@ CSetPrototype.get = function () {
 };
 
 function isEntryForElement(entry, entryIndex, elementType, element) {
-  console.log( entry.key('entryIndex') + ' ?= ' +  entryIndex + ": " + (entry.key('entryIndex') === entryIndex));
-  console.log(entry.key('element') + ' ?= ' + element + ": " + (entry.key('element') === element));
   return (entry.key('entryIndex') === entryIndex &&
       ((elementType === 'string' || elementType === 'int') ?
       (entry.key('element') === element) :
@@ -5174,7 +5170,6 @@ function Indexes(indexes) {
 
 Indexes.prototype.forEach = function (callback) {
   for (var i = 0; i<this.names.length; i++) {
-    console.log('type: ' + this.types[i]);
     callback(this.names[i], this.types[i]);
   }
 };
@@ -5497,7 +5492,6 @@ State.prototype.isDefault = function (cType) {
 
 State.prototype.createUID = function (uid) {
   var id = this.cid + "#" + uid;
-  console.log("CREATING NEW ENTITY:" + id);
   return id;
 }
 

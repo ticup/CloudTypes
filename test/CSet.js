@@ -155,7 +155,6 @@ describe('CSet state dependent operations (CSet operations are always state depe
     it('should keeps its semantics', function () {
       set.contains(1).should.equal(false);
       set.add(1);
-      state.print();
       set.contains(1).should.equal(true);
       set.remove(1);
       set.contains(1).should.equal(false);

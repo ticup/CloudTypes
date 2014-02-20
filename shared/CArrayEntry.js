@@ -40,7 +40,6 @@ CArrayEntry.prototype.key = function (name) {
   var type = this.cArray.indexes.getType(position);
   var value =  this.indexes[position];
   if (type === 'int') {
-    console.log('parsing int: ' + this.indexes);
     value = parseInt(value, 10);
   }
   if (type !== 'int' && type !== 'string') {

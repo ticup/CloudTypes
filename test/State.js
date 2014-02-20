@@ -254,13 +254,7 @@ describe('State', function () {
   describe('.replaceBy(state)', function () {
     var state1  = State.fromJSON(stubs.stateUnchanged);
     var state2  = State.fromJSON(stubs.stateChanged);
-    console.log("STATE1:");
-    state1.print();
-    console.log("STATE2:");
-    state2.print();
     state1.replaceBy(state2);
-    console.log("replaced:")
-    state1.print();
     it('should change its own state to given state', function () {
       state1.isEqual(state2);
     });

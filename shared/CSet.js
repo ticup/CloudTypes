@@ -18,7 +18,6 @@ CSetDeclaration.declare = function (elementType) {
 
 
   CSet.newFor = function (entryIndex) {
-    console.log('CREATING CSET for : ' + entryIndex);
     return new CSet(entryIndex);
   };
 
@@ -89,8 +88,6 @@ CSetPrototype.get = function () {
 };
 
 function isEntryForElement(entry, entryIndex, elementType, element) {
-  console.log( entry.key('entryIndex') + ' ?= ' +  entryIndex + ": " + (entry.key('entryIndex') === entryIndex));
-  console.log(entry.key('element') + ' ?= ' + element + ": " + (entry.key('element') === element));
   return (entry.key('entryIndex') === entryIndex &&
       ((elementType === 'string' || elementType === 'int') ?
       (entry.key('element') === element) :

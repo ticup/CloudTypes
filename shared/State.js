@@ -61,7 +61,6 @@ State.prototype.isDefault = function (cType) {
 
 State.prototype.createUID = function (uid) {
   var id = this.cid + "#" + uid;
-  console.log("CREATING NEW ENTITY:" + id);
   return id;
 }
 
