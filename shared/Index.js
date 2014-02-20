@@ -2,28 +2,28 @@ var CloudType     = require('./CloudType');
 var Indexes       = require('./Indexes');
 var Property      = require('./Property');
 var Properties    = require('./Properties');
-var CArrayEntry   = require('./CArrayEntry');
-var CArrayQuery   = require('./CArrayQuery');
+var IndexEntry   = require('./IndexEntry');
+var IndexQuery   = require('./IndexQuery');
 
 var CSet = require('./CSet');
 
 var util          = require('util');
 
-module.exports = CArray;
+module.exports = Index;
 
 // indexNames:  { string: IndexType }
-// when declared in a State, the state will add itself and the declared name for this CArray as properties
-// to the CArray object.
+// when declared in a State, the state will add itself and the declared name for this Index as properties
+// to the Index object.
 // todo: create copy of initializers
-function CArray(indexes, properties) {
+function Index(indexes, properties) {
   this.indexes    = (indexes instanceof Indexes) ? indexes : new Indexes(indexes);
   this.properties = properties || new Properties();
   this.isProxy    = false;  // set true by State if used as proxy for global CloudType
 }
 
 // properties: { string: string {"int", "string"} }
-CArray.declare = function (indexDeclarations, propertyDeclarations) {
-  var carray = new CArray(indexDeclarations);
+Index.declare = function (indexDeclarations, propertyDeclarations) {
+  var carray = new Index(indexDeclarations);
   Object.keys(propertyDeclarations).forEach(function (propName) {
     var cType = propertyDeclarations[propName];
     carray.addProperty(new Property(propName, cType, carray));
@@ -31,27 +31,27 @@ CArray.declare = function (indexDeclarations, propertyDeclarations) {
   return carray;
 };
 
-CArray.prototype.forEachProperty = function (callback) {
+Index.prototype.forEachProperty = function (callback) {
   return this.properties.forEach(callback);
 };
 
-CArray.prototype.get = function () {
-  return new CArrayEntry(this, Array.prototype.slice.call(arguments));
+Index.prototype.get = function () {
+  return new IndexEntry(this, Array.prototype.slice.call(arguments));
 };
 
-CArray.prototype.getByIndex = function (index) {
-  return new CArrayEntry(this, index)
+Index.prototype.getByIndex = function (index) {
+  return new IndexEntry(this, index)
 };
 
-CArray.prototype.entries = function (propertyName) {
+Index.prototype.entries = function (propertyName) {
   return this.properties.get(propertyName).entries();
 };
 
-CArray.prototype.where = function (filter) {
-  return new CArrayQuery(this, filter);
+Index.prototype.where = function (filter) {
+  return new IndexQuery(this, filter);
 };
 
-CArray.prototype.getProperty = function (property) {
+Index.prototype.getProperty = function (property) {
   var result = this.properties.get(property);
   if (typeof result === 'undefined') {
     throw Error(this.name + " does not have property " + property);
@@ -59,20 +59,20 @@ CArray.prototype.getProperty = function (property) {
   return result;
 };
 
-CArray.prototype.addProperty = function (property) {
+Index.prototype.addProperty = function (property) {
   return this.properties.add(property);
 };
 
-CArray.prototype.fork = function () {
+Index.prototype.fork = function () {
   var fIndexes = this.indexes.fork();
-  var cArray = new CArray(fIndexes);
+  var cArray = new Index(fIndexes);
   cArray.properties = this.properties.fork(cArray);
   cArray.isProxy = this.isProxy;
   return cArray;
 };
 
 
-CArray.prototype.toJSON = function () {
+Index.prototype.toJSON = function () {
   return {
     type        : 'Array',
     indexes     : this.indexes.toJSON(),
@@ -81,8 +81,8 @@ CArray.prototype.toJSON = function () {
   };
 };
 
-CArray.fromJSON = function (json) {
-  var cArray = new CArray();
+Index.fromJSON = function (json) {
+  var cArray = new Index();
   cArray.indexes = Indexes.fromJSON(json.indexes);
   cArray.properties = Properties.fromJSON(json.properties, cArray);
   cArray.isProxy = json.isProxy;

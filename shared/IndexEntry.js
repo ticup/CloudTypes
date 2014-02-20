@@ -1,24 +1,24 @@
 var Indexes = require('./Indexes');
 
-module.exports = CArrayEntry;
+module.exports = IndexEntry;
 
-function CArrayEntry(cArray, indexes) {
+function IndexEntry(cArray, indexes) {
   this.cArray = cArray;
   this.indexes = Indexes.getIndexes(indexes, cArray);
 }
 
-CArrayEntry.prototype.get = function (property) {
+IndexEntry.prototype.get = function (property) {
   return this.cArray.getProperty(property).saveGet(this.indexes);
 };
 
-CArrayEntry.prototype.forEachProperty = function (callback) {
+IndexEntry.prototype.forEachProperty = function (callback) {
   var self = this;
   this.cArray.forEachProperty(function (property) {
     callback(property.name, self.get(property));
   });
 };
 
-CArrayEntry.prototype.forEachKey = function (callback) {
+IndexEntry.prototype.forEachKey = function (callback) {
   for (var i = 0; i<this.indexes.length; i++) {
     callback(this.cArray.indexes.getName(i), this.indexes[i]);
   }
@@ -26,13 +26,13 @@ CArrayEntry.prototype.forEachKey = function (callback) {
 
 
 
-CArrayEntry.prototype.forEachIndex = function (callback) {
+IndexEntry.prototype.forEachIndex = function (callback) {
   return this.indexes.forEach(callback);
 };
 
 
 
-CArrayEntry.prototype.key = function (name) {
+IndexEntry.prototype.key = function (name) {
   var position = this.cArray.indexes.getPositionOf(name);
   if (position === -1)
     throw Error("This Array does not have an index named " + name);
@@ -48,15 +48,15 @@ CArrayEntry.prototype.key = function (name) {
   return value;
 };
 
-CArrayEntry.prototype.deleted = function () {
+IndexEntry.prototype.deleted = function () {
   return (this.cArray.state.deleted(this.indexes, this.cArray));
 };
 
-CArrayEntry.prototype.index = function () {
+IndexEntry.prototype.index = function () {
   return Indexes.createIndex(this.indexes);
 };
 
-CArrayEntry.prototype.equals = function (entry) {
+IndexEntry.prototype.equals = function (entry) {
   if (this.cArray !== entry.cArray)
     return false;
 

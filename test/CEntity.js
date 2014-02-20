@@ -1,5 +1,5 @@
 var State       = require('./extensions/State');
-var CEntity     = require('../shared/CEntity');
+var Table     = require('../shared/Table');
 var Indexes     = require('../shared/Indexes');
 var Properties  = require('../shared/Properties');
 var Property    = require('../shared/Property');
@@ -9,24 +9,24 @@ var CString     = require('./extensions/CString');
 var should      = require('should');
 var stubs       = require('./stubs');
 var util        = require('util');
-var CEntityEntry = require('../shared/CEntityEntry');
+var TableEntry = require('../shared/TableEntry');
 
-describe('CEntity state independent operations', function () {
+describe('Table state independent operations', function () {
   var entity;
 
   beforeEach(function () {
     var indexNames = [{name: "string"}];
     var properties = {address: "CString"};
-    entity = CEntity.declare(indexNames, properties);
+    entity = Table.declare(indexNames, properties);
   });
 
   // Private
   describe('#new(indexDeclarations, propertyDeclarations)', function () {
     var indexNames = [{name: "foo", type: "string"}];
     var properties = {address: "CString"};
-    var entity = new CEntity(indexNames, properties);
-    it('should create a new CEntity object', function () {
-      entity.should.be.an.instanceOf(CEntity);
+    var entity = new Table(indexNames, properties);
+    it('should create a new Table object', function () {
+      entity.should.be.an.instanceOf(Table);
     });
     it('should have properties property', function () {
       entity.should.have.property('properties');
@@ -42,9 +42,9 @@ describe('CEntity state independent operations', function () {
   describe('#new(indexes, PropertyDeclarations)', function () {
     var indexes = new Indexes();
     var properties = {toBuy: "CInt"};
-    var entity = new CEntity(indexes, properties);
-    it('should create a new CEntity object', function () {
-      entity.should.be.an.instanceOf(CEntity);
+    var entity = new Table(indexes, properties);
+    it('should create a new Table object', function () {
+      entity.should.be.an.instanceOf(Table);
     });
     it('should have properties property', function () {
       entity.should.have.property('properties');
@@ -58,22 +58,22 @@ describe('CEntity state independent operations', function () {
   });
 
   describe('#fromJSON(json)', function () {
-    it('should create a CEntity', function () {
+    it('should create a Table', function () {
       var json = entity.toJSON();
-      var entity2 = CEntity.fromJSON(stubs.customerUnchanged);
+      var entity2 = Table.fromJSON(stubs.customerUnchanged);
       should.exist(entity2);
-      entity2.should.be.an.instanceof(CEntity);
+      entity2.should.be.an.instanceof(Table);
       entity2.getProperty('name').should.be.an.instanceof(Property);
     });
 
-    it('should create a CEntity for all stubs', function () {
+    it('should create a Table for all stubs', function () {
       stubs.entities.map(function (json) {
-        return [json, CEntity.fromJSON(json)];
+        return [json, Table.fromJSON(json)];
       }).forEach(function (result) {
         var json = result[0];
         var cEntity = result[1];
         should.exist(cEntity);
-        cEntity.should.be.an.instanceof(CEntity);
+        cEntity.should.be.an.instanceof(Table);
         json.properties.forEach(function (jsonProperty) {
           should.exist(cEntity.getProperty(jsonProperty.name));
        });
@@ -92,7 +92,7 @@ describe('CEntity state independent operations', function () {
     });
     it('should be complementary with fromJSON for all stubs', function () {
       stubs.entities.map(function (json) {
-        json.should.eql(CEntity.fromJSON(json).toJSON());
+        json.should.eql(Table.fromJSON(json).toJSON());
       });
     });
   });
@@ -101,9 +101,9 @@ describe('CEntity state independent operations', function () {
   describe('#declare(indexNames, properties)', function () {
     var indexNames = [{name: "string"}];
     var properties = {address: "CString"};
-    var entity2 = CEntity.declare(indexNames, properties);
-    it('should create a new CEntity object', function () {
-      entity2.should.be.an.instanceOf(CEntity);
+    var entity2 = Table.declare(indexNames, properties);
+    it('should create a new Table object', function () {
+      entity2.should.be.an.instanceOf(Table);
     });
     it('should have indexes property', function () {
       entity2.should.have.property('indexes');
@@ -118,10 +118,10 @@ describe('CEntity state independent operations', function () {
   });
 
   describe('.get(index)', function () {
-    it('should return a CEntityEntry for that index and cEntity', function () {
+    it('should return a TableEntry for that index and cEntity', function () {
       var entry = entity.get('foo');
       should.exist(entry);
-      entry.should.be.an.instanceof(CEntityEntry);
+      entry.should.be.an.instanceof(TableEntry);
       entry.should.have.property('cArray');
       entry.should.have.property('indexes');
       entry.cArray.should.equal(entity);
@@ -130,8 +130,8 @@ describe('CEntity state independent operations', function () {
 
   describe('.all()', function () {
     it('should return an array with all non-deleted entries', function () {
-      var entity1 = CEntity.fromJSON(stubs.customerUnchanged);
-      var entity2 = CEntity.fromJSON(stubs.customerChanged);
+      var entity1 = Table.fromJSON(stubs.customerUnchanged);
+      var entity2 = Table.fromJSON(stubs.customerChanged);
       entity1.all().length.should.equal(1);
       entity2.all().length.should.equal(4);
     });
@@ -144,7 +144,7 @@ describe('CEntity state independent operations', function () {
         ctr++
       });
       ctr.should.equal(0);
-      var entity2 = CEntity.fromJSON(stubs.customerChanged);
+      var entity2 = Table.fromJSON(stubs.customerChanged);
       entity2.forEachState(function (idx) {
         ctr++
       });
@@ -189,8 +189,8 @@ describe('CEntity state independent operations', function () {
 
   describe('.setMax(entity1, entity2, index)', function () {
     it('should set the max value of entity1 and entity2 for state of index (max: undefined < OK < DELETED)', function () {
-      var entity1 = CEntity.fromJSON(stubs.customerUnchanged);
-      var entity2 = CEntity.fromJSON(stubs.customerChanged);
+      var entity1 = Table.fromJSON(stubs.customerUnchanged);
+      var entity2 = Table.fromJSON(stubs.customerChanged);
 
       // undefined < OK
       should.not.exist(entity1.states['[Customer:0#1]']);
@@ -220,8 +220,8 @@ describe('CEntity state independent operations', function () {
 
 });
 
-describe('CEntity state dependent operations: ', function () {
-  describe('CEntity initialized in state', function () {
+describe('Table state dependent operations: ', function () {
+  describe('Table initialized in state', function () {
     it('should have a property state', function () {
       var state  = State.fromJSON(stubs.stateChanged);
       var Order = state.get('Order');

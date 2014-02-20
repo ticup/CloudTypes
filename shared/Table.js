@@ -1,29 +1,29 @@
-var CArray     = require('./CArray');
+var Index     = require('./Index');
 var Indexes    = require('./Indexes');
 var Properties = require('./Properties');
 var Property   = require('./Property');
-var CEntityEntry = require('./CEntityEntry');
-var CEntityQuery = require('./CEntityQuery');
+var TableEntry = require('./TableEntry');
+var TableQuery = require('./TableQuery');
 
-module.exports = CEntity;
+module.exports = Table;
 
 var OK = 'ok';
 var DELETED = 'deleted';
 
-// when declared in a State, the state will add itself and the declared name for this CArray as properties
-// to the CEntity object.
-function CEntity(indexes, properties, states) {
-  CArray.call(this, indexes, properties);
+// when declared in a State, the state will add itself and the declared name for this Index as properties
+// to the Table object.
+function Table(indexes, properties, states) {
+  Index.call(this, indexes, properties);
   this.states = {} || states;
   this.uid = 0;
 }
-CEntity.prototype = Object.create(CArray.prototype);
+Table.prototype = Object.create(Index.prototype);
 
-CEntity.OK = OK;
-CEntity.DELETED = DELETED;
+Table.OK = OK;
+Table.DELETED = DELETED;
 
-CEntity.declare = function (indexDeclarations, propertyDeclarations) {
-  var cEntity = new CEntity([{uid: 'string'}].concat(indexDeclarations));
+Table.declare = function (indexDeclarations, propertyDeclarations) {
+  var cEntity = new Table([{uid: 'string'}].concat(indexDeclarations));
   Object.keys(propertyDeclarations).forEach(function (propName) {
     var cTypeName = propertyDeclarations[propName];
     cEntity.addProperty(new Property(propName, cTypeName, cEntity));
@@ -32,7 +32,7 @@ CEntity.declare = function (indexDeclarations, propertyDeclarations) {
 };
 
 
-CEntity.prototype.create = function (indexes) {
+Table.prototype.create = function (indexes) {
   indexes = (typeof indexes === 'undefined') ? [] : indexes;
   var uid = this.name + ":" + this.state.createUID(this.uid);
   this.uid += 1;
@@ -41,27 +41,27 @@ CEntity.prototype.create = function (indexes) {
   return this.get.apply(this, [uid].concat(indexes));
 };
 
-CEntity.prototype.delete = function (entry) {
+Table.prototype.delete = function (entry) {
   console.log("DELETING " + entry.indexes);
   this.setDeleted(Indexes.createIndex(entry.indexes));
   this.state.propagate();
 };
 
 // Pure arguments version (user input version)
-CEntity.prototype.get = function () {
-  return new CEntityEntry(this, Array.prototype.slice.call(arguments));
+Table.prototype.get = function () {
+  return new TableEntry(this, Array.prototype.slice.call(arguments));
 };
 
 // Flattened index version (internal version)
-CEntity.prototype.getByIndex = function (index) {
-  return new CEntityEntry(this, index);
+Table.prototype.getByIndex = function (index) {
+  return new TableEntry(this, index);
 };
 
-CEntity.prototype.forEachState = function (callback) {
+Table.prototype.forEachState = function (callback) {
   return Object.keys(this.states).forEach(callback);
 };
 
-CEntity.prototype.setMax = function (entity1, entity2, index) {
+Table.prototype.setMax = function (entity1, entity2, index) {
   var val1 = entity1.states[index];
   var val2 = entity2.states[index];
   if (val1 === DELETED || val2 === DELETED) {
@@ -73,11 +73,11 @@ CEntity.prototype.setMax = function (entity1, entity2, index) {
 
 };
 
-CEntity.prototype.where = function (filter) {
-  return new CEntityQuery(this, filter);
+Table.prototype.where = function (filter) {
+  return new TableQuery(this, filter);
 };
 
-CEntity.prototype.all = function () {
+Table.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(this.states).forEach(function (index) {
@@ -87,34 +87,34 @@ CEntity.prototype.all = function () {
   return entities;
 };
 
-CEntity.prototype.setDeleted = function (index) {
+Table.prototype.setDeleted = function (index) {
   this.states[index] = DELETED;
 };
 
-CEntity.prototype.setCreated = function (index) {
+Table.prototype.setCreated = function (index) {
   this.states[index] = OK;
 };
 
 
 
-CEntity.prototype.exists = function (idx) {
+Table.prototype.exists = function (idx) {
   return (typeof this.states[idx] !== 'undefined' && this.states[idx] === OK);
 };
 
-CEntity.prototype.deleted = function (idx) {
+Table.prototype.deleted = function (idx) {
   return (this.states[idx] === DELETED)
 };
 
-CEntity.prototype.fork = function () {
+Table.prototype.fork = function () {
   var fIndexes = this.indexes.fork();
-  var cEntity = new CEntity(fIndexes);
+  var cEntity = new Table(fIndexes);
   cEntity.properties = this.properties.fork(cEntity);
   cEntity.states     = this.states;
   return cEntity;
 };
 
-CEntity.fromJSON = function (json) {
-  var cEntity = new CEntity();
+Table.fromJSON = function (json) {
+  var cEntity = new Table();
   cEntity.indexes = Indexes.fromJSON(json.indexes);
   cEntity.properties = Properties.fromJSON(json.properties, cEntity);
   cEntity.states = {};
@@ -124,7 +124,7 @@ CEntity.fromJSON = function (json) {
   return cEntity;
 };
 
-CEntity.prototype.toJSON = function () {
+Table.prototype.toJSON = function () {
   return {
     type        : 'Entity',
     indexes     : this.indexes.toJSON(),

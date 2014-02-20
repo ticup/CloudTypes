@@ -1,6 +1,6 @@
 var CloudType = require('./CloudType');
-var CArray    = require('./CArray');
-var CEntity   = require('./CEntity');
+var Index    = require('./Index');
+var Table   = require('./Table');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
@@ -26,31 +26,31 @@ State.prototype.get = function (name) {
 
 State.prototype.declare = function (name, array) {
   var self = this;
-  // CArray or CEntity
-  if (array instanceof CArray) {
+  // Index or Table
+  if (array instanceof Index) {
     array.state = this;
     array.name  = name;
 
     // CSet properties -> declare their proxy Entity and give reference to the CSet properties
     array.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
-        self.declare(array.name + property.name, CEntity.declare([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
+        self.declare(array.name + property.name, Table.declare([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
         property.CType.entity = self.get(array.name + property.name);
       }
     });
     return this.arrays[name] = array;
   }
-  // global (CloudType) => create proxy CArray
+  // global (CloudType) => create proxy Index
   if (typeof array.prototype !== 'undefined' && array.prototype instanceof CloudType) {
     var CType = array;
-    array = CArray.declare([], {value: CType.name});
+    array = Index.declare([], {value: CType.name});
     array.state = this;
     array.name  = name;
     array.isProxy = true;
     return this.arrays[name] = array;
   }
-  // Either declare CArray (CEntity is also a CArray) or CloudType, nothing else.
-  throw "Need a CArray or CloudType to declare: " + array;
+  // Either declare Index (Table is also a Index) or CloudType, nothing else.
+  throw "Need a Index or CloudType to declare: " + array;
 };
 
 State.prototype.isDefault = function (cType) {
@@ -81,9 +81,9 @@ State.fromJSON = function (json) {
   Object.keys(json.arrays).forEach(function (name) {
     var arrayJson = json.arrays[name];
     if (arrayJson.type === 'Entity') {
-      array = CEntity.fromJSON(arrayJson);
+      array = Table.fromJSON(arrayJson);
     } else if (arrayJson.type === 'Array') {
-      array = CArray.fromJSON(arrayJson);
+      array = Index.fromJSON(arrayJson);
     } else {
       throw "Unknown type in state: " + json.type;
     }
@@ -123,7 +123,7 @@ State.prototype.forEachArray = function (callback) {
 State.prototype.forEachEntity = function (callback) {
   var self = this;
   Object.keys(this.arrays).forEach(function (name) {
-    if (self.arrays[name] instanceof CEntity)
+    if (self.arrays[name] instanceof Table)
       callback(self.arrays[name]);
   });
 };
@@ -143,7 +143,7 @@ State.prototype.propagate = function () {
 State.prototype.deleted = function (index, entity) {
   var self = this;
   // Entity
-  if (typeof entity !== 'undefined' && entity instanceof CEntity) {
+  if (typeof entity !== 'undefined' && entity instanceof Table) {
     var entry = entity.getByIndex(index);
 //    console.log(index + ' of ' + entity.name + ' deleted ?');
 
@@ -162,7 +162,7 @@ State.prototype.deleted = function (index, entity) {
   }
 
   // Array
-  if (typeof entity !== 'undefined' && entity instanceof CArray) {
+  if (typeof entity !== 'undefined' && entity instanceof Index) {
     var del = false;
     var entry = entity.get(index);
     entry.forEachKey(function (name, value) {
