@@ -97,21 +97,21 @@ function isEntryForElement(entry, entryIndex, elementType, element) {
 // Defining _join(cint, target) provides the join and joinIn methods
 // by the CloudType prototype.
 CSetPrototype._join = function (cset, target) {
-  // do nothing (everything happens 'automatically' through the cEntityProxy
+  // do nothing (everything happens 'automatically' through the tableProxy
 };
 
 CSetPrototype.fork = function () {
-  // do nothing (everything happens 'automatically' through the cEntityProxy
+  // do nothing (everything happens 'automatically' through the tableProxy
   return this;
 };
 
 CSetPrototype.applyFork = function () {
-  // do nothing (everything happens 'automatically' through the cEntityProxy
+  // do nothing (everything happens 'automatically' through the tableProxy
   return this;
 };
 
 CSetPrototype.replaceBy = function (cset) {
-  // do nothing (everything happens 'automatically' through the cEntityProxy
+  // do nothing (everything happens 'automatically' through the tableProxy
 };
 
 CSetPrototype.isDefault = function () {
