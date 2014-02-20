@@ -2,9 +2,9 @@
  * Created by ticup on 09/11/13.
  */
 var State       = require('./extensions/State');
-var Table     = require('../shared/Table');
-var Index      = require('../shared/Index');
-var Keys     = require('../shared/Keys');
+var Table       = require('../shared/Table');
+var Index       = require('../shared/Index');
+var Keys        = require('../shared/Keys');
 var Properties  = require('../shared/Properties');
 var Property    = require('../shared/Property');
 var CloudType   = require('../shared/CloudType');
@@ -98,6 +98,8 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var set = state.get(name).get('now', 1).get('slots');
     var entity = state.get(entityName);
     set.add(1);
+
+    state.print();
 
     it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
       var entry = entity.get('now', 1);

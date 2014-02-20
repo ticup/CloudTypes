@@ -101,27 +101,27 @@ exports.customerUnchanged = {
 exports.orderUnchanged = {
   type        : 'Entity',
   keys     : {
-    names: ['uid', 'customer'],
-    types: ['string', 'Customer']
+    names: ['uid'],
+    types: ['string']
   },
   properties  : [
     {
       name: 'product',
       type: { tag: 'CString' },
       values: {
-        '[[Order:0#0].[Customer:0#0]]': cstring.toJSON(),
+        '[[Order:0#0]]': cstring.toJSON(),
       }
     },
     {
       name: 'quantity',
       type: { tag: 'CInt' },
       values: {
-        '[[Order:0#0].[Customer:0#0]]': cint2.toJSON()
+        '[[Order:0#0]]': cint2.toJSON()
       }
     }
   ],
   states: {
-    '[[Order:0#0].[Customer:0#0]]': 'ok'
+    '[[Order:0#0]]': 'ok'
   }
 };
 
@@ -276,44 +276,44 @@ exports.customerChanged = {
 exports.orderChanged = {
   type        : 'Entity',
   keys     : {
-    names: ['uid', 'customer'],
-    types: ['string', 'Customer']
+    names: ['uid'],
+    types: ['string']
   },
   properties  : [
     {
       name: 'product',
       type: { tag: 'CString' },
       values: {
-        '[[Order:0#0].[Customer:0#0]]': cstring.toJSON(),
-        '[[Order:0#1].[Customer:0#0]]': cstring1.toJSON(),
-        '[[Order:0#2].[Customer:0#1]]': cstring2.toJSON(),
-        '[[Order:0#3].[Customer:0#1]]': cstring.toJSON(),
-        '[[Order:0#4].[Customer:0#1]]': cstring3.toJSON(),
-        '[[Order:0#5].[Customer:0#2]]': cstring3.toJSON(),
-        '[[Order:0#6].[Customer:0#2]]': cstring3.toJSON()
+        '[[Order:0#0]]': cstring.toJSON(),
+        '[[Order:0#1]]': cstring1.toJSON(),
+        '[[Order:0#2]]': cstring2.toJSON(),
+        '[[Order:0#3]]': cstring.toJSON(),
+        '[[Order:0#4]]': cstring3.toJSON(),
+        '[[Order:0#5]]': cstring3.toJSON(),
+        '[[Order:0#6]]': cstring3.toJSON()
       }
     },
     {
       name: 'quantity',
       type: { tag: 'CInt' },
       values: {
-        '[[Order:0#0].[Customer:0#0]]': cint2.toJSON(),
-        '[[Order:0#2].[Customer:0#1]]': cint.toJSON(),
-        '[[Order:0#3].[Customer:0#1]]': ucint3.toJSON(),
-        '[[Order:0#4].[Customer:0#1]]': ucint3.toJSON(),
-        '[[Order:0#5].[Customer:0#2]]': ucint2.toJSON(),
-        '[[Order:0#6].[Customer:0#2]]': ucint1.toJSON()
+        '[[Order:0#0]]': cint2.toJSON(),
+        '[[Order:0#2]]': cint.toJSON(),
+        '[[Order:0#3]]': ucint3.toJSON(),
+        '[[Order:0#4]]': ucint3.toJSON(),
+        '[[Order:0#5]]': ucint2.toJSON(),
+        '[[Order:0#6]]': ucint1.toJSON()
       }
     }
   ],
   states: {
-    '[[Order:0#0].[Customer:0#0]]': 'deleted',
-    '[[Order:0#1].[Customer:0#0]]': 'deleted',
-    '[[Order:0#2].[Customer:0#1]]': 'deleted',
-    '[[Order:0#3].[Customer:0#1]]': 'ok',
-    '[[Order:0#4].[Customer:0#1]]': 'deleted',
-    '[[Order:0#5].[Customer:0#2]]': 'ok',
-    '[[Order:0#6].[Customer:0#2]]': 'ok'
+    '[[Order:0#0]]': 'deleted',
+    '[[Order:0#1]]': 'deleted',
+    '[[Order:0#2]]': 'deleted',
+    '[[Order:0#3]]': 'ok',
+    '[[Order:0#4]]': 'deleted',
+    '[[Order:0#5]]': 'ok',
+    '[[Order:0#6]]': 'ok'
   }
 };
 

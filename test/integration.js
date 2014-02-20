@@ -285,8 +285,9 @@ describe('Integration #', function () {
 
       // server code
       server = CloudTypeServer.createServer();
-      server.declare("Customer", Table.declare([], {name: "CString"}));
-      server.declare("Order", Table.declare([{customer: "Customer"}], {price: "CInt"}));
+      server.declare("Customer", Table.declare({name: "CString"}));
+      // server.declare("Order", Table.declare([{customer: "Customer"}], {price: "CInt"}));
+      server.declare("Order", Table.declare({price: "CInt"}));
       server.publish(8001);
 
       // client setup code

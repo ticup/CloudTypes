@@ -12,8 +12,8 @@ var DELETED = 'deleted';
 
 // when declared in a State, the state will add itself and the declared name for this Index as properties
 // to the Table object.
-function Table(keys, properties, states) {
-  Index.call(this, keys, properties);
+function Table(properties, states) {
+  Index.call(this, [{uid: 'string'}], properties);
   this.states = {} || states;
   this.uid = 0;
 }
@@ -22,8 +22,8 @@ Table.prototype = Object.create(Index.prototype);
 Table.OK = OK;
 Table.DELETED = DELETED;
 
-Table.declare = function (keyDeclarations, propertyDeclarations) {
-  var table = new Table([{uid: 'string'}].concat(keyDeclarations));
+Table.declare = function (propertyDeclarations) {
+  var table = new Table();
   Object.keys(propertyDeclarations).forEach(function (propName) {
     var cTypeName = propertyDeclarations[propName];
     table.addProperty(new Property(propName, cTypeName, table));

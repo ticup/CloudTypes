@@ -208,7 +208,7 @@ describe('Index', function () {
 
       it('should be a Table if key is of declared Entity type', function () {
         var state = new State();
-        var entity = state.declare('entity', Table.declare([{name: 'string'}], {prop: 'CString'}));
+        var entity = state.declare('entity', Table.declare({prop: 'CString'}));
         var array  = state.declare('array', Index.declare([{ref: 'entity'}], {prop: 'CString'}));
         var entry1 = entity.create('foo');
         var entry2 = array.get(entry1);

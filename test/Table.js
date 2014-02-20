@@ -1,6 +1,6 @@
 var State       = require('./extensions/State');
-var Table     = require('../shared/Table');
-var Keys     = require('../shared/Keys');
+var Table       = require('../shared/Table');
+var Keys        = require('../shared/Keys');
 var Properties  = require('../shared/Properties');
 var Property    = require('../shared/Property');
 var CloudType   = require('../shared/CloudType');
@@ -9,22 +9,20 @@ var CString     = require('./extensions/CString');
 var should      = require('should');
 var stubs       = require('./stubs');
 var util        = require('util');
-var TableEntry = require('../shared/TableEntry');
+var TableEntry  = require('../shared/TableEntry');
 
 describe('Table state independent operations', function () {
   var entity;
 
   beforeEach(function () {
-    var keyNames = [{name: "string"}];
     var properties = {address: "CString"};
-    entity = Table.declare(keyNames, properties);
+    entity = Table.declare(properties);
   });
 
   // Private
-  describe('#new(keyDeclarations, propertyDeclarations)', function () {
-    var keyNames = [{name: "foo", type: "string"}];
+  describe('#new(propertyDeclarations)', function () {
     var properties = {address: "CString"};
-    var entity = new Table(keyNames, properties);
+    var entity = new Table(properties);
     it('should create a new Table object', function () {
       entity.should.be.an.instanceOf(Table);
     });
@@ -39,21 +37,15 @@ describe('Table state independent operations', function () {
   });
 
   // Private
-  describe('#new(keys, PropertyDeclarations)', function () {
-    var keys = new Keys();
+  describe('#new(PropertyDeclarations)', function () {
     var properties = {toBuy: "CInt"};
-    var entity = new Table(keys, properties);
+    var entity = new Table(properties);
     it('should create a new Table object', function () {
       entity.should.be.an.instanceOf(Table);
     });
     it('should have properties property', function () {
       entity.should.have.property('properties');
       entity.properties.should.equal(properties);
-    });
-    it('should have keys property', function () {
-      entity.should.have.property('keys');
-      entity.keys.should.be.an.instanceof(Keys);
-      entity.keys.should.equal(keys);
     });
   });
 
@@ -98,10 +90,9 @@ describe('Table state independent operations', function () {
   });
 
   // Public
-  describe('#declare(keyNames, properties)', function () {
-    var keyNames = [{name: "string"}];
+  describe('#declare(properties)', function () {
     var properties = {address: "CString"};
-    var entity2 = Table.declare(keyNames, properties);
+    var entity2 = Table.declare(properties);
     it('should create a new Table object', function () {
       entity2.should.be.an.instanceOf(Table);
     });
@@ -250,11 +241,6 @@ describe('Table state dependent operations: ', function () {
         var all = where.all();
         should.exist(all);
         all.length.should.equal(3);
-      });
-      it('should return entries initialized with proper keys', function () {
-        var order = where.all()[0];
-        console.log(order);
-        should.exist(order.key('customer'));
       });
     });
 

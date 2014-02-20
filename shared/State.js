@@ -34,7 +34,7 @@ State.prototype.declare = function (name, array) {
     // CSet properties -> declare their proxy Entity and give reference to the CSet properties
     array.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
-        self.declare(array.name + property.name, Table.declare([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
+        self.declare(array.name + property.name, Table.declare({entryIndex: 'CString', element: 'CString'}));
         property.CType.entity = self.get(array.name + property.name);
       }
     });

@@ -2,7 +2,8 @@
  * Created by ticup on 08/11/13.
  */
 var CloudType = require('./CloudType');
-
+var IndexEntry = require('./IndexEntry');
+var TableEntry = require('./TableEntry');
 
 
 function CSetDeclaration() { }
@@ -57,9 +58,11 @@ CSetPrototype.toJSON = function () {
   return {  };
 };
 
-// semantic operations (all delegated to the dedicated entity)
+// semantic operations (all delegated to the dedicated table)
 CSetPrototype.add = function (element) {
-  return this.type.entity.create([this.entryIndex, element]);
+  var entry = this.type.entity.create();
+  entry.get('entryIndex').set(this.entryIndex);
+  entry.get('element').set(element.toString());
 };
 
 CSetPrototype.contains = function (element) {
@@ -88,10 +91,8 @@ CSetPrototype.get = function () {
 };
 
 function isEntryForElement(entry, entryIndex, elementType, element) {
-  return (entry.key('entryIndex') === entryIndex &&
-      ((elementType === 'string' || elementType === 'int') ?
-      (entry.key('element') === element) :
-      (entry.key('element').equals(element))));
+  return (entry.get('entryIndex').get() === entryIndex &&
+      (entry.get('element').get() === element.toString()));
 }
 
 // Defining _join(cint, target) provides the join and joinIn methods
