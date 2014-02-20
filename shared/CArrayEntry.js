@@ -1,10 +1,10 @@
-var Indexes = require('./Indexes');
+var Keys = require('./Keys');
 
 module.exports = CArrayEntry;
 
 function CArrayEntry(cArray, keys) {
   this.cArray = cArray;
-  this.keys = Indexes.getIndexes(keys, cArray);
+  this.keys = Keys.getKeys(keys, cArray);
 }
 
 CArrayEntry.prototype.get = function (property) {
@@ -53,7 +53,7 @@ CArrayEntry.prototype.deleted = function () {
 };
 
 CArrayEntry.prototype.serialKey = function () {
-  return Indexes.createIndex(this.keys);
+  return Keys.createIndex(this.keys);
 };
 
 CArrayEntry.prototype.equals = function (entry) {

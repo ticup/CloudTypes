@@ -2,9 +2,9 @@
  * Created by ticup on 09/11/13.
  */
 var State       = require('./extensions/State');
-var CEntity     = require('../shared/CEntity');
+var Table     = require('../shared/Table');
 var CArray      = require('../shared/CArray');
-var Indexes     = require('../shared/Indexes');
+var Keys     = require('../shared/Keys');
 var Properties  = require('../shared/Properties');
 var Property    = require('../shared/Property');
 var CloudType   = require('../shared/CloudType');
@@ -14,7 +14,7 @@ var CString     = require('./extensions/CString');
 var should      = require('should');
 var stubs       = require('./stubs');
 var util        = require('util');
-var CEntityEntry = require('../shared/CEntityEntry');
+var TableEntry = require('../shared/TableEntry');
 
 describe('CSet state dependent operations (CSet operations are always state dependent!): ', function () {
   describe('CSet initialized in a state', function () {
@@ -34,7 +34,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
       should.exist(state.arrays[entityName]);
-      state.arrays[entityName].should.be.an.instanceof(CEntity);
+      state.arrays[entityName].should.be.an.instanceof(Table);
     });
     it('sould install a reference to the entity in the CType of the property', function () {
       should.exist(state.arrays[name].properties.get('slots').CType.entity);
@@ -61,7 +61,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
       should.exist(state2.arrays[entityName]);
-      state2.arrays[entityName].should.be.an.instanceof(CEntity);
+      state2.arrays[entityName].should.be.an.instanceof(Table);
     });
     it('sould install a reference to the entity in the CType of the property', function () {
       should.exist(state2.arrays[name].properties.get('slots').CType.entity);

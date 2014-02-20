@@ -4,14 +4,14 @@
 
 var CArrayQuery = require("./CArrayQuery");
 
-module.exports = CEntityQuery;
+module.exports = TableQuery;
 
-function CEntityQuery(cEntity, filter) {
+function TableQuery(cEntity, filter) {
   CArrayQuery.call(this, cEntity, filter);
 }
-CEntityQuery.prototype = Object.create(CArrayQuery.prototype);
+TableQuery.prototype = Object.create(CArrayQuery.prototype);
 
-CEntityQuery.prototype.all = function () {
+TableQuery.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(self.cArray.states).forEach(function (key) {

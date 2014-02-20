@@ -1,4 +1,4 @@
-function Indexes(keys) {
+function Keys(keys) {
   var self = this;
   this.names  = [];
   this.types  = [];
@@ -12,39 +12,39 @@ function Indexes(keys) {
   }
 }
 
-Indexes.prototype.forEach = function (callback) {
+Keys.prototype.forEach = function (callback) {
   for (var i = 0; i<this.names.length; i++) {
     callback(this.names[i], this.types[i]);
   }
 };
 
-Indexes.prototype.length = function () {
+Keys.prototype.length = function () {
   return this.names.length;
 };
 
-Indexes.prototype.getType = function (position) {
+Keys.prototype.getType = function (position) {
   return this.types[position];
 };
 
-Indexes.prototype.getName = function (position) {
+Keys.prototype.getName = function (position) {
   return this.names[position];
 };
 
-Indexes.prototype.getTypeOf = function (name) {
+Keys.prototype.getTypeOf = function (name) {
   var position = this.getPositionOf(name);
   return this.types[position];
 };
 
-Indexes.prototype.getPositionOf = function (name) {
+Keys.prototype.getPositionOf = function (name) {
   return this.names.indexOf(name);
 };
 
-Indexes.prototype.get = function (keys) {
-  var key = Indexes.createIndex(keys);
+Keys.prototype.get = function (keys) {
+  var key = Keys.createIndex(keys);
   return key;
 };
 
-Indexes.createIndex = function createIndex(keys) {
+Keys.createIndex = function createIndex(keys) {
   if (! (keys instanceof Array))
     throw Error("createIndex: expects an array of keys, given: " + keys);
   return "[" + [].map.call(keys, function (val) { return val.toString(); }).join(".") + "]";
@@ -79,7 +79,7 @@ function unParseIndex(string) {
   return parts;
 }
 
-Indexes.getIndexes = function getIndexes(key, cArray) {
+Keys.getKeys = function getKeys(key, cArray) {
   // Flattened string given: unflatten
   if (! (key instanceof Array)) {
     key = unParseIndex(key);
@@ -103,26 +103,26 @@ Indexes.getIndexes = function getIndexes(key, cArray) {
   return key;
 };
 
-Indexes.prototype.toJSON = function () {
+Keys.prototype.toJSON = function () {
   return {
     names: this.names,
     types: this.types
   };
 };
 
-Indexes.fromJSON = function (json) {
-  var keys = new Indexes();
+Keys.fromJSON = function (json) {
+  var keys = new Keys();
   keys.names = json.names;
   keys.types = json.types;
   return keys;
 };
 
 // names can be shared, because they are immutable.
-Indexes.prototype.fork = function () {
-  var keys = new Indexes();
+Keys.prototype.fork = function () {
+  var keys = new Keys();
   keys.names = this.names;
   keys.types = this.types;
   return keys;
 };
 
-module.exports = Indexes;
+module.exports = Keys;

@@ -1,6 +1,6 @@
 var CloudType = require('./CloudType');
 var CArray    = require('./CArray');
-var CEntity   = require('./CEntity');
+var Table   = require('./Table');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
@@ -26,7 +26,7 @@ State.prototype.get = function (name) {
 
 State.prototype.declare = function (name, array) {
   var self = this;
-  // CArray or CEntity
+  // CArray or Table
   if (array instanceof CArray) {
     array.state = this;
     array.name  = name;
@@ -34,7 +34,7 @@ State.prototype.declare = function (name, array) {
     // CSet properties -> declare their proxy Entity and give reference to the CSet properties
     array.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
-        self.declare(array.name + property.name, CEntity.declare([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
+        self.declare(array.name + property.name, Table.declare([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
         property.CType.entity = self.get(array.name + property.name);
       }
     });
@@ -49,7 +49,7 @@ State.prototype.declare = function (name, array) {
     array.isProxy = true;
     return this.arrays[name] = array;
   }
-  // Either declare CArray (CEntity is also a CArray) or CloudType, nothing else.
+  // Either declare CArray (Table is also a CArray) or CloudType, nothing else.
   throw "Need a CArray or CloudType to declare: " + array;
 };
 
@@ -81,7 +81,7 @@ State.fromJSON = function (json) {
   Object.keys(json.arrays).forEach(function (name) {
     var arrayJson = json.arrays[name];
     if (arrayJson.type === 'Entity') {
-      array = CEntity.fromJSON(arrayJson);
+      array = Table.fromJSON(arrayJson);
     } else if (arrayJson.type === 'Array') {
       array = CArray.fromJSON(arrayJson);
     } else {
@@ -123,7 +123,7 @@ State.prototype.forEachArray = function (callback) {
 State.prototype.forEachEntity = function (callback) {
   var self = this;
   Object.keys(this.arrays).forEach(function (name) {
-    if (self.arrays[name] instanceof CEntity)
+    if (self.arrays[name] instanceof Table)
       callback(self.arrays[name]);
   });
 };
@@ -143,7 +143,7 @@ State.prototype.propagate = function () {
 State.prototype.deleted = function (key, entity) {
   var self = this;
   // Entity
-  if (typeof entity !== 'undefined' && entity instanceof CEntity) {
+  if (typeof entity !== 'undefined' && entity instanceof Table) {
     var entry = entity.getByIndex(key);
 //    console.log(key + ' of ' + entity.name + ' deleted ?');
 

@@ -1,8 +1,8 @@
 var State       = require('./extensions/State');
 var CArray      = require('../shared/CArray');
-var CEntity     = require('../shared/CEntity');
+var Table     = require('../shared/Table');
 var CArrayEntry = require('../shared/CArrayEntry');
-var Indexes     = require('../shared/Indexes');
+var Keys     = require('../shared/Keys');
 var Properties  = require('../shared/Properties');
 var Property    = require('../shared/Property');
 var CloudType   = require('../shared/CloudType');
@@ -43,13 +43,13 @@ describe('CArray', function () {
     });
     it('should have keys property', function () {
       array.should.have.property('keys');
-      array.keys.should.be.an.instanceof(Indexes);
+      array.keys.should.be.an.instanceof(Keys);
     });
   });
 
   // Private
   describe('#new(keys, properties)', function () {
-    var keys = new Indexes();
+    var keys = new Keys();
     var properties = {toBuy: "CInt"};
     var array = new CArray(keys, properties);
     it('should create a new CArray object', function () {
@@ -61,7 +61,7 @@ describe('CArray', function () {
     });
     it('should have keys property', function () {
       array.should.have.property('keys');
-      array.keys.should.be.an.instanceof(Indexes);
+      array.keys.should.be.an.instanceof(Keys);
       array.keys.should.equal(keys);
     });
   });
@@ -118,7 +118,7 @@ describe('CArray', function () {
     });
     it('should have keys property', function () {
       array.should.have.property('keys');
-      array.keys.should.be.an.instanceof(Indexes);
+      array.keys.should.be.an.instanceof(Keys);
     });
     it('should have initialized properties property', function () {
       array.should.have.property('properties');
@@ -206,9 +206,9 @@ describe('CArray', function () {
         should(entry2.key('ref').equals(entry1));
       });
 
-      it('should be a CEntity if key is of declared Entity type', function () {
+      it('should be a Table if key is of declared Entity type', function () {
         var state = new State();
-        var entity = state.declare('entity', CEntity.declare([{name: 'string'}], {prop: 'CString'}));
+        var entity = state.declare('entity', Table.declare([{name: 'string'}], {prop: 'CString'}));
         var array  = state.declare('array', CArray.declare([{ref: 'entity'}], {prop: 'CString'}));
         var entry1 = entity.create('foo');
         var entry2 = array.get(entry1);

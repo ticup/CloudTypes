@@ -5,7 +5,7 @@ var CArray    = require('../shared/CArray');
 var CloudType = require('../shared/CloudType');
 var CInt      = require('./extensions/CInt');
 var Property  = require('../shared/Property');
-var Indexes   = require('../shared/Indexes');
+var Keys   = require('../shared/Keys');
 var stubs     = require('./stubs');
 
 describe('Property state independent operations', function () {

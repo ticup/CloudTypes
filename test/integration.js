@@ -6,7 +6,7 @@ var util        = require('util');
 
 var State       = require('./extensions/State');
 var CArray      = require('../shared/CArray');
-var CEntity     = require('../shared/CEntity');
+var Table     = require('../shared/Table');
 var ServerState = require('../server/State');
 var CloudType   = require('../shared/CloudType');
 var CInt        = require('./extensions/CInt');
@@ -278,15 +278,15 @@ describe('Integration #', function () {
 
   });
 
-  describe('CEntity client/server usage scenario', function () {
+  describe('Table client/server usage scenario', function () {
     it('should be eventually consistent', function (done) {
       var array, client1, client2, carray, entry;
       server.close();
 
       // server code
       server = CloudTypeServer.createServer();
-      server.declare("Customer", CEntity.declare([], {name: "CString"}));
-      server.declare("Order", CEntity.declare([{customer: "Customer"}], {price: "CInt"}));
+      server.declare("Customer", Table.declare([], {name: "CString"}));
+      server.declare("Order", Table.declare([{customer: "Customer"}], {price: "CInt"}));
       server.publish(8001);
 
       // client setup code

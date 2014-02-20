@@ -1,7 +1,7 @@
 var State     = require('./extensions/State');
 var CloudType = require('../shared/CloudType');
 var CArray    = require('../shared/CArray');
-var CEntity   = require('../shared/CEntity');
+var Table   = require('../shared/Table');
 var Property  = require('../shared/Property');
 var CSet      = require('../shared/CSet').Declaration.declare;
 var CInt      = require('./extensions/CInt');
@@ -69,7 +69,7 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, cArray) (declare CArray/CEntity)', function () {
+  describe('.declare(name, cArray) (declare CArray/Table)', function () {
     var state = new State();
     var name = "Grocery";
     state.declare(name, CArray.fromJSON(stubs.groceryChanged));
@@ -134,7 +134,7 @@ describe('State', function () {
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
       should.exist(state.arrays[entityName]);
-      state.arrays[entityName].should.be.an.instanceof(CEntity);
+      state.arrays[entityName].should.be.an.instanceof(Table);
     });
     it('should install a reference to the entity in the CType of the property', function () {
       should.exist(state.arrays[name].properties.get('slots').CType.entity);
@@ -158,7 +158,7 @@ describe('State', function () {
   describe('.get(cEntityName)', function () {
     var state = new State();
     var name = "Customer";
-    var array1 = CEntity.fromJSON(stubs.customerChanged);
+    var array1 = Table.fromJSON(stubs.customerChanged);
     state.declare(name, array1);
     var array2 = state.get(name);
     it('should return the declared CArray', function () {

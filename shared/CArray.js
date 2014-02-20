@@ -1,5 +1,5 @@
 var CloudType     = require('./CloudType');
-var Indexes       = require('./Indexes');
+var Keys       = require('./Keys');
 var Property      = require('./Property');
 var Properties    = require('./Properties');
 var CArrayEntry   = require('./CArrayEntry');
@@ -16,7 +16,7 @@ module.exports = CArray;
 // to the CArray object.
 // todo: create copy of initializers
 function CArray(keys, properties) {
-  this.keys    = (keys instanceof Indexes) ? keys : new Indexes(keys);
+  this.keys    = (keys instanceof Keys) ? keys : new Keys(keys);
   this.properties = properties || new Properties();
   this.isProxy    = false;  // set true by State if used as proxy for global CloudType
 }
@@ -64,8 +64,8 @@ CArray.prototype.addProperty = function (property) {
 };
 
 CArray.prototype.fork = function () {
-  var fIndexes = this.keys.fork();
-  var cArray = new CArray(fIndexes);
+  var fKeys = this.keys.fork();
+  var cArray = new CArray(fKeys);
   cArray.properties = this.properties.fork(cArray);
   cArray.isProxy = this.isProxy;
   return cArray;
@@ -83,7 +83,7 @@ CArray.prototype.toJSON = function () {
 
 CArray.fromJSON = function (json) {
   var cArray = new CArray();
-  cArray.keys = Indexes.fromJSON(json.keys);
+  cArray.keys = Keys.fromJSON(json.keys);
   cArray.properties = Properties.fromJSON(json.properties, cArray);
   cArray.isProxy = json.isProxy;
   return cArray;
