@@ -6,8 +6,8 @@ var IndexQuery = require("./IndexQuery");
 
 module.exports = TableQuery;
 
-function TableQuery(table, filter) {
-  IndexQuery.call(this, table, filter);
+function TableQuery(cEntity, filter) {
+  IndexQuery.call(this, cEntity, filter);
 }
 TableQuery.prototype = Object.create(IndexQuery.prototype);
 

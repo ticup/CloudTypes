@@ -23,12 +23,12 @@ Table.OK = OK;
 Table.DELETED = DELETED;
 
 Table.declare = function (indexDeclarations, propertyDeclarations) {
-  var table = new Table([{uid: 'string'}].concat(indexDeclarations));
+  var cEntity = new Table([{uid: 'string'}].concat(indexDeclarations));
   Object.keys(propertyDeclarations).forEach(function (propName) {
     var cTypeName = propertyDeclarations[propName];
-    table.addProperty(new Property(propName, cTypeName, table));
+    cEntity.addProperty(new Property(propName, cTypeName, cEntity));
   });
-  return table;
+  return cEntity;
 };
 
 
@@ -107,21 +107,21 @@ Table.prototype.deleted = function (idx) {
 
 Table.prototype.fork = function () {
   var fIndexes = this.indexes.fork();
-  var table = new Table(fIndexes);
-  table.properties = this.properties.fork(table);
-  table.states     = this.states;
-  return table;
+  var cEntity = new Table(fIndexes);
+  cEntity.properties = this.properties.fork(cEntity);
+  cEntity.states     = this.states;
+  return cEntity;
 };
 
 Table.fromJSON = function (json) {
-  var table = new Table();
-  table.indexes = Indexes.fromJSON(json.indexes);
-  table.properties = Properties.fromJSON(json.properties, table);
-  table.states = {};
+  var cEntity = new Table();
+  cEntity.indexes = Indexes.fromJSON(json.indexes);
+  cEntity.properties = Properties.fromJSON(json.properties, cEntity);
+  cEntity.states = {};
   Object.keys(json.states).forEach(function (index) {
-    table.states[index] = json.states[index];
+    cEntity.states[index] = json.states[index];
   });
-  return table;
+  return cEntity;
 };
 
 Table.prototype.toJSON = function () {

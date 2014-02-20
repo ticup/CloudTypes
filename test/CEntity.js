@@ -71,11 +71,11 @@ describe('Table state independent operations', function () {
         return [json, Table.fromJSON(json)];
       }).forEach(function (result) {
         var json = result[0];
-        var table = result[1];
-        should.exist(table);
-        table.should.be.an.instanceof(Table);
+        var cEntity = result[1];
+        should.exist(cEntity);
+        cEntity.should.be.an.instanceof(Table);
         json.properties.forEach(function (jsonProperty) {
-          should.exist(table.getProperty(jsonProperty.name));
+          should.exist(cEntity.getProperty(jsonProperty.name));
        });
      });
     });
@@ -118,7 +118,7 @@ describe('Table state independent operations', function () {
   });
 
   describe('.get(index)', function () {
-    it('should return a TableEntry for that index and table', function () {
+    it('should return a TableEntry for that index and cEntity', function () {
       var entry = entity.get('foo');
       should.exist(entry);
       entry.should.be.an.instanceof(TableEntry);

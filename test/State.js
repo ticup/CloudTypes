@@ -69,17 +69,17 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, index) (declare Index/Table)', function () {
+  describe('.declare(name, cArray) (declare Index/Table)', function () {
     var state = new State();
     var name = "Grocery";
     state.declare(name, Index.fromJSON(stubs.groceryChanged));
     it('should add the array to the arrays map with given name', function () {
        state.arrays.should.have.property(name);
     });
-    it('should install reference of self in index', function () {
+    it('should install reference of self in cArray', function () {
       state.arrays[name].state.should.equal(state);
     });
-    it('should install reference of name in index', function () {
+    it('should install reference of name in cArray', function () {
       state.arrays[name].name.should.equal(name);
     });
   });
@@ -117,7 +117,7 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, index) (declare Index with a CSet property)', function () {
+  describe('.declare(name, cArray) (declare Index with a CSet property)', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
@@ -126,10 +126,10 @@ describe('State', function () {
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });
-    it('should install reference of self in index', function () {
+    it('should install reference of self in cArray', function () {
       state.arrays[name].state.should.equal(state);
     });
-    it('should install reference of name in index', function () {
+    it('should install reference of name in cArray', function () {
       state.arrays[name].name.should.equal(name);
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
@@ -143,7 +143,7 @@ describe('State', function () {
   });
 
 
-  describe('.get(indexName)', function () {
+  describe('.get(cArrayName)', function () {
     var state = new State();
     var name = "Grocery";
     var array1 = Index.fromJSON(stubs.groceryChanged);
@@ -155,7 +155,7 @@ describe('State', function () {
     });
   });
 
-  describe('.get(tableName)', function () {
+  describe('.get(cEntityName)', function () {
     var state = new State();
     var name = "Customer";
     var array1 = Table.fromJSON(stubs.customerChanged);
