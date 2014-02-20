@@ -1,0 +1,31 @@
+{
+  "name": "cloudtypes",
+  "description": "A JavaScript library implementation of the CloudTypes eventual consistency model",
+  "author": "Tim Coppieters <coppieters.tim@gmail.com>",
+  "version": "0.0.9",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url" : "https://github.com/ticup/CloudTypes.git"
+  },
+  "engines": {
+    "node": "0.10.x",
+    "npm": "1.2.x"
+  },
+  "dependencies": {
+    "socket.io": "*",
+    "socket.io-client": "*",
+    "shortid": "*"
+  },
+  "devDependencies": {
+    "should": "*",
+    "mocha": "*"
+  },
+  "optionalDependencies": {
+    "node-static": "*"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/mocha",
+    "make-test": "node_modules/.bin/browserify"
+  }
+}
