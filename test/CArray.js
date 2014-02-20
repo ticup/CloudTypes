@@ -14,9 +14,9 @@ var util        = require('util');
 
 
 function createCArray() {
-  var indexNames = [{name: "string"}];
+  var keyNames = [{name: "string"}];
   var properties = {toBuy: "CInt", shop: "CString"};
-  var array = CArray.declare(indexNames, properties);
+  var array = CArray.declare(keyNames, properties);
   return array;
 }
 
@@ -30,10 +30,10 @@ describe('CArray', function () {
   });
 
   // Private
-  describe('#new(indexes, properties)', function () {
-    var indexes = [{name: "string"}];
+  describe('#new(keys, properties)', function () {
+    var keys = [{name: "string"}];
     var properties = {toBuy: "CInt"};
-    var array = new CArray(indexes, properties);
+    var array = new CArray(keys, properties);
     it('should create a new CArray object', function () {
       array.should.be.an.instanceOf(CArray);
     });
@@ -41,17 +41,17 @@ describe('CArray', function () {
       array.should.have.property('properties');
       array.properties.should.equal(properties);
     });
-    it('should have indexes property', function () {
-      array.should.have.property('indexes');
-      array.indexes.should.be.an.instanceof(Indexes);
+    it('should have keys property', function () {
+      array.should.have.property('keys');
+      array.keys.should.be.an.instanceof(Indexes);
     });
   });
 
   // Private
-  describe('#new(indexes, properties)', function () {
-    var indexes = new Indexes();
+  describe('#new(keys, properties)', function () {
+    var keys = new Indexes();
     var properties = {toBuy: "CInt"};
-    var array = new CArray(indexes, properties);
+    var array = new CArray(keys, properties);
     it('should create a new CArray object', function () {
       array.should.be.an.instanceOf(CArray);
     });
@@ -59,10 +59,10 @@ describe('CArray', function () {
       array.should.have.property('properties');
       array.properties.should.equal(properties);
     });
-    it('should have indexes property', function () {
-      array.should.have.property('indexes');
-      array.indexes.should.be.an.instanceof(Indexes);
-      array.indexes.should.equal(indexes);
+    it('should have keys property', function () {
+      array.should.have.property('keys');
+      array.keys.should.be.an.instanceof(Indexes);
+      array.keys.should.equal(keys);
     });
   });
 
@@ -96,9 +96,9 @@ describe('CArray', function () {
     it('should create a JSON representation', function () {
       var json = array.toJSON();
       should.exist(json);
-      should.exist(json.indexes);
+      should.exist(json.keys);
       should.exist(json.properties);
-      json.indexes.should.eql(array.indexes.toJSON());
+      json.keys.should.eql(array.keys.toJSON());
       json.properties.should.eql(array.properties.toJSON())
     });
     it('should be complementary with fromJSON for all stubs', function () {
@@ -109,16 +109,16 @@ describe('CArray', function () {
   });
 
   // Public
-  describe('#declare(indexNames, properties)', function () {
-    var indexNames = [{name: "string"}];
+  describe('#declare(keyNames, properties)', function () {
+    var keyNames = [{name: "string"}];
     var properties = {toBuy: "CInt"};
-    var array = CArray.declare(indexNames, properties);
+    var array = CArray.declare(keyNames, properties);
     it('should create a new CArray object', function () {
       array.should.be.an.instanceOf(CArray);
     });
-    it('should have indexes property', function () {
-      array.should.have.property('indexes');
-      array.indexes.should.be.an.instanceof(Indexes);
+    it('should have keys property', function () {
+      array.should.have.property('keys');
+      array.keys.should.be.an.instanceof(Indexes);
     });
     it('should have initialized properties property', function () {
       array.should.have.property('properties');
@@ -164,7 +164,7 @@ describe('CArray', function () {
   });
 
 
-  describe('.get(indexes)', function () {
+  describe('.get(keys)', function () {
     it('should return a CArrayEntry', function () {
       var entry = array.get('foo');
       should.exist(entry);
@@ -177,25 +177,24 @@ describe('CArray', function () {
     });
 
     describe('.key(name)', function () {
-      it('should return the value for given index', function () {
+      it('should return the value for given key', function () {
         var entry = array.get('foo');
-        console.log(entry);
         should.exist(entry.key('name'));
       });
 
-      it('should be a string if index is of type string', function () {
+      it('should be a string if key is of type string', function () {
         var entry = array.get('bar');
         should.exist(entry.key('name'));
         (typeof entry.key('name')).should.equal('string');
       });
 
-      it('should be a number if index is of type int', function () {
+      it('should be a number if key is of type int', function () {
         var entry = intArray.get(1);
         should.exist(entry.key('slot'));
         (typeof entry.key('slot')).should.equal('number');
       });
 
-      it('should be a CArray if index is of declared Array type', function () {
+      it('should be a CArray if key is of declared Array type', function () {
         var state = new State();
         var array1 = state.declare('array1', CArray.declare([{name: 'string'}], {prop: 'CString'}));
         var array2 = state.declare('array2', CArray.declare([{ref: 'array1'}], {prop: 'CString'}));
@@ -207,7 +206,7 @@ describe('CArray', function () {
         should(entry2.key('ref').equals(entry1));
       });
 
-      it('should be a CEntity if index is of declared Entity type', function () {
+      it('should be a CEntity if key is of declared Entity type', function () {
         var state = new State();
         var entity = state.declare('entity', CEntity.declare([{name: 'string'}], {prop: 'CString'}));
         var array  = state.declare('array', CArray.declare([{ref: 'entity'}], {prop: 'CString'}));

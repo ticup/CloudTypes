@@ -13,8 +13,8 @@ function State(arrays, entities) {
 
 
 /* User API */
-//State.prototype.operation = function (name, indexes, propertyName, op) {
-//  return op.apply(this.arrays[name].getProperty(propertyName).get(indexes), [].slice.call(arguments, 4))
+//State.prototype.operation = function (name, keys, propertyName, op) {
+//  return op.apply(this.arrays[name].getProperty(propertyName).get(keys), [].slice.call(arguments, 4))
 //};
 State.prototype.get = function (name) {
   var array = this.arrays[name];
@@ -132,29 +132,29 @@ State.prototype.propagate = function () {
   var self = this;
   var changed = false;
   this.forEachEntity(function (entity) {
-    entity.forEachState(function (index) {
-      if (entity.exists(index) && self.deleted(index, entity)) {
-        entity.setDeleted(index);
+    entity.forEachState(function (key) {
+      if (entity.exists(key) && self.deleted(key, entity)) {
+        entity.setDeleted(key);
       }
     });
   });
 };
 
-State.prototype.deleted = function (index, entity) {
+State.prototype.deleted = function (key, entity) {
   var self = this;
   // Entity
   if (typeof entity !== 'undefined' && entity instanceof CEntity) {
-    var entry = entity.getByIndex(index);
-//    console.log(index + ' of ' + entity.name + ' deleted ?');
+    var entry = entity.getByIndex(key);
+//    console.log(key + ' of ' + entity.name + ' deleted ?');
 
-    if (entity.deleted(index))
+    if (entity.deleted(key))
       return true;
     var del = false;
     entry.forEachKey(function (name, value) {
-      var type = entity.indexes.getTypeOf(name);
+      var type = entity.keys.getTypeOf(name);
       if (typeof type !== 'undefined')
         type = self.get(type);
-//      console.log('index deleted? ' + value + " of type " + type);
+//      console.log('key deleted? ' + value + " of type " + type);
       if (self.deleted(value, type))
         del = true;
     });
@@ -164,9 +164,9 @@ State.prototype.deleted = function (index, entity) {
   // Array
   if (typeof entity !== 'undefined' && entity instanceof CArray) {
     var del = false;
-    var entry = entity.get(index);
+    var entry = entity.get(key);
     entry.forEachKey(function (name, value) {
-      var type = entity.indexes.getTypeOf(name);
+      var type = entity.keys.getTypeOf(name);
       if (self.deleted(value, type))
         del = true;
     });
@@ -183,10 +183,10 @@ State.prototype._join = function (rev, target) {
   var master = (this === target) ? rev : this;
   var self = this;
   master.forEachProperty(function (property) {
-    property.forEachIndex(function (index) {
-      var joiner = rev.getProperty(property).getByIndex(index);
-      var joinee = self.getProperty(property).getByIndex(index);
-      var t = target.getProperty(property).getByIndex(index);
+    property.forEachIndex(function (key) {
+      var joiner = rev.getProperty(property).getByIndex(key);
+      var joinee = self.getProperty(property).getByIndex(key);
+      var t = target.getProperty(property).getByIndex(key);
 
 //      console.log("joining: " + require('util').inspect(joiner) + " and " + require('util').inspect(joinee) + ' in ' + require('util').inspect(t));
       joinee._join(joiner, t);
@@ -197,8 +197,8 @@ State.prototype._join = function (rev, target) {
     var joiner = rev.get(entity.name);
     var joinee = self.get(entity.name);
     var t = target.get(entity.name);
-    entity.forEachState(function (index) {
-      t.setMax(joinee, joiner, index);
+    entity.forEachState(function (key) {
+      t.setMax(joinee, joiner, key);
     });
 
   });
@@ -226,8 +226,8 @@ State.prototype.fork = function () {
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
-    property.forEachIndex(function (index) {
-      var type = property.getByIndex(index);
+    property.forEachIndex(function (key) {
+      var type = property.getByIndex(key);
       type.applyFork();
     });
   });
@@ -236,9 +236,9 @@ State.prototype.applyFork = function () {
 State.prototype.replaceBy = function (state) {
   var self = this;
   state.forEachProperty(function (property) {
-    property.forEachIndex(function (index) {
-      var type1 = property.getByIndex(index);
-      var type2 = self.getProperty(property).getByIndex(index);
+    property.forEachIndex(function (key) {
+      var type1 = property.getByIndex(key);
+      var type2 = self.getProperty(property).getByIndex(key);
       type2.replaceBy(type1);
     });
   });

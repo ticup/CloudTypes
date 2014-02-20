@@ -2,13 +2,13 @@ var Indexes = require('./Indexes');
 
 module.exports = CArrayEntry;
 
-function CArrayEntry(cArray, indexes) {
+function CArrayEntry(cArray, keys) {
   this.cArray = cArray;
-  this.indexes = Indexes.getIndexes(indexes, cArray);
+  this.keys = Indexes.getIndexes(keys, cArray);
 }
 
 CArrayEntry.prototype.get = function (property) {
-  return this.cArray.getProperty(property).saveGet(this.indexes);
+  return this.cArray.getProperty(property).saveGet(this.keys);
 };
 
 CArrayEntry.prototype.forEachProperty = function (callback) {
@@ -19,26 +19,26 @@ CArrayEntry.prototype.forEachProperty = function (callback) {
 };
 
 CArrayEntry.prototype.forEachKey = function (callback) {
-  for (var i = 0; i<this.indexes.length; i++) {
-    callback(this.cArray.indexes.getName(i), this.indexes[i]);
+  for (var i = 0; i<this.keys.length; i++) {
+    callback(this.cArray.keys.getName(i), this.keys[i]);
   }
 };
 
 
 
 CArrayEntry.prototype.forEachIndex = function (callback) {
-  return this.indexes.forEach(callback);
+  return this.keys.forEach(callback);
 };
 
 
 
 CArrayEntry.prototype.key = function (name) {
-  var position = this.cArray.indexes.getPositionOf(name);
+  var position = this.cArray.keys.getPositionOf(name);
   if (position === -1)
-    throw Error("This Array does not have an index named " + name);
+    throw Error("This Array does not have an key named " + name);
 
-  var type = this.cArray.indexes.getType(position);
-  var value =  this.indexes[position];
+  var type = this.cArray.keys.getType(position);
+  var value =  this.keys[position];
   if (type === 'int') {
     value = parseInt(value, 10);
   }
@@ -49,19 +49,19 @@ CArrayEntry.prototype.key = function (name) {
 };
 
 CArrayEntry.prototype.deleted = function () {
-  return (this.cArray.state.deleted(this.indexes, this.cArray));
+  return (this.cArray.state.deleted(this.keys, this.cArray));
 };
 
-CArrayEntry.prototype.index = function () {
-  return Indexes.createIndex(this.indexes);
+CArrayEntry.prototype.serialKey = function () {
+  return Indexes.createIndex(this.keys);
 };
 
 CArrayEntry.prototype.equals = function (entry) {
   if (this.cArray !== entry.cArray)
     return false;
 
-  for (var i = 0; i<this.indexes.length; i++) {
-    if (this.indexes[i] !== entry.indexes[i])
+  for (var i = 0; i<this.keys.length; i++) {
+    if (this.keys[i] !== entry.keys[i])
       return false;
   }
   return true;

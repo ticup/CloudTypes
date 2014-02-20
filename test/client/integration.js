@@ -14,7 +14,7 @@ var CloudTypeClient = require('../../server/main.js');
 var stubs = require('./../stubs');
 
 var bundle = fs.readFileSync('./test/client/bundle.js').toString();
-var index  = "<html><head></head><body></body><script src='bundle.js'></script></html>";
+var key  = "<html><head></head><body></body><script src='bundle.js'></script></html>";
 
 var host = 'http://localhost';
 var port = 8090;
@@ -27,7 +27,7 @@ function createHttpServer(port) {
       res.end(bundle);
     } else {
       res.writeHead(200, {'Content-Type': 'text/plain'});
-      res.end(index);
+      res.end(key);
     }
   });
   app.listen(port);

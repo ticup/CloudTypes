@@ -59,7 +59,7 @@ Application.prototype.createMember = function () {
 };
 
 Application.prototype.deleteMember = function (member) {
-  console.log('deleting member: ' + member.index());
+  console.log('deleting member: ' + member.key());
   member.delete();
   this.state.yield();
 };
@@ -80,7 +80,7 @@ Application.prototype.createProject = function () {
 };
 
 Application.prototype.deleteProject = function (project) {
-  console.log('deleting project: ' + project.index());
+  console.log('deleting project: ' + project.key());
   project.delete();
   this.state.yield();
 };
@@ -100,7 +100,7 @@ Application.prototype.createTask = function (member, project) {
 };
 
 Application.prototype.deleteTask = function (task) {
-  console.log('deleting task: ' + task.index());
+  console.log('deleting task: ' + task.key());
   task.delete();
   this.state.yield();
 };

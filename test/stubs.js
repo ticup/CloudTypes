@@ -30,7 +30,7 @@ exports.unchanged = createMap();
 
 exports.groceryUnchanged = {
   type        : 'Array',
-  indexes     : {
+  keys     : {
     names: ['name'],
     types: ['string']
   },
@@ -51,7 +51,7 @@ exports.groceryUnchanged = {
 
 exports.productUnchanged = {
   type        : 'Array',
-  indexes     : {
+  keys     : {
     names: ['id'],
     types: ['string']
   },
@@ -80,7 +80,7 @@ exports.productUnchanged = {
 
 exports.customerUnchanged = {
   type        : 'Entity',
-  indexes     : {
+  keys     : {
     names: ['uid'],
     types: ['string']
   },
@@ -100,7 +100,7 @@ exports.customerUnchanged = {
 
 exports.orderUnchanged = {
   type        : 'Entity',
-  indexes     : {
+  keys     : {
     names: ['uid', 'customer'],
     types: ['string', 'Customer']
   },
@@ -161,7 +161,7 @@ function createMap() {
 
 exports.groceryPoluted = {
   type        : 'Array',
-  indexes     : {
+  keys     : {
     names: ['name'],
     types: ['string']
   },
@@ -176,7 +176,7 @@ exports.groceryPoluted = {
 };
 exports.productPoluted = {
   type        : 'Array',
-  indexes     : {
+  keys     : {
     names: ['id'],
     types: ['string']
   },
@@ -197,7 +197,7 @@ exports.productPoluted = {
 
 exports.groceryChanged = {
   type        : 'Array',
-  indexes     : {
+  keys     : {
     names: ['name'],
     types: ['string']
   },
@@ -218,7 +218,7 @@ exports.groceryChanged = {
 };
 exports.productChanged = {
   type   : 'Array',
-  indexes: {
+  keys: {
     names: ['id'],
     types: ['string']
   },
@@ -248,7 +248,7 @@ exports.productChanged = {
 
 exports.customerChanged = {
   type        : 'Entity',
-  indexes     : {
+  keys     : {
     names: ['uid'],
     types: ['string']
   },
@@ -275,7 +275,7 @@ exports.customerChanged = {
 
 exports.orderChanged = {
   type        : 'Entity',
-  indexes     : {
+  keys     : {
     names: ['uid', 'customer'],
     types: ['string', 'Customer']
   },

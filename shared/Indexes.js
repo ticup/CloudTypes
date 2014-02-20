@@ -1,11 +1,11 @@
-function Indexes(indexes) {
+function Indexes(keys) {
   var self = this;
   this.names  = [];
   this.types  = [];
-  if (typeof indexes !== 'undefined') {
-    indexes.forEach(function (index) {
-      var name = Object.keys(index)[0];
-      var type = index[name];
+  if (typeof keys !== 'undefined') {
+    keys.forEach(function (key) {
+      var name = Object.keys(key)[0];
+      var type = key[name];
       self.names.push(name);
       self.types.push(type);
     });
@@ -39,15 +39,15 @@ Indexes.prototype.getPositionOf = function (name) {
   return this.names.indexOf(name);
 };
 
-Indexes.prototype.get = function (indexes) {
-  var index = Indexes.createIndex(indexes);
-  return index;
+Indexes.prototype.get = function (keys) {
+  var key = Indexes.createIndex(keys);
+  return key;
 };
 
-Indexes.createIndex = function createIndex(indexes) {
-  if (! (indexes instanceof Array))
-    throw Error("createIndex: expects an array of indexes, given: " + indexes);
-  return "[" + [].map.call(indexes, function (val) { return val.toString(); }).join(".") + "]";
+Indexes.createIndex = function createIndex(keys) {
+  if (! (keys instanceof Array))
+    throw Error("createIndex: expects an array of keys, given: " + keys);
+  return "[" + [].map.call(keys, function (val) { return val.toString(); }).join(".") + "]";
 };
 
 function unParseIndex(string) {
@@ -79,28 +79,28 @@ function unParseIndex(string) {
   return parts;
 }
 
-Indexes.getIndexes = function getIndexes(index, cArray) {
+Indexes.getIndexes = function getIndexes(key, cArray) {
   // Flattened string given: unflatten
-  if (! (index instanceof Array)) {
-    index = unParseIndex(index);
+  if (! (key instanceof Array)) {
+    key = unParseIndex(key);
   }
 
-  for (var i = 0; i<index.length; i++) {
-    var type = cArray.indexes.getType(i);
+  for (var i = 0; i<key.length; i++) {
+    var type = cArray.keys.getType(i);
     if (type === 'string') {
       continue;
     }
     if (type === 'int') {
-      index[i] = parseInt(index[i], 10);
+      key[i] = parseInt(key[i], 10);
       continue;
     }
 
-    // If entry is given, just store index!
-    if (typeof index[i] !== 'string' && typeof index[i] !== 'number')
-      index[i] = index[i].index();
+    // If entry is given, just store key!
+    if (typeof key[i] !== 'string' && typeof key[i] !== 'number')
+      key[i] = key[i].serialKey();
 
   }
-  return index;
+  return key;
 };
 
 Indexes.prototype.toJSON = function () {
@@ -111,18 +111,18 @@ Indexes.prototype.toJSON = function () {
 };
 
 Indexes.fromJSON = function (json) {
-  var indexes = new Indexes();
-  indexes.names = json.names;
-  indexes.types = json.types;
-  return indexes;
+  var keys = new Indexes();
+  keys.names = json.names;
+  keys.types = json.types;
+  return keys;
 };
 
 // names can be shared, because they are immutable.
 Indexes.prototype.fork = function () {
-  var indexes = new Indexes();
-  indexes.names = this.names;
-  indexes.types = this.types;
-  return indexes;
+  var keys = new Indexes();
+  keys.names = this.names;
+  keys.types = this.types;
+  return keys;
 };
 
 module.exports = Indexes;

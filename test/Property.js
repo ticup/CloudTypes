@@ -9,7 +9,7 @@ var Indexes   = require('../shared/Indexes');
 var stubs     = require('./stubs');
 
 describe('Property state independent operations', function () {
-  var indexes, property, cArray1, cArray2, cArray, state, name;
+  var keys, property, cArray1, cArray2, cArray, state, name;
   var CType =  CInt;
 
   beforeEach(function () {
@@ -35,9 +35,9 @@ describe('Property state independent operations', function () {
       property.should.have.property('name');
       property.name.should.equal("propName");
     });
-    it('should have an indexes property', function () {
-      property.should.have.property('indexes');
-      property.indexes.should.equal(cArray.indexes);
+    it('should have an keys property', function () {
+      property.should.have.property('keys');
+      property.keys.should.equal(cArray.keys);
     });
     it('should have a CType property', function () {
       property.should.have.property('CType');
@@ -49,7 +49,7 @@ describe('Property state independent operations', function () {
     });
   });
 
-  describe('.get(indexes)', function () {
+  describe('.get(keys)', function () {
     it('should get a cloud type of given type', function () {
       var ctype = name1.get(['foo']);
       console.log(ctype);
@@ -57,7 +57,7 @@ describe('Property state independent operations', function () {
       ctype.should.be.an.instanceof(CInt);
     });
 
-    it('should work for multi-indexes', function () {
+    it('should work for multi-keys', function () {
       var ctype = name2.get(['foo', 'bar']);
       should.exist(ctype);
       ctype.should.be.an.instanceof(CInt);
@@ -71,22 +71,22 @@ describe('Property state independent operations', function () {
   });
 
   describe('.forEachIndex(callback)', function () {
-    it('should not be called if no indexes are accessed', function () {
+    it('should not be called if no keys are accessed', function () {
       var ctr = 0;
-      name1.forEachIndex(function (index) {
+      name1.forEachIndex(function (key) {
         ctr++;
       });
       ctr.should.equal(0);
     });
 
-    it('should be called for every index that has been accessed', function () {
+    it('should be called for every key that has been accessed', function () {
       var idxs = [];
       name1.get(['foo']);
       name1.get(['bar']);
       name1.get(['foobar']);
       name1.get(['foo']);
-      name1.forEachIndex(function (index) {
-        idxs.push(index);
+      name1.forEachIndex(function (key) {
+        idxs.push(key);
       });
       idxs.length.should.equal(3);
       idxs.should.include('[foo]');
@@ -114,8 +114,8 @@ describe('Property state independent operations', function () {
       name1.get(['bar']);
       json = name1.toJSON();
       Object.keys(json.values).length.should.equal(2);
-      name1.forEachIndex(function (index) {
-        json.values[index].should.eql(name1.get([index]).toJSON());
+      name1.forEachIndex(function (key) {
+        json.values[key].should.eql(name1.get([key]).toJSON());
       });
     });
   });
@@ -136,12 +136,12 @@ describe('Property state independent operations', function () {
 //      console.log(json);
 //
 //      var convert = Property.fromJSON(json, cArray);
-//      convert.indexes = property.indexes;
+//      convert.keys = property.keys;
 //      should.exist(convert);
 //      console.log(convert);
 //      convert.should.be.an.instanceof(Property);
-//      name1.forEachIndex(function (index) {
-//        convert.get([index]).should.eql(name.get([index]));
+//      name1.forEachIndex(function (key) {
+//        convert.get([key]).should.eql(name.get([key]));
 //      });
     });
 

@@ -28,7 +28,7 @@ function defaults(entryView) {
 //    throw new Error("EntryView requires an Entry property");
   if (typeof entryView.html === 'undefined') {
     var entry = entryView.entry;
-    var html  = entryView.html = $("<li class='list-group-item' data-index='" + entry.index() + "'></li>");
+    var html  = entryView.html = $("<li class='list-group-item' data-key='" + entry.key() + "'></li>");
     entry.forEachKey(function (name, value) {
       html.append("<div class='key-" + name + "'>" + value + "</div>");
     });

@@ -10,6 +10,6 @@ Entities.fromJSON = function (json) {
 
 Entities.prototype.toJSON = function () {
   var json = { };
-  Object.keys(this.entities).forEach(function (index) { json[index] = this.entities[index]; });
+  Object.keys(this.entities).forEach(function (key) { json[key] = this.entities[key]; });
   return json;
 };

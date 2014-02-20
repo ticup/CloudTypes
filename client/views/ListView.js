@@ -20,7 +20,7 @@ var ListView = View.extend({
 
     // create new views or update existing ones
     this.value().forEach(function (item) {
-      var id = item.index();
+      var id = item.key();
       var view = views[id];
 
       // view already present: update + delete from old views
@@ -69,8 +69,8 @@ var ListView = View.extend({
 
   forEachView: function (callback) {
     var views = this.views;
-    Object.keys(views).forEach(function (index) {
-      callback(views[index]);
+    Object.keys(views).forEach(function (key) {
+      callback(views[key]);
     });
   }
 });
@@ -78,12 +78,12 @@ var ListView = View.extend({
 // Utility
 ///////////
 
-function insertAt(parent, index, html) {
-  console.log('inserting at ' + index + ' ' + html);
+function insertAt(parent, key, html) {
+  console.log('inserting at ' + key + ' ' + html);
   console.log(parent);
-  if (index === 0)
+  if (key === 0)
     return parent.prepend(html);
-  parent.children(':nth-child(' + index + ')').after(html);
+  parent.children(':nth-child(' + key + ')').after(html);
 }
 
 module.exports = ListView;

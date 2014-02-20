@@ -21,7 +21,7 @@ var SelectView = CloudTypes.ListView.extend({
   update: function () {
     SelectView.__super__.update.call(this);
     var selected = this.html.find($('option:selected'));
-    var view = this.getView(selected.index());
+    var view = this.getView(selected.key());
     if (typeof view !== 'undefined') {
       this.unselect();
       view.selected = true;

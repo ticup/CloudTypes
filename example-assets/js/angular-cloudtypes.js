@@ -117,7 +117,7 @@ angular
         var newEntries = {};
 
         this.array = this.getArray().map(function (item) {
-          var idx = item.index();
+          var idx = item.key();
           var entry = entries[idx];
           if (entry)
             item = entry;

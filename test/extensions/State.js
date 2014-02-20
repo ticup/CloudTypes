@@ -47,9 +47,9 @@ var DELETED = 'deleted';
 State.prototype.forPairs = function (state2, callback) {
   var state1 = this;
   state1.forEachProperty(function (property) {
-    property.forEachIndex(function (index) {
-      var type1 = property.getByIndex(index);
-      var type2 = state2.getProperty(property).getByIndex(index);
+    property.forEachIndex(function (key) {
+      var type1 = property.getByIndex(key);
+      var type2 = state2.getProperty(property).getByIndex(key);
       should.exist(type2);
       callback(type1, type2);
     });
@@ -65,24 +65,24 @@ State.prototype.isForkOf = function (state) {
 State.prototype.isJoinOf = function (state1, state2) {
   var self = this;
   this.forEachProperty(function (property) {
-    property.forEachIndex(function (index) {
-      var jType = property.getByIndex(index);
-      var type1 = state1.getProperty(property).getByIndex(index);
-      var type2 = state2.getProperty(property).getByIndex(index);
+    property.forEachIndex(function (key) {
+      var jType = property.getByIndex(key);
+      var type1 = state1.getProperty(property).getByIndex(key);
+      var type2 = state2.getProperty(property).getByIndex(key);
       should.exist(type1);
       should.exist(type2);
       jType.isJoinOf(type1, type2);
     });
   });
   this.forEachEntity(function (entity) {
-    entity.forEachState(function (index) {
-      var val  = entity.states[index];
-      var val1 = state1.get(entity.name).states[index];
-      var val2 = state2.get(entity.name).states[index];
+    entity.forEachState(function (key) {
+      var val  = entity.states[key];
+      var val1 = state1.get(entity.name).states[key];
+      var val2 = state2.get(entity.name).states[key];
       if (val1 === DELETED || val2 === DELETED)
-        return self.get(entity.name).states[index].should.equal(DELETED);
+        return self.get(entity.name).states[key].should.equal(DELETED);
       if (val1 === OK || val2 === OK)
-        return self.get(entity.name).states[index].should.equal(OK);
+        return self.get(entity.name).states[key].should.equal(OK);
     });
   });
 };
@@ -103,10 +103,10 @@ State.prototype.isConsistent = function (state) {
   });
   this.forEachEntity(function (entity) {
 //      console.log(require('util').inspect(entity.states) + " consistent? " + require('util').inspect(state.get(entity.name).states));
-    entity.forEachState(function (index) {
-//      console.log('index: ' + index);
-//      console.log(entity.states[index] + " ?= " + state.get(entity.name).states[index]);
-      entity.states[index].should.equal(state.get(entity.name).states[index]);
+    entity.forEachState(function (key) {
+//      console.log('key: ' + key);
+//      console.log(entity.states[key] + " ?= " + state.get(entity.name).states[key]);
+      entity.states[key].should.equal(state.get(entity.name).states[key]);
     });
   });
 };

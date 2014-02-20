@@ -239,12 +239,12 @@ GroceryEntryView.prototype.hideBought = function () {
 // Utility
 ///////////
 
-function insertAt(parent, index, html) {
-  console.log('inserting at ' + index + ' ' + html);
+function insertAt(parent, key, html) {
+  console.log('inserting at ' + key + ' ' + html);
   console.log(html);
-  if (index === 0)
+  if (key === 0)
     return parent.prepend(html);
-  parent.find(':nth-child(' + index + ')').after(html);
+  parent.find(':nth-child(' + key + ')').after(html);
 }
 
 

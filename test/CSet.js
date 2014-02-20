@@ -69,7 +69,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     });
   });
 
-  describe('Retrieving a CSet instance for a particular index', function () {
+  describe('Retrieving a CSet instance for a particular key', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
@@ -99,7 +99,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var entity = state.get(entityName);
     set.add(1);
 
-    it('should create an entity in the dedicated CSet Entity with index [entryIndex, element]', function () {
+    it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
       var entry = entity.get('now', 1);
       should.exist(entry);
     });

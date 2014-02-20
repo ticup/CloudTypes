@@ -13,9 +13,9 @@ function CArrayQuery(cArray, filter) {
 CArrayQuery.prototype.all = function () {
   var self = this;
   var entities = [];
-  Object.keys(self.cArray.states).forEach(function (index) {
-    if (self.cArray.exists(index) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.cArray.getByIndex(index))))
-      entities.push(self.cArray.getByIndex(index));
+  Object.keys(self.cArray.states).forEach(function (key) {
+    if (self.cArray.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.cArray.getByIndex(key))))
+      entities.push(self.cArray.getByIndex(key));
   });
   if (self.orderProperty) {
     var property = self.cArray.getProperty(self.orderProperty);
@@ -63,6 +63,6 @@ CArrayQuery.prototype.orderBy = function (propertyName, dir) {
 
 CArrayQuery.prototype.where = function (newFilter) {
   var sumFilter = this.sumFilter;
-  this.sumFilter = function (index) { return (sumFilter(index) && newFilter(index)); };
+  this.sumFilter = function (key) { return (sumFilter(key) && newFilter(key)); };
   return this;
 };

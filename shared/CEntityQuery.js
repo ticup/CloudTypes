@@ -14,9 +14,9 @@ CEntityQuery.prototype = Object.create(CArrayQuery.prototype);
 CEntityQuery.prototype.all = function () {
   var self = this;
   var entities = [];
-  Object.keys(self.cArray.states).forEach(function (index) {
-    if (self.cArray.exists(index) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.cArray.getByIndex(index))))
-      entities.push(self.cArray.getByIndex(index));
+  Object.keys(self.cArray.states).forEach(function (key) {
+    if (self.cArray.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.cArray.getByIndex(key))))
+      entities.push(self.cArray.getByIndex(key));
   });
   if (self.orderProperty) {
     var property = self.cArray.getProperty(self.orderProperty);
