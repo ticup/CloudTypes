@@ -1,16 +1,16 @@
 /**
  * Created by ticup on 07/11/13.
  */
-module.exports = IndexQuery;
+module.exports = CArrayQuery;
 
-function IndexQuery(cArray, filter) {
+function CArrayQuery(cArray, filter) {
   this.cArray = cArray;
   this.sumFilter = filter;
   this.orderProperty = false;
   this.orderDir = false;
 }
 
-IndexQuery.prototype.all = function () {
+CArrayQuery.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(self.cArray.states).forEach(function (index) {
@@ -29,7 +29,7 @@ IndexQuery.prototype.all = function () {
   return entities;
 };
 
-IndexQuery.prototype.entries = function (propertyName) {
+CArrayQuery.prototype.entries = function (propertyName) {
   var self = this;
   var filtered = [];
   var array = this.cArray.entries(propertyName);
@@ -55,13 +55,13 @@ IndexQuery.prototype.entries = function (propertyName) {
 };
 
 
-IndexQuery.prototype.orderBy = function (propertyName, dir) {
+CArrayQuery.prototype.orderBy = function (propertyName, dir) {
   this.orderProperty = propertyName;
   this.orderDir = dir;
   return this;
 };
 
-IndexQuery.prototype.where = function (newFilter) {
+CArrayQuery.prototype.where = function (newFilter) {
   var sumFilter = this.sumFilter;
   this.sumFilter = function (index) { return (sumFilter(index) && newFilter(index)); };
   return this;

@@ -1,7 +1,7 @@
 var should    = require('should');
 var util      = require('util');
 var State     = require('./extensions/State');
-var Index    = require('../shared/Index');
+var CArray    = require('../shared/CArray');
 var CloudType = require('../shared/CloudType');
 var CInt      = require('./extensions/CInt');
 var Property  = require('../shared/Property');
@@ -15,8 +15,8 @@ describe('Property state independent operations', function () {
   beforeEach(function () {
     state = new State();
 
-    cArray1 = Index.declare([{string: 'string'}], {name: 'CInt'});
-    cArray2 = Index.declare([{string: 'string'}, {int: 'int'}], { name: 'CInt'});
+    cArray1 = CArray.declare([{string: 'string'}], {name: 'CInt'});
+    cArray2 = CArray.declare([{string: 'string'}, {int: 'int'}], { name: 'CInt'});
     state.declare("Customer1", cArray1);
     state.declare("Customer2", cArray2);
     name1 = state.get("Customer1").getProperty('name');
@@ -24,7 +24,7 @@ describe('Property state independent operations', function () {
   });
 
   describe('#new(name, CType, cArray)', function () {
-    cArray   = new Index([], {});
+    cArray   = new CArray([], {});
     property = new Property("propName", CType, cArray);
 
     it('should create a new Property object', function () {

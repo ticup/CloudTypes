@@ -1,7 +1,7 @@
 var State     = require('./extensions/State');
 var CloudType = require('../shared/CloudType');
-var Index    = require('../shared/Index');
-var Table     = require('../shared/Table');
+var CArray    = require('../shared/CArray');
+var CEntity   = require('../shared/CEntity');
 var Property  = require('../shared/Property');
 var CSet      = require('../shared/CSet').Declaration.declare;
 var CInt      = require('./extensions/CInt');
@@ -69,10 +69,10 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, cArray) (declare Index/Table)', function () {
+  describe('.declare(name, cArray) (declare CArray/CEntity)', function () {
     var state = new State();
     var name = "Grocery";
-    state.declare(name, Index.fromJSON(stubs.groceryChanged));
+    state.declare(name, CArray.fromJSON(stubs.groceryChanged));
     it('should add the array to the arrays map with given name', function () {
        state.arrays.should.have.property(name);
     });
@@ -89,12 +89,12 @@ describe('State', function () {
     var counter = state.get("counter");
     state.declare("counter", CInt);
 
-    describe('proxy Index', function () {
+    describe('proxy CArray', function () {
       var proxyArray = state.arrays["counter"];
       var property = proxyArray.getProperty('value');
       it('should be created', function () {
         should.exist(proxyArray);
-        proxyArray.should.be.an.instanceof(Index);
+        proxyArray.should.be.an.instanceof(CArray);
       });
 
       it('should have a value property', function () {
@@ -117,12 +117,12 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, cArray) (declare Index with a CSet property)', function () {
+  describe('.declare(name, cArray) (declare CArray with a CSet property)', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
 
-    state.declare(name, Index.declare([{moment: 'string'}], {slots: CSet('int')}));
+    state.declare(name, CArray.declare([{moment: 'string'}], {slots: CSet('int')}));
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });
@@ -134,7 +134,7 @@ describe('State', function () {
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
       should.exist(state.arrays[entityName]);
-      state.arrays[entityName].should.be.an.instanceof(Table);
+      state.arrays[entityName].should.be.an.instanceof(CEntity);
     });
     it('should install a reference to the entity in the CType of the property', function () {
       should.exist(state.arrays[name].properties.get('slots').CType.entity);
@@ -146,10 +146,10 @@ describe('State', function () {
   describe('.get(cArrayName)', function () {
     var state = new State();
     var name = "Grocery";
-    var array1 = Index.fromJSON(stubs.groceryChanged);
+    var array1 = CArray.fromJSON(stubs.groceryChanged);
     state.declare(name, array1);
     var array2 = state.get(name);
-    it('should return the declared Index', function () {
+    it('should return the declared CArray', function () {
       should.exist(array2);
       array1.should.equal(array2);
     });
@@ -158,10 +158,10 @@ describe('State', function () {
   describe('.get(cEntityName)', function () {
     var state = new State();
     var name = "Customer";
-    var array1 = Table.fromJSON(stubs.customerChanged);
+    var array1 = CEntity.fromJSON(stubs.customerChanged);
     state.declare(name, array1);
     var array2 = state.get(name);
-    it('should return the declared Index', function () {
+    it('should return the declared CArray', function () {
       should.exist(array2);
       array1.should.equal(array2);
     });

@@ -2,16 +2,16 @@
  * Created by ticup on 07/11/13.
  */
 
-var IndexQuery = require("./IndexQuery");
+var CArrayQuery = require("./CArrayQuery");
 
-module.exports = TableQuery;
+module.exports = CEntityQuery;
 
-function TableQuery(cEntity, filter) {
-  IndexQuery.call(this, cEntity, filter);
+function CEntityQuery(cEntity, filter) {
+  CArrayQuery.call(this, cEntity, filter);
 }
-TableQuery.prototype = Object.create(IndexQuery.prototype);
+CEntityQuery.prototype = Object.create(CArrayQuery.prototype);
 
-TableQuery.prototype.all = function () {
+CEntityQuery.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(self.cArray.states).forEach(function (index) {
