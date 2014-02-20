@@ -1,5 +1,5 @@
 var CloudType = require('./CloudType');
-var CArray    = require('./CArray');
+var Index    = require('./Index');
 var Table   = require('./Table');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
@@ -26,8 +26,8 @@ State.prototype.get = function (name) {
 
 State.prototype.declare = function (name, array) {
   var self = this;
-  // CArray or Table
-  if (array instanceof CArray) {
+  // Index or Table
+  if (array instanceof Index) {
     array.state = this;
     array.name  = name;
 
@@ -40,17 +40,17 @@ State.prototype.declare = function (name, array) {
     });
     return this.arrays[name] = array;
   }
-  // global (CloudType) => create proxy CArray
+  // global (CloudType) => create proxy Index
   if (typeof array.prototype !== 'undefined' && array.prototype instanceof CloudType) {
     var CType = array;
-    array = CArray.declare([], {value: CType.name});
+    array = Index.declare([], {value: CType.name});
     array.state = this;
     array.name  = name;
     array.isProxy = true;
     return this.arrays[name] = array;
   }
-  // Either declare CArray (Table is also a CArray) or CloudType, nothing else.
-  throw "Need a CArray or CloudType to declare: " + array;
+  // Either declare Index (Table is also a Index) or CloudType, nothing else.
+  throw "Need a Index or CloudType to declare: " + array;
 };
 
 State.prototype.isDefault = function (cType) {
@@ -83,7 +83,7 @@ State.fromJSON = function (json) {
     if (arrayJson.type === 'Entity') {
       array = Table.fromJSON(arrayJson);
     } else if (arrayJson.type === 'Array') {
-      array = CArray.fromJSON(arrayJson);
+      array = Index.fromJSON(arrayJson);
     } else {
       throw "Unknown type in state: " + json.type;
     }
@@ -102,7 +102,7 @@ State.fromJSON = function (json) {
 };
 
 State.prototype.getProperty = function (property) {
-  return this.arrays[property.cArray.name].getProperty(property);
+  return this.arrays[property.index.name].getProperty(property);
 };
 
 
@@ -162,7 +162,7 @@ State.prototype.deleted = function (key, entity) {
   }
 
   // Array
-  if (typeof entity !== 'undefined' && entity instanceof CArray) {
+  if (typeof entity !== 'undefined' && entity instanceof Index) {
     var del = false;
     var entry = entity.get(key);
     entry.forEachKey(function (name, value) {
@@ -216,9 +216,9 @@ State.prototype.join = function (rev) {
 State.prototype.fork = function () {
   var forked = new State();
   var forker = this;
-  forker.forEachArray(function (cArray) {
-    var fArray = cArray.fork();
-    forked.declare(cArray.name, fArray);
+  forker.forEachArray(function (index) {
+    var fArray = index.fork();
+    forked.declare(index.name, fArray);
   });
   return forked;
 };

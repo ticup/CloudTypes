@@ -28,18 +28,18 @@ Properties.prototype.toJSON = function () {
   });
 };
 
-Properties.fromJSON = function (json, cArray) {
+Properties.fromJSON = function (json, index) {
   var properties = {};
   json.forEach(function (propertyJson) {
-    properties[propertyJson.name] = Property.fromJSON(propertyJson, cArray);
+    properties[propertyJson.name] = Property.fromJSON(propertyJson, index);
   });
   return new Properties(properties);
 };
 
-Properties.prototype.fork = function (cArray) {
+Properties.prototype.fork = function (index) {
   var fProperties = new Properties();
   this.forEach(function (property) {
-    fProperties.add(property.fork(cArray));
+    fProperties.add(property.fork(index));
   });
   return fProperties;
 };

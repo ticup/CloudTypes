@@ -11,4 +11,4 @@ exports.CSet    = require('../shared/CSet').Declaration;
 exports.CDate   = require('../shared/CDate').CDate;
 
 exports.Table = require('../shared/Table').declare;
-exports.CArray  = require('../shared/CArray').declare;
+exports.Index  = require('../shared/Index').declare;

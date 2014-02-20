@@ -3,7 +3,7 @@ var ClientState     = require('./ClientState');
 
 var CInt            = require('../shared/CInt');
 var CString         = require('../shared/CString');
-var CArray          = require('../shared/CArray');
+var Index          = require('../shared/Index');
 var Table         = require('../shared/Table');
 
 var View            = require('./views/View');

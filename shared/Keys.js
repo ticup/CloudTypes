@@ -79,14 +79,14 @@ function unParseIndex(string) {
   return parts;
 }
 
-Keys.getKeys = function getKeys(key, cArray) {
+Keys.getKeys = function getKeys(key, index) {
   // Flattened string given: unflatten
   if (! (key instanceof Array)) {
     key = unParseIndex(key);
   }
 
   for (var i = 0; i<key.length; i++) {
-    var type = cArray.keys.getType(i);
+    var type = index.keys.getType(i);
     if (type === 'string') {
       continue;
     }

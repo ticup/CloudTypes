@@ -2,24 +2,24 @@
  * Created by ticup on 07/11/13.
  */
 
-var CArrayQuery = require("./CArrayQuery");
+var IndexQuery = require("./IndexQuery");
 
 module.exports = TableQuery;
 
-function TableQuery(cEntity, filter) {
-  CArrayQuery.call(this, cEntity, filter);
+function TableQuery(table, filter) {
+  IndexQuery.call(this, table, filter);
 }
-TableQuery.prototype = Object.create(CArrayQuery.prototype);
+TableQuery.prototype = Object.create(IndexQuery.prototype);
 
 TableQuery.prototype.all = function () {
   var self = this;
   var entities = [];
-  Object.keys(self.cArray.states).forEach(function (key) {
-    if (self.cArray.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.cArray.getByIndex(key))))
-      entities.push(self.cArray.getByIndex(key));
+  Object.keys(self.index.states).forEach(function (key) {
+    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByIndex(key))))
+      entities.push(self.index.getByIndex(key));
   });
   if (self.orderProperty) {
-    var property = self.cArray.getProperty(self.orderProperty);
+    var property = self.index.getProperty(self.orderProperty);
     if (typeof property === 'undefined') {
       throw new Error("orderBy only allowed on properties for the moment");
     }

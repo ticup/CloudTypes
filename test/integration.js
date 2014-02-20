@@ -5,7 +5,7 @@ var http        = require('http');
 var util        = require('util');
 
 var State       = require('./extensions/State');
-var CArray      = require('../shared/CArray');
+var Index      = require('../shared/Index');
 var Table     = require('../shared/Table');
 var ServerState = require('../server/State');
 var CloudType   = require('../shared/CloudType');
@@ -247,7 +247,7 @@ describe('Integration #', function () {
 
       // server code
       server = CloudTypeServer.createServer();
-      array = CArray.declare([{name: "string"}, {buyer: "string"}], {toBuy: "CInt", fromShop: "CString"});
+      array = Index.declare([{name: "string"}, {buyer: "string"}], {toBuy: "CInt", fromShop: "CString"});
       server.declare("Product", array);
       server.publish(8001);
 

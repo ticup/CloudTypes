@@ -1,7 +1,7 @@
 var should    = require('should');
 var util      = require('util');
 var State     = require('./extensions/State');
-var CArray    = require('../shared/CArray');
+var Index    = require('../shared/Index');
 var CloudType = require('../shared/CloudType');
 var CInt      = require('./extensions/CInt');
 var Property  = require('../shared/Property');
@@ -9,23 +9,23 @@ var Keys   = require('../shared/Keys');
 var stubs     = require('./stubs');
 
 describe('Property state independent operations', function () {
-  var keys, property, cArray1, cArray2, cArray, state, name;
+  var keys, property, index1, index2, index, state, name;
   var CType =  CInt;
 
   beforeEach(function () {
     state = new State();
 
-    cArray1 = CArray.declare([{string: 'string'}], {name: 'CInt'});
-    cArray2 = CArray.declare([{string: 'string'}, {int: 'int'}], { name: 'CInt'});
-    state.declare("Customer1", cArray1);
-    state.declare("Customer2", cArray2);
+    index1 = Index.declare([{string: 'string'}], {name: 'CInt'});
+    index2 = Index.declare([{string: 'string'}, {int: 'int'}], { name: 'CInt'});
+    state.declare("Customer1", index1);
+    state.declare("Customer2", index2);
     name1 = state.get("Customer1").getProperty('name');
     name2 = state.get("Customer2").getProperty('name');
   });
 
-  describe('#new(name, CType, cArray)', function () {
-    cArray   = new CArray([], {});
-    property = new Property("propName", CType, cArray);
+  describe('#new(name, CType, index)', function () {
+    index   = new Index([], {});
+    property = new Property("propName", CType, index);
 
     it('should create a new Property object', function () {
       should.exist(property);
@@ -37,7 +37,7 @@ describe('Property state independent operations', function () {
     });
     it('should have an keys property', function () {
       property.should.have.property('keys');
-      property.keys.should.equal(cArray.keys);
+      property.keys.should.equal(index.keys);
     });
     it('should have a CType property', function () {
       property.should.have.property('CType');
@@ -120,10 +120,10 @@ describe('Property state independent operations', function () {
     });
   });
 
-  describe('#fromJSON(json, cArray)', function () {
+  describe('#fromJSON(json, index)', function () {
     it('should create a Property object', function () {
       var json = name1.toJSON();
-      var convert = Property.fromJSON(json, cArray);
+      var convert = Property.fromJSON(json, index);
       should.exist(convert);
       convert.should.be.an.instanceof(Property);
     });
@@ -135,7 +135,7 @@ describe('Property state independent operations', function () {
 //      console.log('json:');
 //      console.log(json);
 //
-//      var convert = Property.fromJSON(json, cArray);
+//      var convert = Property.fromJSON(json, index);
 //      convert.keys = property.keys;
 //      should.exist(convert);
 //      console.log(convert);

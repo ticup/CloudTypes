@@ -1,4 +1,4 @@
-var CArray     = require('./CArray');
+var Index     = require('./Index');
 var Keys       = require('./Keys');
 var Properties = require('./Properties');
 var Property   = require('./Property');
@@ -10,25 +10,25 @@ module.exports = Table;
 var OK = 'ok';
 var DELETED = 'deleted';
 
-// when declared in a State, the state will add itself and the declared name for this CArray as properties
+// when declared in a State, the state will add itself and the declared name for this Index as properties
 // to the Table object.
 function Table(keys, properties, states) {
-  CArray.call(this, keys, properties);
+  Index.call(this, keys, properties);
   this.states = {} || states;
   this.uid = 0;
 }
-Table.prototype = Object.create(CArray.prototype);
+Table.prototype = Object.create(Index.prototype);
 
 Table.OK = OK;
 Table.DELETED = DELETED;
 
 Table.declare = function (keyDeclarations, propertyDeclarations) {
-  var cEntity = new Table([{uid: 'string'}].concat(keyDeclarations));
+  var table = new Table([{uid: 'string'}].concat(keyDeclarations));
   Object.keys(propertyDeclarations).forEach(function (propName) {
     var cTypeName = propertyDeclarations[propName];
-    cEntity.addProperty(new Property(propName, cTypeName, cEntity));
+    table.addProperty(new Property(propName, cTypeName, table));
   });
-  return cEntity;
+  return table;
 };
 
 
@@ -107,21 +107,21 @@ Table.prototype.deleted = function (idx) {
 
 Table.prototype.fork = function () {
   var fKeys = this.keys.fork();
-  var cEntity = new Table(fKeys);
-  cEntity.properties = this.properties.fork(cEntity);
-  cEntity.states     = this.states;
-  return cEntity;
+  var table = new Table(fKeys);
+  table.properties = this.properties.fork(table);
+  table.states     = this.states;
+  return table;
 };
 
 Table.fromJSON = function (json) {
-  var cEntity = new Table();
-  cEntity.keys = Keys.fromJSON(json.keys);
-  cEntity.properties = Properties.fromJSON(json.properties, cEntity);
-  cEntity.states = {};
+  var table = new Table();
+  table.keys = Keys.fromJSON(json.keys);
+  table.properties = Properties.fromJSON(json.properties, table);
+  table.states = {};
   Object.keys(json.states).forEach(function (key) {
-    cEntity.states[key] = json.states[key];
+    table.states[key] = json.states[key];
   });
-  return cEntity;
+  return table;
 };
 
 Table.prototype.toJSON = function () {

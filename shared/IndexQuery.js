@@ -1,24 +1,24 @@
 /**
  * Created by ticup on 07/11/13.
  */
-module.exports = CArrayQuery;
+module.exports = IndexQuery;
 
-function CArrayQuery(cArray, filter) {
-  this.cArray = cArray;
+function IndexQuery(index, filter) {
+  this.index = index;
   this.sumFilter = filter;
   this.orderProperty = false;
   this.orderDir = false;
 }
 
-CArrayQuery.prototype.all = function () {
+IndexQuery.prototype.all = function () {
   var self = this;
   var entities = [];
-  Object.keys(self.cArray.states).forEach(function (key) {
-    if (self.cArray.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.cArray.getByIndex(key))))
-      entities.push(self.cArray.getByIndex(key));
+  Object.keys(self.index.states).forEach(function (key) {
+    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByIndex(key))))
+      entities.push(self.index.getByIndex(key));
   });
   if (self.orderProperty) {
-    var property = self.cArray.getProperty(self.orderProperty);
+    var property = self.index.getProperty(self.orderProperty);
     if (typeof property === 'undefined') {
       throw new Error("orderBy only allowed on properties for the moment");
     }
@@ -29,10 +29,10 @@ CArrayQuery.prototype.all = function () {
   return entities;
 };
 
-CArrayQuery.prototype.entries = function (propertyName) {
+IndexQuery.prototype.entries = function (propertyName) {
   var self = this;
   var filtered = [];
-  var array = this.cArray.entries(propertyName);
+  var array = this.index.entries(propertyName);
   if (typeof self.sumFilter === 'undefined') {
     filtered = array;
   } else {
@@ -43,7 +43,7 @@ CArrayQuery.prototype.entries = function (propertyName) {
   }
 
   if (self.orderProperty) {
-    var property = self.cArray.get(self.orderProperty);
+    var property = self.index.get(self.orderProperty);
     if (typeof property === 'undefined') {
       throw new Error("orderBy only allowed on properties for the moment");
     }
@@ -55,13 +55,13 @@ CArrayQuery.prototype.entries = function (propertyName) {
 };
 
 
-CArrayQuery.prototype.orderBy = function (propertyName, dir) {
+IndexQuery.prototype.orderBy = function (propertyName, dir) {
   this.orderProperty = propertyName;
   this.orderDir = dir;
   return this;
 };
 
-CArrayQuery.prototype.where = function (newFilter) {
+IndexQuery.prototype.where = function (newFilter) {
   var sumFilter = this.sumFilter;
   this.sumFilter = function (key) { return (sumFilter(key) && newFilter(key)); };
   return this;

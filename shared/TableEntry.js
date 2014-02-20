@@ -1,19 +1,19 @@
 var Keys        = require('./Keys');
-var CArrayEntry = require('./CArrayEntry');
+var IndexEntry = require('./IndexEntry');
 
 module.exports = TableEntry;
 
-function TableEntry(cArray, keys) {
-  CArrayEntry.call(this, cArray, keys);
-//  this.cArray = cArray;
-//  this.keys = Keys.getKeys(keys, cArray);
+function TableEntry(index, keys) {
+  IndexEntry.call(this, index, keys);
+//  this.index = index;
+//  this.keys = Keys.getKeys(keys, index);
 }
 
-TableEntry.prototype = Object.create(CArrayEntry.prototype);
+TableEntry.prototype = Object.create(IndexEntry.prototype);
 
 
 TableEntry.prototype.get = function (property) {
-  return this.cArray.getProperty(property).saveGet(this.keys);
+  return this.index.getProperty(property).saveGet(this.keys);
 };
 
 TableEntry.prototype.forEachIndex = function (callback) {
@@ -22,16 +22,16 @@ TableEntry.prototype.forEachIndex = function (callback) {
 
 TableEntry.prototype.forEachKey = function (callback) {
   for (var i = 1; i<this.keys.length; i++) {
-    callback(this.cArray.keys.getName(i), this.keys[i]);
+    callback(this.index.keys.getName(i), this.keys[i]);
   }
 };
 
 TableEntry.prototype.deleted = function () {
-  return (this.cArray.state.deleted(this.keys, this.cArray));
+  return (this.index.state.deleted(this.keys, this.index));
 };
 
 TableEntry.prototype.delete = function () {
-  return this.cArray.delete(this);
+  return this.index.delete(this);
 };
 
 TableEntry.prototype.toString = function () {

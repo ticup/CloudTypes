@@ -1,10 +1,10 @@
 var CloudType = require('./CloudType');
 var CSet      = require('./CSet');
 
-function Property(name, CType, cArray, values) {
+function Property(name, CType, index, values) {
   this.name = name;
-  this.keys = cArray.keys;
-  this.cArray = cArray;
+  this.keys = index.keys;
+  this.index = index;
   this.CType = CType;
   if (typeof CType === 'string') {
     this.CType = CloudType.declareFromTag(CType);
@@ -21,7 +21,7 @@ Property.prototype.forEachIndex = function (callback) {
 
 Property.prototype.saveGet = function (keys) {
   var key = this.keys.get(keys);
-  if (this.cArray.state.deleted(key, this.cArray)) {
+  if (this.index.state.deleted(key, this.index)) {
     return null;
   }
   return this.get(keys);
@@ -58,10 +58,10 @@ Property.prototype.entries = function () {
   var result = [];
   this.forEachIndex(function (key) {
 //    console.log("____entry checking : " + key + "____");
-//    console.log("deleted: " + self.cArray.state.deleted(key, self.cArray));
-//    console.log("default: " + self.cArray.state.isDefault(self.getByIndex(key)));
-    if (!self.cArray.state.deleted(key, self.cArray) && !self.cArray.state.isDefault(self.getByIndex(key))) {
-      result.push(self.cArray.getByIndex(key));
+//    console.log("deleted: " + self.index.state.deleted(key, self.index));
+//    console.log("default: " + self.index.state.isDefault(self.getByIndex(key)));
+    if (!self.index.state.deleted(key, self.index) && !self.index.state.isDefault(self.getByIndex(key))) {
+      result.push(self.index.getByIndex(key));
     }
   });
   return result;
@@ -76,18 +76,18 @@ Property.prototype.toJSON = function () {
   return { name: this.name, type: this.CType.toJSON(), values: values };
 };
 
-Property.fromJSON = function (json, cArray) {
+Property.fromJSON = function (json, index) {
   var values = {};
   var CType = CloudType.fromJSON(json.type);
   Object.keys(json.values).forEach(function (key) {
     values[key] = CType.fromJSON(json.values[key], key);
   });
-  return new Property(json.name, CType, cArray, values);
+  return new Property(json.name, CType, index, values);
 };
 
-Property.prototype.fork = function (cArray) {
+Property.prototype.fork = function (index) {
   var self = this;
-  var fProperty = new Property(this.name, this.CType, cArray);
+  var fProperty = new Property(this.name, this.CType, index);
   Object.keys(self.values).forEach(function (key) {
     fProperty.values[key] = self.values[key].fork();
   });

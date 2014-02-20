@@ -1,7 +1,7 @@
 var State     = require('./extensions/State');
 var CloudType = require('../shared/CloudType');
-var CArray    = require('../shared/CArray');
-var Table   = require('../shared/Table');
+var Index     = require('../shared/Index');
+var Table     = require('../shared/Table');
 var Property  = require('../shared/Property');
 var CSet      = require('../shared/CSet').Declaration.declare;
 var CInt      = require('./extensions/CInt');
@@ -69,17 +69,17 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, cArray) (declare CArray/Table)', function () {
+  describe('.declare(name, index) (declare Index/Table)', function () {
     var state = new State();
     var name = "Grocery";
-    state.declare(name, CArray.fromJSON(stubs.groceryChanged));
+    state.declare(name, Index.fromJSON(stubs.groceryChanged));
     it('should add the array to the arrays map with given name', function () {
        state.arrays.should.have.property(name);
     });
-    it('should install reference of self in cArray', function () {
+    it('should install reference of self in index', function () {
       state.arrays[name].state.should.equal(state);
     });
-    it('should install reference of name in cArray', function () {
+    it('should install reference of name in index', function () {
       state.arrays[name].name.should.equal(name);
     });
   });
@@ -89,12 +89,12 @@ describe('State', function () {
     var counter = state.get("counter");
     state.declare("counter", CInt);
 
-    describe('proxy CArray', function () {
+    describe('proxy Index', function () {
       var proxyArray = state.arrays["counter"];
       var property = proxyArray.getProperty('value');
       it('should be created', function () {
         should.exist(proxyArray);
-        proxyArray.should.be.an.instanceof(CArray);
+        proxyArray.should.be.an.instanceof(Index);
       });
 
       it('should have a value property', function () {
@@ -117,19 +117,19 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, cArray) (declare CArray with a CSet property)', function () {
+  describe('.declare(name, index) (declare Index with a CSet property)', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
 
-    state.declare(name, CArray.declare([{moment: 'string'}], {slots: CSet('int')}));
+    state.declare(name, Index.declare([{moment: 'string'}], {slots: CSet('int')}));
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });
-    it('should install reference of self in cArray', function () {
+    it('should install reference of self in index', function () {
       state.arrays[name].state.should.equal(state);
     });
-    it('should install reference of name in cArray', function () {
+    it('should install reference of name in index', function () {
       state.arrays[name].name.should.equal(name);
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
@@ -143,25 +143,25 @@ describe('State', function () {
   });
 
 
-  describe('.get(cArrayName)', function () {
+  describe('.get(indexName)', function () {
     var state = new State();
     var name = "Grocery";
-    var array1 = CArray.fromJSON(stubs.groceryChanged);
+    var array1 = Index.fromJSON(stubs.groceryChanged);
     state.declare(name, array1);
     var array2 = state.get(name);
-    it('should return the declared CArray', function () {
+    it('should return the declared Index', function () {
       should.exist(array2);
       array1.should.equal(array2);
     });
   });
 
-  describe('.get(cEntityName)', function () {
+  describe('.get(tableName)', function () {
     var state = new State();
     var name = "Customer";
     var array1 = Table.fromJSON(stubs.customerChanged);
     state.declare(name, array1);
     var array2 = state.get(name);
-    it('should return the declared CArray', function () {
+    it('should return the declared Index', function () {
       should.exist(array2);
       array1.should.equal(array2);
     });

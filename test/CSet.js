@@ -3,7 +3,7 @@
  */
 var State       = require('./extensions/State');
 var Table     = require('../shared/Table');
-var CArray      = require('../shared/CArray');
+var Index      = require('../shared/Index');
 var Keys     = require('../shared/Keys');
 var Properties  = require('../shared/Properties');
 var Property    = require('../shared/Property');
@@ -21,15 +21,15 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    state.declare(name, CArray.declare([{moment: 'string'}], {slots: CSet.declare('int')}));
+    state.declare(name, Index.declare([{moment: 'string'}], {slots: CSet.declare('int')}));
 
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });
-    it('should install reference of self in cArray', function () {
+    it('should install reference of self in index', function () {
       state.arrays[name].state.should.equal(state);
     });
-    it('should install reference of name in cArray', function () {
+    it('should install reference of name in index', function () {
       state.arrays[name].name.should.equal(name);
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
@@ -46,17 +46,17 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state1 = new State();
     var name = "moments";
     var entityName = name+"slots";
-    state1.declare(name, CArray.declare([{moment: 'string'}], {slots: CSet.declare('int')}));
+    state1.declare(name, Index.declare([{moment: 'string'}], {slots: CSet.declare('int')}));
     var json = state1.toJSON();
     var state2 = State.fromJSON(json);
 
     it('should add the array to the arrays map with given name', function () {
       state2.arrays.should.have.property(name);
     });
-    it('should install reference of self in cArray', function () {
+    it('should install reference of self in index', function () {
       state2.arrays[name].state.should.equal(state2);
     });
-    it('should install reference of name in cArray', function () {
+    it('should install reference of name in index', function () {
       state2.arrays[name].name.should.equal(name);
     });
     it('should add an entity for the slot property with name <array.name><slot.name>', function () {
@@ -74,7 +74,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = CSet.declare('int');
-    state.declare(name, CArray.declare([{moment: 'string'}], {slots: CSetDecl}));
+    state.declare(name, Index.declare([{moment: 'string'}], {slots: CSetDecl}));
     var set = state.get(name).get('now').get('slots');
 
     it('should return an instance of the declared CSet', function () {
@@ -94,7 +94,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = CSet.declare('int');
-    state.declare(name, CArray.declare([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
+    state.declare(name, Index.declare([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 1).get('slots');
     var entity = state.get(entityName);
     set.add(1);
@@ -110,7 +110,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = CSet.declare('int');
-    state.declare(name, CArray.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    state.declare(name, Index.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 2).get('slots');
     var entity = state.get(entityName);
     set.add(1);
@@ -131,7 +131,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = CSet.declare('int');
-    state.declare(name, CArray.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    state.declare(name, Index.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 2).get('slots');
     var entity = state.get(entityName);
     set.add(1);
@@ -149,7 +149,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = CSet.declare('int');
-    state.declare(name, CArray.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    state.declare(name, Index.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 2).get('slots');
     var entity = state.get(entityName);
     it('should keeps its semantics', function () {
