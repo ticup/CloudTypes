@@ -1,18 +1,19 @@
 var CloudType = require('./CloudType');
 var CSet      = require('./CSet');
+var Index     = require('./Index');
 
 function Property(name, CType, index, values) {
   this.name = name;
   this.keys = index.keys;
   this.index = index;
   this.CType = CType;
+  this.values = values || {};
   if (typeof CType === 'string') {
     this.CType = CloudType.declareFromTag(CType);
   }
-  if (!CloudType.isCloudType(this.CType)) {
+  if (!CloudType.isCloudType(this.CType) && !(this.CType instanceof Index)) {
     throw Error ("Unknown property type in declaration (Must be CloudType (CInt, CString, CSet,...)): " + this.CType);
   }
-  this.values = values || {};
 }
 
 Property.prototype.forEachIndex = function (callback) {

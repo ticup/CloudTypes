@@ -18,18 +18,7 @@ describe('State', function () {
     it('should have an arrays property', function () {
       state.should.have.property('arrays');
       state.arrays.should.be.an.instanceof(Object);
-    });
-  });
-
-  describe('#new(arrays)', function () {
-    var arrays = {};
-    var state = new State(arrays);
-    it('should create a new State object', function () {
-      state.should.be.an.instanceOf(State);
-    });
-    it('should have given arrays property', function () {
-      state.should.have.property('arrays');
-      state.arrays.should.equal(arrays);
+      state.arrays.should.eql({});
     });
   });
 

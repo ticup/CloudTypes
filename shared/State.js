@@ -1,13 +1,12 @@
 var CloudType = require('./CloudType');
-var Index    = require('./Index');
-var Table   = require('./Table');
+var Index     = require('./Index');
+var Table     = require('./Table');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
 
-function State(arrays, entities) {
-  this.arrays = arrays || {};
-  this.entities = entities || {};
+function State() {
+  this.arrays = {};
   this.cid = 0;
 }
 

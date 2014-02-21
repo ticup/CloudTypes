@@ -8,8 +8,8 @@ var CloudTypes = require('../../../server/main.js');
 
 function declare(server) {
   return server
-      .declare('AvailableSLot', CloudTypes.Table([], {date: }))
-      .declare('Slot' , CloudTypes.Table([], {description: 'CString', place: 'CString', date: 'CDate'}));
+      .declare('AvailableSLot', CloudTypes.Table({date: }))
+      .declare('Slot' , CloudTypes.Table({description: 'CString', place: 'CString', date: 'CDate'}));
 }
 
 module.exports = declare;
