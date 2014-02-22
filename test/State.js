@@ -3,7 +3,7 @@ var CloudType = require('../shared/CloudType');
 var Index     = require('../shared/Index');
 var Table     = require('../shared/Table');
 var Property  = require('../shared/Property');
-var CSet      = require('../shared/CSet').Declaration.declare;
+var CSet      = require('../shared/CSet').Declaration;
 var CInt      = require('./extensions/CInt');
 var should    = require('should');
 var stubs     = require('./stubs');
@@ -46,6 +46,7 @@ describe('State', function () {
 
   describe('.toJSON()', function () {
     var state = State.fromJSON(stubs.stateUnchanged);
+    state.print()
     var json  = state.toJSON();
     it('should put the object in JSON representation', function () {
       should.exist(json);
@@ -111,7 +112,7 @@ describe('State', function () {
     var name = "moments";
     var entityName = name+"slots";
 
-    state.declare(name, Index.declare([{moment: 'string'}], {slots: CSet('int')}));
+    state.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });

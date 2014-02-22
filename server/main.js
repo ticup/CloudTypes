@@ -7,8 +7,8 @@ exports.createServer = function (state) {
 
 exports.CInt    = require('../shared/CInt').CInt;
 exports.CString = require('../shared/CString').CString;
-exports.CSet    = require('../shared/CSet').Declaration.declare;
+exports.CSet    = require('../shared/CSet').Declaration;
 exports.CDate   = require('../shared/CDate').CDate;
 
-exports.Table = require('../shared/Table').declare;
-exports.Index  = require('../shared/Index').declare;
+exports.Table = require('../shared/Table');
+exports.Index  = require('../shared/Index');

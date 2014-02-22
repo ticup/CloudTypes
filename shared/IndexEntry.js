@@ -25,13 +25,6 @@ IndexEntry.prototype.forEachKey = function (callback) {
 };
 
 
-
-IndexEntry.prototype.forEachIndex = function (callback) {
-  return this.keys.forEach(callback);
-};
-
-
-
 IndexEntry.prototype.key = function (name) {
   var position = this.index.keys.getPositionOf(name);
   if (position === -1)
@@ -43,7 +36,7 @@ IndexEntry.prototype.key = function (name) {
     value = parseInt(value, 10);
   }
   if (type !== 'int' && type !== 'string') {
-    value = this.index.state.get(type).getByIndex(value);
+    value = this.index.state.get(type).getByKey(value);
   }
   return value;
 };
@@ -65,4 +58,8 @@ IndexEntry.prototype.equals = function (entry) {
       return false;
   }
   return true;
+};
+
+IndexEntry.prototype.toJSON = function () {
+  return this.keys.get();
 };

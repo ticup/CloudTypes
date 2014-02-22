@@ -118,6 +118,13 @@ exports.orderUnchanged = {
       values: {
         '[[Order:0#0]]': cint2.toJSON()
       }
+    },
+    {
+      name: 'customer',
+      type: { reference: 'Customer' },
+      values: {
+        '[[Order:0#0]]': '[Customer:0#0]',
+      }
     }
   ],
   states: {
@@ -303,6 +310,13 @@ exports.orderChanged = {
         '[[Order:0#4]]': ucint3.toJSON(),
         '[[Order:0#5]]': ucint2.toJSON(),
         '[[Order:0#6]]': ucint1.toJSON()
+      }
+    },
+    {
+      name: 'customer',
+      type: { reference: 'Customer' },
+      values: {
+        '[[Order:0#0]]': '[Customer:0#0]',
       }
     }
   ],

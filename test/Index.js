@@ -16,7 +16,7 @@ var util        = require('util');
 function createIndex() {
   var keyNames = [{name: "string"}];
   var properties = {toBuy: "CInt", shop: "CString"};
-  var array = Index.declare(keyNames, properties);
+  var array = new Index(keyNames, properties);
   return array;
 }
 
@@ -25,11 +25,10 @@ describe('Index', function () {
 
   beforeEach(function () {
     array = createIndex();
-    intArray = Index.declare([{slot: "int"}], {toBuy: "CInt"});
+    intArray = new Index([{slot: "int"}], {toBuy: "CInt"});
 
   });
 
-  // Private
   describe('#new(keys, properties)', function () {
     var keys = [{name: "string"}];
     var properties = {toBuy: "CInt"};
@@ -39,30 +38,11 @@ describe('Index', function () {
     });
     it('should have properties property', function () {
       array.should.have.property('properties');
-      array.properties.should.equal(properties);
+      array.properties.should.be.an.instanceof(Properties);
     });
     it('should have keys property', function () {
       array.should.have.property('keys');
       array.keys.should.be.an.instanceof(Keys);
-    });
-  });
-
-  // Private
-  describe('#new(keys, properties)', function () {
-    var keys = new Keys();
-    var properties = {toBuy: "CInt"};
-    var array = new Index(keys, properties);
-    it('should create a new Index object', function () {
-      array.should.be.an.instanceOf(Index);
-    });
-    it('should have properties property', function () {
-      array.should.have.property('properties');
-      array.properties.should.equal(properties);
-    });
-    it('should have keys property', function () {
-      array.should.have.property('keys');
-      array.keys.should.be.an.instanceof(Keys);
-      array.keys.should.equal(keys);
     });
   });
 
@@ -112,7 +92,7 @@ describe('Index', function () {
   describe('#declare(keyNames, properties)', function () {
     var keyNames = [{name: "string"}];
     var properties = {toBuy: "CInt"};
-    var array = Index.declare(keyNames, properties);
+    var array = new Index(keyNames, properties);
     it('should create a new Index object', function () {
       array.should.be.an.instanceOf(Index);
     });
@@ -196,8 +176,8 @@ describe('Index', function () {
 
       it('should be a Index if key is of declared Array type', function () {
         var state = new State();
-        var array1 = state.declare('array1', Index.declare([{name: 'string'}], {prop: 'CString'}));
-        var array2 = state.declare('array2', Index.declare([{ref: 'array1'}], {prop: 'CString'}));
+        var array1 = state.declare('array1', new Index([{name: 'string'}], {prop: 'CString'}));
+        var array2 = state.declare('array2', new Index([{ref: 'array1'}], {prop: 'CString'}));
         var entry1 = array1.get('foo');
         var entry2 = array2.get(entry1);
         should.exist(entry2);
@@ -208,8 +188,8 @@ describe('Index', function () {
 
       it('should be a Table if key is of declared Entity type', function () {
         var state = new State();
-        var entity = state.declare('entity', Table.declare({prop: 'CString'}));
-        var array  = state.declare('array', Index.declare([{ref: 'entity'}], {prop: 'CString'}));
+        var entity = state.declare('entity', new Table({prop: 'CString'}));
+        var array  = state.declare('array', new Index([{ref: 'entity'}], {prop: 'CString'}));
         var entry1 = entity.create('foo');
         var entry2 = array.get(entry1);
         should.exist(entry2);

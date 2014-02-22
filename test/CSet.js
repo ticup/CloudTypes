@@ -21,7 +21,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    state.declare(name, Index.declare([{moment: 'string'}], {slots: CSet.declare('int')}));
+    state.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
 
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
@@ -46,7 +46,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state1 = new State();
     var name = "moments";
     var entityName = name+"slots";
-    state1.declare(name, Index.declare([{moment: 'string'}], {slots: CSet.declare('int')}));
+    state1.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
     var json = state1.toJSON();
     var state2 = State.fromJSON(json);
 
@@ -73,8 +73,8 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = CSet.declare('int');
-    state.declare(name, Index.declare([{moment: 'string'}], {slots: CSetDecl}));
+    var CSetDecl = new CSet('int');
+    state.declare(name, new Index([{moment: 'string'}], {slots: CSetDecl}));
     var set = state.get(name).get('now').get('slots');
 
     it('should return an instance of the declared CSet', function () {
@@ -93,8 +93,8 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = CSet.declare('int');
-    state.declare(name, Index.declare([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
+    var CSetDecl = new CSet('int');
+    state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 1).get('slots');
     var entity = state.get(entityName);
     set.add(1);
@@ -111,8 +111,8 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = CSet.declare('int');
-    state.declare(name, Index.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    var CSetDecl = new CSet('int');
+    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 2).get('slots');
     var entity = state.get(entityName);
     set.add(1);
@@ -132,8 +132,8 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = CSet.declare('int');
-    state.declare(name, Index.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    var CSetDecl = new CSet('int');
+    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 2).get('slots');
     var entity = state.get(entityName);
     set.add(1);
@@ -150,8 +150,8 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = CSet.declare('int');
-    state.declare(name, Index.declare([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    var CSetDecl = new CSet('int');
+    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
     var set = state.get(name).get('now', 2).get('slots');
     var entity = state.get(entityName);
     it('should keeps its semantics', function () {

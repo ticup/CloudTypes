@@ -12,25 +12,20 @@ var DELETED = 'deleted';
 
 // when declared in a State, the state will add itself and the declared name for this Index as properties
 // to the Table object.
-function Table(properties, states) {
-  Index.call(this, [{uid: 'string'}], properties);
-  this.states = {} || states;
+function Table(columns) {
+  var self = this;
+  Index.call(this, [{uid: 'string'}], columns);
+  // Object.keys(propertyDeclarations).forEach(function (propName) {
+  //   var cTypeName = propertyDeclarations[propName];
+  //   self.addProperty(new Property(propName, cTypeName, self));
+  // });
+  this.states = {};
   this.uid = 0;
 }
 Table.prototype = Object.create(Index.prototype);
 
 Table.OK = OK;
 Table.DELETED = DELETED;
-
-Table.declare = function (propertyDeclarations) {
-  var table = new Table();
-  Object.keys(propertyDeclarations).forEach(function (propName) {
-    var cTypeName = propertyDeclarations[propName];
-    table.addProperty(new Property(propName, cTypeName, table));
-  });
-  return table;
-};
-
 
 Table.prototype.create = function (keys) {
   keys = (typeof keys === 'undefined') ? [] : keys;
@@ -53,7 +48,7 @@ Table.prototype.get = function () {
 };
 
 // Flattened key version (internal version)
-Table.prototype.getByIndex = function (key) {
+Table.prototype.getByKey = function (key) {
   return new TableEntry(this, key);
 };
 
@@ -82,7 +77,7 @@ Table.prototype.all = function () {
   var entities = [];
   Object.keys(this.states).forEach(function (key) {
     if (self.states[key] === OK)
-      entities.push(self.getByIndex(key));
+      entities.push(self.getByKey(key));
   });
   return entities;
 };
@@ -107,7 +102,8 @@ Table.prototype.deleted = function (idx) {
 
 Table.prototype.fork = function () {
   var fKeys = this.keys.fork();
-  var table = new Table(fKeys);
+  var table = new Table();
+  table.keys = fKeys;
   table.properties = this.properties.fork(table);
   table.states     = this.states;
   return table;
@@ -127,7 +123,7 @@ Table.fromJSON = function (json) {
 Table.prototype.toJSON = function () {
   return {
     type        : 'Entity',
-    keys     : this.keys.toJSON(),
+    keys        : this.keys.toJSON(),
     properties  : this.properties.toJSON(),
     states      : this.states
 

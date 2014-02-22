@@ -4314,7 +4314,7 @@ function Index(keys, properties) {
 }
 
 // properties: { string: string {"int", "string"} }
-Index.declare = function (keyDeclarations, propertyDeclarations) {
+new Index = function (keyDeclarations, propertyDeclarations) {
   var carray = new Index(keyDeclarations);
   Object.keys(propertyDeclarations).forEach(function (propName) {
     var cType = propertyDeclarations[propName];
@@ -4331,7 +4331,7 @@ Index.prototype.get = function () {
   return new IndexEntry(this, Array.prototype.slice.call(arguments));
 };
 
-Index.prototype.getByIndex = function (key) {
+Index.prototype.getByKey = function (key) {
   return new IndexEntry(this, key)
 };
 
@@ -4409,7 +4409,7 @@ IndexEntry.prototype.forEachKey = function (callback) {
 
 
 
-IndexEntry.prototype.forEachIndex = function (callback) {
+IndexEntry.prototype.forEachKey = function (callback) {
   return this.keys.forEach(callback);
 };
 
@@ -4426,7 +4426,7 @@ IndexEntry.prototype.key = function (name) {
     value = parseInt(value, 10);
   }
   if (type !== 'int' && type !== 'string') {
-    value = this.index.state.get(type).getByIndex(value);
+    value = this.index.state.get(type).getByKey(value);
   }
   return value;
 };
@@ -4466,8 +4466,8 @@ IndexQuery.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(self.index.states).forEach(function (key) {
-    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByIndex(key))))
-      entities.push(self.index.getByIndex(key));
+    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
+      entities.push(self.index.getByKey(key));
   });
   if (self.orderProperty) {
     var property = self.index.getProperty(self.orderProperty);
@@ -4543,7 +4543,7 @@ Table.prototype = Object.create(Index.prototype);
 Table.OK = OK;
 Table.DELETED = DELETED;
 
-Table.declare = function (keyDeclarations, propertyDeclarations) {
+new Table = function (keyDeclarations, propertyDeclarations) {
   var table = new Table([{uid: 'string'}].concat(keyDeclarations));
   Object.keys(propertyDeclarations).forEach(function (propName) {
     var cTypeName = propertyDeclarations[propName];
@@ -4574,7 +4574,7 @@ Table.prototype.get = function () {
 };
 
 // Flattened key version (internal version)
-Table.prototype.getByIndex = function (key) {
+Table.prototype.getByKey = function (key) {
   return new TableEntry(this, key);
 };
 
@@ -4603,7 +4603,7 @@ Table.prototype.all = function () {
   var entities = [];
   Object.keys(this.states).forEach(function (key) {
     if (self.states[key] === OK)
-      entities.push(self.getByIndex(key));
+      entities.push(self.getByKey(key));
   });
   return entities;
 };
@@ -4674,7 +4674,7 @@ TableEntry.prototype.get = function (property) {
   return this.index.getProperty(property).saveGet(this.keys);
 };
 
-TableEntry.prototype.forEachIndex = function (callback) {
+TableEntry.prototype.forEachKey = function (callback) {
   return this.keys.slice(1).forEach(callback);
 };
 
@@ -4713,8 +4713,8 @@ TableQuery.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(self.index.states).forEach(function (key) {
-    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByIndex(key))))
-      entities.push(self.index.getByIndex(key));
+    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
+      entities.push(self.index.getByKey(key));
   });
   if (self.orderProperty) {
     var property = self.index.getProperty(self.orderProperty);
@@ -5348,7 +5348,7 @@ function Property(name, CType, index, values) {
   this.values = values || {};
 }
 
-Property.prototype.forEachIndex = function (callback) {
+Property.prototype.forEachKey = function (callback) {
   return Object.keys(this.values).forEach(callback);
 };
 
@@ -5371,10 +5371,10 @@ Property.prototype.get = function (keys) {
     key = 'singleton';
   else
     key = this.keys.get(keys);
-  return this.getByIndex(key);
+  return this.getByKey(key);
 };
 
-Property.prototype.getByIndex = function (key) {
+Property.prototype.getByKey = function (key) {
   var ctype = this.values[key];
   if (typeof ctype === 'undefined') {
     ctype = this.CType.newFor(key);
@@ -5389,12 +5389,12 @@ Property.prototype.getByIndex = function (key) {
 Property.prototype.entries = function () {
   var self = this;
   var result = [];
-  this.forEachIndex(function (key) {
+  this.forEachKey(function (key) {
 //    console.log("____entry checking : " + key + "____");
 //    console.log("deleted: " + self.index.state.deleted(key, self.index));
-//    console.log("default: " + self.index.state.isDefault(self.getByIndex(key)));
-    if (!self.index.state.deleted(key, self.index) && !self.index.state.isDefault(self.getByIndex(key))) {
-      result.push(self.index.getByIndex(key));
+//    console.log("default: " + self.index.state.isDefault(self.getByKey(key)));
+    if (!self.index.state.deleted(key, self.index) && !self.index.state.isDefault(self.getByKey(key))) {
+      result.push(self.index.getByKey(key));
     }
   });
   return result;
@@ -5465,7 +5465,7 @@ State.prototype.declare = function (name, array) {
     // CSet properties -> declare their proxy Entity and give reference to the CSet properties
     array.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
-        self.declare(array.name + property.name, Table.declare([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
+        self.declare(array.name + property.name, new Table([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
         property.CType.entity = self.get(array.name + property.name);
       }
     });
@@ -5474,7 +5474,7 @@ State.prototype.declare = function (name, array) {
   // global (CloudType) => create proxy Index
   if (typeof array.prototype !== 'undefined' && array.prototype instanceof CloudType) {
     var CType = array;
-    array = Index.declare([], {value: CType.name});
+    array = new Index([], {value: CType.name});
     array.state = this;
     array.name  = name;
     array.isProxy = true;
@@ -5575,7 +5575,7 @@ State.prototype.deleted = function (key, entity) {
   var self = this;
   // Entity
   if (typeof entity !== 'undefined' && entity instanceof Table) {
-    var entry = entity.getByIndex(key);
+    var entry = entity.getByKey(key);
 //    console.log(key + ' of ' + entity.name + ' deleted ?');
 
     if (entity.deleted(key))
@@ -5614,10 +5614,10 @@ State.prototype._join = function (rev, target) {
   var master = (this === target) ? rev : this;
   var self = this;
   master.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var joiner = rev.getProperty(property).getByIndex(key);
-      var joinee = self.getProperty(property).getByIndex(key);
-      var t = target.getProperty(property).getByIndex(key);
+    property.forEachKey(function (key) {
+      var joiner = rev.getProperty(property).getByKey(key);
+      var joinee = self.getProperty(property).getByKey(key);
+      var t = target.getProperty(property).getByKey(key);
 
 //      console.log("joining: " + require('util').inspect(joiner) + " and " + require('util').inspect(joinee) + ' in ' + require('util').inspect(t));
       joinee._join(joiner, t);
@@ -5657,8 +5657,8 @@ State.prototype.fork = function () {
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var type = property.getByIndex(key);
+    property.forEachKey(function (key) {
+      var type = property.getByKey(key);
       type.applyFork();
     });
   });
@@ -5667,9 +5667,9 @@ State.prototype.applyFork = function () {
 State.prototype.replaceBy = function (state) {
   var self = this;
   state.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var type1 = property.getByIndex(key);
-      var type2 = self.getProperty(property).getByIndex(key);
+    property.forEachKey(function (key) {
+      var type1 = property.getByKey(key);
+      var type2 = self.getProperty(property).getByKey(key);
       type2.replaceBy(type1);
     });
   });

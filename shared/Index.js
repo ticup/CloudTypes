@@ -1,11 +1,10 @@
 var CloudType     = require('./CloudType');
-var Keys       = require('./Keys');
+var Keys          = require('./Keys');
 var Property      = require('./Property');
 var Properties    = require('./Properties');
-var IndexEntry   = require('./IndexEntry');
-var IndexQuery   = require('./IndexQuery');
-
-var CSet = require('./CSet');
+var IndexEntry    = require('./IndexEntry');
+var IndexQuery    = require('./IndexQuery');
+var CSet          = require('./CSet');
 
 var util          = require('util');
 
@@ -15,21 +14,23 @@ module.exports = Index;
 // when declared in a State, the state will add itself and the declared name for this Index as properties
 // to the Index object.
 // todo: create copy of initializers
-function Index(keys, properties) {
-  this.keys    = (keys instanceof Keys) ? keys : new Keys(keys);
-  this.properties = properties || new Properties();
+function Index(keys, fields) {
+  var self        = this;
+  fields = fields || {};
+  if (!keys instanceof Array) {
+    throw new Error('Index requires an array of single property objects as first argument to define its keys');
+  }
+  if (!fields instanceof Object) {
+    throw new Error('Index requires and object with properties as second argument to define its fields');
+  }
+  this.keys       = new Keys(keys);
+  this.properties = new Properties();
   this.isProxy    = false;  // set true by State if used as proxy for global CloudType
-}
-
-// properties: { string: string {"int", "string"} }
-Index.declare = function (keyDeclarations, propertyDeclarations) {
-  var carray = new Index(keyDeclarations);
-  Object.keys(propertyDeclarations).forEach(function (propName) {
-    var cType = propertyDeclarations[propName];
-    carray.addProperty(new Property(propName, cType, carray));
+  Object.keys(fields).forEach(function (propName) {
+    var cType = fields[propName];
+    self.addProperty(new Property(propName, cType, self));
   });
-  return carray;
-};
+}
 
 Index.prototype.forEachProperty = function (callback) {
   return this.properties.forEach(callback);
@@ -39,7 +40,7 @@ Index.prototype.get = function () {
   return new IndexEntry(this, Array.prototype.slice.call(arguments));
 };
 
-Index.prototype.getByIndex = function (key) {
+Index.prototype.getByKey = function (key) {
   return new IndexEntry(this, key)
 };
 
@@ -65,7 +66,8 @@ Index.prototype.addProperty = function (property) {
 
 Index.prototype.fork = function () {
   var fKeys = this.keys.fork();
-  var index = new Index(fKeys);
+  var index = new Index();
+  index.keys = fKeys;
   index.properties = this.properties.fork(index);
   index.isProxy = this.isProxy;
   return index;
@@ -75,7 +77,7 @@ Index.prototype.fork = function () {
 Index.prototype.toJSON = function () {
   return {
     type        : 'Array',
-    keys     : this.keys.toJSON(),
+    keys        : this.keys.toJSON(),
     properties  : this.properties.toJSON(),
     isProxy     : this.isProxy
   };

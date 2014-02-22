@@ -6,9 +6,7 @@ var IndexEntry = require('./IndexEntry');
 var TableEntry = require('./TableEntry');
 
 
-function CSetDeclaration() { }
-// CSetDeclaration: Declare a parametrized CSet type for a property
-CSetDeclaration.declare = function (elementType) {
+function CSetDeclaration(elementType) { 
   function CSet(entryIndex) {
     this.type = CSet;
     this.entryIndex = entryIndex;
@@ -35,11 +33,12 @@ CSetDeclaration.declare = function (elementType) {
   CSet.tag = "CSet";
   CSet.prototype = CSetPrototype;
   return CSet;
+
 }
 
 // called by CloudType to initialize the parametrized CSet for a property
 CSetDeclaration.fromJSON = function (json) {
-  return CSetDeclaration.declare(json.elementType);
+  return new CSetDeclaration(json.elementType);
 };
 
 // register this declaration as usable (will also allow to create CSet with CloudType.fromJSON())

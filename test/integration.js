@@ -247,7 +247,7 @@ describe('Integration #', function () {
 
       // server code
       server = CloudTypeServer.createServer();
-      array = Index.declare([{name: "string"}, {buyer: "string"}], {toBuy: "CInt", fromShop: "CString"});
+      array = new Index([{name: "string"}, {buyer: "string"}], {toBuy: "CInt", fromShop: "CString"});
       server.declare("Product", array);
       server.publish(8001);
 
@@ -285,9 +285,9 @@ describe('Integration #', function () {
 
       // server code
       server = CloudTypeServer.createServer();
-      server.declare("Customer", Table.declare({name: "CString"}));
-      // server.declare("Order", Table.declare([{customer: "Customer"}], {price: "CInt"}));
-      server.declare("Order", Table.declare({price: "CInt"}));
+      server.declare("Customer", new Table({name: "CString"}));
+      // server.declare("Order", new Table([{customer: "Customer"}], {price: "CInt"}));
+      server.declare("Order", new Table({price: "CInt"}));
       server.publish(8001);
 
       // client setup code

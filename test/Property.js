@@ -15,8 +15,8 @@ describe('Property state independent operations', function () {
   beforeEach(function () {
     state = new State();
 
-    index1 = Index.declare([{string: 'string'}], {name: 'CInt'});
-    index2 = Index.declare([{string: 'string'}, {int: 'int'}], { name: 'CInt'});
+    index1 = new Index([{string: 'string'}], {name: 'CInt'});
+    index2 = new Index([{string: 'string'}, {int: 'int'}], { name: 'CInt'});
     state.declare("Customer1", index1);
     state.declare("Customer2", index2);
     name1 = state.get("Customer1").getProperty('name');
@@ -70,10 +70,10 @@ describe('Property state independent operations', function () {
     });
   });
 
-  describe('.forEachIndex(callback)', function () {
+  describe('.forEachKey(callback)', function () {
     it('should not be called if no keys are accessed', function () {
       var ctr = 0;
-      name1.forEachIndex(function (key) {
+      name1.forEachKey(function (key) {
         ctr++;
       });
       ctr.should.equal(0);
@@ -85,7 +85,7 @@ describe('Property state independent operations', function () {
       name1.get(['bar']);
       name1.get(['foobar']);
       name1.get(['foo']);
-      name1.forEachIndex(function (key) {
+      name1.forEachKey(function (key) {
         idxs.push(key);
       });
       idxs.length.should.equal(3);
@@ -114,7 +114,7 @@ describe('Property state independent operations', function () {
       name1.get(['bar']);
       json = name1.toJSON();
       Object.keys(json.values).length.should.equal(2);
-      name1.forEachIndex(function (key) {
+      name1.forEachKey(function (key) {
         json.values[key].should.eql(name1.get([key]).toJSON());
       });
     });
@@ -140,7 +140,7 @@ describe('Property state independent operations', function () {
 //      should.exist(convert);
 //      console.log(convert);
 //      convert.should.be.an.instanceof(Property);
-//      name1.forEachIndex(function (key) {
+//      name1.forEachKey(function (key) {
 //        convert.get([key]).should.eql(name.get([key]));
 //      });
     });

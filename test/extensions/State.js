@@ -1,4 +1,5 @@
 var State = require('../../shared/State');
+var CloudType = require('../../shared/CloudType');
 var should = require('should');
 
 module.exports = State;
@@ -47,12 +48,14 @@ var DELETED = 'deleted';
 State.prototype.forPairs = function (state2, callback) {
   var state1 = this;
   state1.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var type1 = property.getByIndex(key);
-      var type2 = state2.getProperty(property).getByIndex(key);
-      should.exist(type2);
-      callback(type1, type2);
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var type1 = property.getByKey(key);
+        var type2 = state2.getProperty(property).getByKey(key);
+        should.exist(type2);
+        callback(type1, type2);
+      });
+    }
   });
 };
 
@@ -65,14 +68,16 @@ State.prototype.isForkOf = function (state) {
 State.prototype.isJoinOf = function (state1, state2) {
   var self = this;
   this.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var jType = property.getByIndex(key);
-      var type1 = state1.getProperty(property).getByIndex(key);
-      var type2 = state2.getProperty(property).getByIndex(key);
-      should.exist(type1);
-      should.exist(type2);
-      jType.isJoinOf(type1, type2);
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var jType = property.getByKey(key);
+        var type1 = state1.getProperty(property).getByKey(key);
+        var type2 = state2.getProperty(property).getByKey(key);
+        should.exist(type1);
+        should.exist(type2);
+        jType.isJoinOf(type1, type2);
+      });
+    }
   });
   this.forEachEntity(function (entity) {
     entity.forEachState(function (key) {

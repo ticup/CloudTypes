@@ -16,10 +16,9 @@ describe('Table state independent operations', function () {
 
   beforeEach(function () {
     var properties = {address: "CString"};
-    entity = Table.declare(properties);
+    entity = new Table(properties);
   });
 
-  // Private
   describe('#new(propertyDeclarations)', function () {
     var properties = {address: "CString"};
     var entity = new Table(properties);
@@ -28,24 +27,11 @@ describe('Table state independent operations', function () {
     });
     it('should have properties property', function () {
       entity.should.have.property('properties');
-      entity.properties.should.equal(properties);
+      entity.properties.should.be.an.instanceof(Properties);
     });
     it('should have keys property', function () {
       entity.should.have.property('keys');
       entity.keys.should.be.an.instanceof(Keys);
-    });
-  });
-
-  // Private
-  describe('#new(PropertyDeclarations)', function () {
-    var properties = {toBuy: "CInt"};
-    var entity = new Table(properties);
-    it('should create a new Table object', function () {
-      entity.should.be.an.instanceOf(Table);
-    });
-    it('should have properties property', function () {
-      entity.should.have.property('properties');
-      entity.properties.should.equal(properties);
     });
   });
 
@@ -73,40 +59,21 @@ describe('Table state independent operations', function () {
     });
   });
 
-  describe('.toJSON()', function () {
-    it('should create a JSON representation', function () {
-      var json = entity.toJSON();
-      should.exist(json);
-      should.exist(json.keys);
-      should.exist(json.properties);
-      json.keys.should.eql(entity.keys.toJSON());
-      json.properties.should.eql(entity.properties.toJSON())
-    });
-    it('should be complementary with fromJSON for all stubs', function () {
-      stubs.entities.map(function (json) {
-        json.should.eql(Table.fromJSON(json).toJSON());
-      });
-    });
-  });
-
-  // Public
-  describe('#declare(properties)', function () {
-    var properties = {address: "CString"};
-    var entity2 = Table.declare(properties);
-    it('should create a new Table object', function () {
-      entity2.should.be.an.instanceOf(Table);
-    });
-    it('should have keys property', function () {
-      entity2.should.have.property('keys');
-      entity2.keys.should.be.an.instanceof(Keys);
-    });
-    it('should have initialized properties property', function () {
-      entity2.should.have.property('properties');
-      entity2.properties.should.be.instanceof(Properties);
-      should.exist(entity2.properties.get('address'));
-      entity2.properties.get('address').should.be.instanceof(Property);
-    });
-  });
+  // describe('.toJSON()', function () {
+  //   it('should create a JSON representation', function () {
+  //     var json = entity.toJSON();
+  //     should.exist(json);
+  //     should.exist(json.keys);
+  //     should.exist(json.properties);
+  //     json.keys.should.eql(entity.keys.toJSON());
+  //     json.properties.should.eql(entity.properties.toJSON())
+  //   });
+  //   it('should be complementary with fromJSON for all stubs', function () {
+  //     stubs.entities.map(function (json) {
+  //       json.should.eql(Table.fromJSON(json).toJSON());
+  //     });
+  //   });
+  // });
 
   describe('.get(key)', function () {
     it('should return a TableEntry for that key and table', function () {

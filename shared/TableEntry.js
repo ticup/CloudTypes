@@ -16,10 +16,6 @@ TableEntry.prototype.get = function (property) {
   return this.index.getProperty(property).saveGet(this.keys);
 };
 
-TableEntry.prototype.forEachIndex = function (callback) {
-  return this.keys.slice(1).forEach(callback);
-};
-
 TableEntry.prototype.forEachKey = function (callback) {
   for (var i = 1; i<this.keys.length; i++) {
     callback(this.index.keys.getName(i), this.keys[i]);

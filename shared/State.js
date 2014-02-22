@@ -33,7 +33,7 @@ State.prototype.declare = function (name, array) {
     // CSet properties -> declare their proxy Entity and give reference to the CSet properties
     array.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
-        self.declare(array.name + property.name, Table.declare({entryIndex: 'CString', element: 'CString'}));
+        self.declare(array.name + property.name, new Table({entryIndex: 'CString', element: 'CString'}));
         property.CType.entity = self.get(array.name + property.name);
       }
     });
@@ -42,14 +42,14 @@ State.prototype.declare = function (name, array) {
   // global (CloudType) => create proxy Index
   if (typeof array.prototype !== 'undefined' && array.prototype instanceof CloudType) {
     var CType = array;
-    array = Index.declare([], {value: CType.name});
+    array = new Index([], {value: CType.name});
     array.state = this;
     array.name  = name;
     array.isProxy = true;
     return this.arrays[name] = array;
   }
   // Either declare Index (Table is also a Index) or CloudType, nothing else.
-  throw "Need a Index or CloudType to declare: " + array;
+  throw new Error("Need a Index or CloudType to declare: " + array);
 };
 
 State.prototype.isDefault = function (cType) {
@@ -77,6 +77,8 @@ State.prototype.toJSON = function () {
 State.fromJSON = function (json) {
   var array, state;
   state = new this();
+
+  // Recreate the types
   Object.keys(json.arrays).forEach(function (name) {
     var arrayJson = json.arrays[name];
     if (arrayJson.type === 'Entity') {
@@ -89,11 +91,28 @@ State.fromJSON = function (json) {
     state.declare(name, array);
   });
 
+  // Fix references
   state.forEachArray(function (array) {
-    // special case: CSet properties -> declare their proxy entities and give reference to the CSet properties
     array.forEachProperty(function (property) {
+      // CSet property -> give reference to the proxy entity
       if (property.CType.prototype === CSetPrototype) {
         property.CType.entity = state.get(array.name + property.name);
+      }
+
+      // If property is a reference, find all the references for all keys of that property
+      if (!CloudType.isCloudType(property.CType)) {
+        var refIndex = state.get(property.CType);
+        if (typeof refIndex === 'undefined') {
+          throw new Error("undefined property type: " + property.CType);
+        }
+        property.CType = refIndex;
+        property.forEachKey(function (key, val) {
+          var ref = refIndex.getByKey(val);
+          if (typeof ref === 'undefined') {
+            throw new Error("could not find reference: " + val);
+          }
+          property.values[key] = ref;
+        });
       }
     });
   });
@@ -143,7 +162,7 @@ State.prototype.deleted = function (key, entity) {
   var self = this;
   // Entity
   if (typeof entity !== 'undefined' && entity instanceof Table) {
-    var entry = entity.getByIndex(key);
+    var entry = entity.getByKey(key);
 //    console.log(key + ' of ' + entity.name + ' deleted ?');
 
     if (entity.deleted(key))
@@ -182,15 +201,18 @@ State.prototype._join = function (rev, target) {
   var master = (this === target) ? rev : this;
   var self = this;
   master.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var joiner = rev.getProperty(property).getByIndex(key);
-      var joinee = self.getProperty(property).getByIndex(key);
-      var t = target.getProperty(property).getByIndex(key);
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var joiner = rev.getProperty(property).getByKey(key);
+        var joinee = self.getProperty(property).getByKey(key);
+        var t = target.getProperty(property).getByKey(key);
 
-//      console.log("joining: " + require('util').inspect(joiner) + " and " + require('util').inspect(joinee) + ' in ' + require('util').inspect(t));
-      joinee._join(joiner, t);
-//      console.log("joined: " + require('util').inspect(t));
-    });
+        // console.log("joining: " + require('util').inspect(joiner) + " and " + require('util').inspect(joinee) + ' in ' + require('util').inspect(t));
+        joinee._join(joiner, t);
+        // console.log("joined: " + require('util').inspect(t));
+      });
+    }
+    
   });
   master.forEachEntity(function (entity) {
     var joiner = rev.get(entity.name);
@@ -216,8 +238,20 @@ State.prototype.fork = function () {
   var forked = new State();
   var forker = this;
   forker.forEachArray(function (index) {
-    var fArray = index.fork();
-    forked.declare(index.name, fArray);
+    var fIndex = index.fork();
+    forked.declare(index.name, fIndex);
+  });
+  // set new references
+  forked.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+      if (!CloudType.isCloudType(property.CType)) {
+        var fIndex = forked.get(property.CType.name);
+        property.CType = fIndex;
+        property.forEachKey(function (key, val) {
+          property.values[key] = fIndex.getByKey.apply(fIndex, val.keys);
+        });
+      }
+    })
   });
   return forked;
 };
@@ -225,21 +259,25 @@ State.prototype.fork = function () {
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var type = property.getByIndex(key);
-      type.applyFork();
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var type = property.getByKey(key);
+        type.applyFork();
+      });
+    }
   });
 };
 
 State.prototype.replaceBy = function (state) {
   var self = this;
   state.forEachProperty(function (property) {
-    property.forEachIndex(function (key) {
-      var type1 = property.getByIndex(key);
-      var type2 = self.getProperty(property).getByIndex(key);
-      type2.replaceBy(type1);
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var type1 = property.getByKey(key);
+        var type2 = self.getProperty(property).getByKey(key);
+        type2.replaceBy(type1);
+      });
+    }
   });
   state.forEachEntity(function (entity) {
     self.get(entity.name).states = entity.states;
