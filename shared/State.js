@@ -12,44 +12,87 @@ function State() {
 
 
 /* User API */
-//State.prototype.operation = function (name, keys, propertyName, op) {
-//  return op.apply(this.arrays[name].getProperty(propertyName).get(keys), [].slice.call(arguments, 4))
-//};
 State.prototype.get = function (name) {
   var array = this.arrays[name];
+
+  // if retrieving a global CloudType, get the value property of its proxy index instead
   if (typeof array !== 'undefined' && array.isProxy) {
     return array.getProperty('value').get([]);
   }
+
   return this.arrays[name];
 };
 
+
 State.prototype.declare = function (name, array) {
   var self = this;
+
   // Index or Table
   if (array instanceof Index) {
     array.state = this;
     array.name  = name;
+    self.arrays[name] = array;
 
-    // CSet properties -> declare their proxy Entity and give reference to the CSet properties
     array.forEachProperty(function (property) {
+
+      // Lookup CloudType/Reference of property if necessary
+      property.CType = self.resolvePropertyType(property.CType);
+
+      // Special case: CSet property
       if (property.CType.prototype === CSetPrototype) {
-        self.declare(array.name + property.name, new Table({entryIndex: 'CString', element: 'CString'}));
-        property.CType.entity = self.get(array.name + property.name);
+
+        // Lookup Reference of the set if necessary
+        property.CType.elementType = self.resolveKeyType(property.CType.elementType);
+
+        // Declare proxy Table and set reference
+        property.CType.declareProxyTable(self, array, property);
       }
     });
-    return this.arrays[name] = array;
+
+    return array;
   }
+
   // global (CloudType) => create proxy Index
   if (typeof array.prototype !== 'undefined' && array.prototype instanceof CloudType) {
     var CType = array;
-    array = new Index([], {value: CType.name});
+    array = new Index([], {value: CType});
     array.state = this;
     array.name  = name;
     array.isProxy = true;
     return this.arrays[name] = array;
   }
+
   // Either declare Index (Table is also a Index) or CloudType, nothing else.
   throw new Error("Need a Index or CloudType to declare: " + array);
+};
+
+State.prototype.resolvePropertyType = function (type) {
+  var rType = type;
+  if (typeof type === 'string') {
+    // 1) try to declare as regular CloudType
+    rType = CloudType.declareFromTag(type);
+
+    // 2) try to declare as reference to an Index
+    if (typeof rType === 'undefined') {
+      rType = this.get(type);
+    }
+  }
+
+  if (typeof rType === 'undefined') {
+    throw new Error("Undefined Property Type: " + type);
+  }
+  return rType;
+};
+
+State.prototype.resolveKeyType = function (type) {
+  var rType = type;
+  if (typeof type === 'string') {
+    rType = this.get(type);
+    if (typeof rType === 'undefined') {
+      rType = type;
+    }
+  }
+  return rType;
 };
 
 State.prototype.isDefault = function (cType) {
@@ -78,7 +121,7 @@ State.fromJSON = function (json) {
   var array, state;
   state = new this();
 
-  // Recreate the types
+  // Recreate the indexes
   Object.keys(json.arrays).forEach(function (name) {
     var arrayJson = json.arrays[name];
     if (arrayJson.type === 'Entity') {
@@ -88,32 +131,32 @@ State.fromJSON = function (json) {
     } else {
       throw "Unknown type in state: " + json.type;
     }
-    state.declare(name, array);
+    array.state = state;
+    array.name  = name;
+    state.arrays[name] = array;
   });
 
   // Fix references
   state.forEachArray(function (array) {
     array.forEachProperty(function (property) {
-      // CSet property -> give reference to the proxy entity
+      property.CType = state.resolvePropertyType(property.CType);
+
+      // if CSet property -> give reference to the proxy entity
       if (property.CType.prototype === CSetPrototype) {
-        property.CType.entity = state.get(array.name + property.name);
+        property.CType.entity      = state.get(array.name + property.name);
+        property.CType.elementType = state.resolveKeyType(property.CType.elementType);
+
       }
 
       // If property is a reference, find all the references for all keys of that property
-      if (!CloudType.isCloudType(property.CType)) {
-        var refIndex = state.get(property.CType);
-        if (typeof refIndex === 'undefined') {
-          throw new Error("undefined property type: " + property.CType);
-        }
-        property.CType = refIndex;
-        property.forEachKey(function (key, val) {
-          var ref = refIndex.getByKey(val);
-          if (typeof ref === 'undefined') {
-            throw new Error("could not find reference: " + val);
-          }
-          property.values[key] = ref;
-        });
-      }
+      // if (property.CType instanceof Index) {
+      //   var refIndex = property.CType;
+
+      //   property.forAllKeys(function (key, val) {
+      //     var ref = refIndex.getByKey(val) || val;
+      //     property.values[key] = ref;
+      //   });
+      // }
     });
   });
   return state;
@@ -200,20 +243,18 @@ State.prototype.deleted = function (key, entity) {
 State.prototype._join = function (rev, target) {
   var master = (this === target) ? rev : this;
   var self = this;
+  
   master.forEachProperty(function (property) {
     if (CloudType.isCloudType(property.CType)) {
       property.forEachKey(function (key) {
         var joiner = rev.getProperty(property).getByKey(key);
         var joinee = self.getProperty(property).getByKey(key);
         var t = target.getProperty(property).getByKey(key);
-
-        // console.log("joining: " + require('util').inspect(joiner) + " and " + require('util').inspect(joinee) + ' in ' + require('util').inspect(t));
         joinee._join(joiner, t);
-        // console.log("joined: " + require('util').inspect(t));
       });
     }
-    
   });
+  
   master.forEachEntity(function (entity) {
     var joiner = rev.get(entity.name);
     var joinee = self.get(entity.name);
@@ -237,10 +278,13 @@ State.prototype.join = function (rev) {
 State.prototype.fork = function () {
   var forked = new State();
   var forker = this;
+  
+  // 
   forker.forEachArray(function (index) {
     var fIndex = index.fork();
     forked.declare(index.name, fIndex);
   });
+
   // set new references
   forked.forEachArray(function (index) {
     index.forEachProperty(function (property) {
@@ -251,7 +295,7 @@ State.prototype.fork = function () {
           property.values[key] = fIndex.getByKey.apply(fIndex, val.keys);
         });
       }
-    })
+    });
   });
   return forked;
 };
@@ -285,5 +329,5 @@ State.prototype.replaceBy = function (state) {
 };
 
 State.prototype.print = function () {
-  console.log(require('util').inspect(this.toJSON(), {depth: null}));
+  console.log(require('util').inspect(this, {depth: null}));
 };

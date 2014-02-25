@@ -15,7 +15,11 @@ CloudType.fromTag = function (tag) {
 // Can only be used for non parametrized declarations (CInt/CString/CTime..)
 // By using this users can declare such types by their tag instead of by using the real declaration.
 CloudType.declareFromTag = function (tag) {
-  return CloudType.types[tag].declare();
+  var type = CloudType.types[tag];
+  if (typeof type === 'undefined') {
+    return undefined;
+  }
+  return type.declare();
 };
 
 CloudType.isCloudType = function (CType) {

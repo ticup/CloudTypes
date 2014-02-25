@@ -1,15 +1,22 @@
-var Keys = require('./Keys');
-
+var Keys       = require('./Keys');
+var CloudType  = require('./CloudType');
 module.exports = IndexEntry;
 
+// keys: an array of real keys or a flattened string of those keys
 function IndexEntry(index, keys) {
   this.index = index;
   this.keys = Keys.getKeys(keys, index);
 }
 
-IndexEntry.prototype.get = function (property) {
-  return this.index.getProperty(property).saveGet(this.keys);
+IndexEntry.prototype.get = function (propertyName) {
+  return this.index.getProperty(propertyName).saveGet(this.keys);
 };
+
+IndexEntry.prototype.set = function (propertyName, value) {
+  var prop = this.index.getProperty(propertyName);
+  return prop.set(this.keys, value);
+};
+
 
 IndexEntry.prototype.forEachProperty = function (callback) {
   var self = this;
@@ -28,7 +35,7 @@ IndexEntry.prototype.forEachKey = function (callback) {
 IndexEntry.prototype.key = function (name) {
   var position = this.index.keys.getPositionOf(name);
   if (position === -1)
-    throw Error("This Array does not have an key named " + name);
+    throw Error("This Array does not have a key named " + name);
 
   var type = this.index.keys.getType(position);
   var value =  this.keys[position];
@@ -60,6 +67,6 @@ IndexEntry.prototype.equals = function (entry) {
   return true;
 };
 
-IndexEntry.prototype.toJSON = function () {
-  return this.keys.get();
+IndexEntry.prototype.toString = function () {
+  return Keys.createIndex(this.keys);
 };

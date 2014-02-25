@@ -31,8 +31,8 @@ function CString(value, written, cond) {
 // put CloudType in prototype chain.
 CString.prototype = Object.create(CloudType.prototype);
 
-// Create a new instance of the declared CString for given entryIndex
-CString.newFor = function (entryIndex) {
+// Create a new instance of the declared CString for given entry
+CString.newFor = function (entry) {
   return new CString();
 };
 

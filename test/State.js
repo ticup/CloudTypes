@@ -46,7 +46,6 @@ describe('State', function () {
 
   describe('.toJSON()', function () {
     var state = State.fromJSON(stubs.stateUnchanged);
-    state.print()
     var json  = state.toJSON();
     it('should put the object in JSON representation', function () {
       should.exist(json);
@@ -82,18 +81,20 @@ describe('State', function () {
     describe('proxy Index', function () {
       var proxyArray = state.arrays["counter"];
       var property = proxyArray.getProperty('value');
+
       it('should be created', function () {
         should.exist(proxyArray);
         proxyArray.should.be.an.instanceof(Index);
       });
 
-      it('should have a value property', function () {
+      it('should have a value property of given type', function () {
         should.exist(property);
         property.should.be.an.instanceof(Property);
+        property.CType.should.equal(CInt);
       });
 
       describe('value property .get()', function () {
-        var cType = property.get();
+        var cType  = property.get();
         var cType2 = property.get();
         it('should return CloudType', function () {
           should.exist(cType);
@@ -107,12 +108,12 @@ describe('State', function () {
     });
   });
 
-  describe('.declare(name, index) (declare Index with a CSet property)', function () {
+  describe('.declare(name, index) (with other Index as property)', function () {
     var state = new State();
-    var name = "moments";
-    var entityName = name+"slots";
+    var name  = "User";
+    var Group = state.declare("Group", new Table({name: 'CString'}));
+    var User  = state.declare("User" , new Table({name: 'CString', group: 'Group'}));
 
-    state.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });
@@ -122,13 +123,27 @@ describe('State', function () {
     it('should install reference of name in index', function () {
       state.arrays[name].name.should.equal(name);
     });
-    it('should add an entity for the slot property with name <array.name><slot.name>', function () {
-      should.exist(state.arrays[entityName]);
-      state.arrays[entityName].should.be.an.instanceof(Table);
+    it('should have the Index as type for the property', function () {
+      User.getProperty('group').CType.should.equal(Group);
     });
-    it('should install a reference to the entity in the CType of the property', function () {
-      should.exist(state.arrays[name].properties.get('slots').CType.entity);
-      state.arrays[name].properties.get('slots').CType.entity.should.equal(state.arrays[entityName]);
+  });
+
+  describe('.declare(name, index) (with own Index as property)', function () {
+    var state = new State();
+    var name  = 'User';
+    var User  = state.declare(name, new Table({friend: 'User'}));
+
+    it('should add the array to the arrays map with given name', function () {
+      state.arrays.should.have.property(name);
+    });
+    it('should install reference of self in index', function () {
+      state.arrays[name].state.should.equal(state);
+    });
+    it('should install reference of name in index', function () {
+      state.arrays[name].name.should.equal(name);
+    });
+    it('should have itself as type for the property', function () {
+      User.getProperty('friend').CType.should.equal(User);
     });
   });
 
@@ -203,7 +218,11 @@ describe('State', function () {
     var state1 = State.fromJSON(stubs.stateUnchanged);
     var state2 = State.fromJSON(stubs.stateChanged);
     var jState = State.fromJSON(stubs.stateUnchanged);
+    // jState.print();
+    // state2.print();
+
     jState.join(state2);
+
     it('should join the given state into its own state (results in own state)', function () {
       jState.isJoinOf(state1, state2);
     });
@@ -221,7 +240,7 @@ describe('State', function () {
 //      jState.isJoinOf(state2, state1);
 //    });
 //  });
-
+  
   describe('.fork()', function () {
     var state = State.fromJSON(stubs.stateChanged);
     var fork  = state.fork();
@@ -249,5 +268,4 @@ describe('State', function () {
       state1.isEqual(state2);
     });
   });
-
 });

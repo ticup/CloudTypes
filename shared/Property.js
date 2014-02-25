@@ -9,17 +9,6 @@ function Property(name, CType, index, values) {
   this.CType = CType;
   this.values = values || {};
 
-  // The type is a reference that will be set in the second run of fromJSON
-  if (typeof CType.reference !== 'undefined') {
-    this.CType = CType.reference;
-    return this;
-  }
-
-  // Find type from name
-  if (typeof CType === 'string') {
-    this.CType = CloudType.declareFromTag(CType);
-  }
-
   // Should either be a cloud type or a reference to an index
   // console.log(Index);
   // if (!CloudType.isCloudType(this.CType) && !(this.CType instanceof Index)) {
@@ -30,7 +19,17 @@ function Property(name, CType, index, values) {
 Property.prototype.forEachKey = function (callback) {
   var self = this;
   return Object.keys(this.values).forEach(function (key) {
-    callback(key, self.getByKey(key));
+    var val = self.getByKey(key);
+    if (val) {
+      callback(key, val);
+    }
+  });
+};
+
+Property.prototype.forAllKeys = function (callback) {
+  var self = this;
+  return Object.keys(this.values).forEach(function (key) {
+    callback(key, self.values[key]);
   });
 };
 
@@ -56,14 +55,44 @@ Property.prototype.get = function (keys) {
   return this.getByKey(key);
 };
 
+Property.prototype.set = function (keys, val) {
+  if (CloudType.isCloudType(this.CType)) {
+    this.saveGet(keys).set(val);
+    return this;
+  }
+  var key = this.keys.get(keys);
+  this.values[key] = val.serialKey();
+}
+
 Property.prototype.getByKey = function (key) {
   var ctype = this.values[key];
-  if (typeof ctype === 'undefined') {
-    ctype = this.CType.newFor(key);
-    if (this.CType.prototype !== CSet.CSetPrototype) {
-      this.values[key] = ctype;
-    }
+  var entry = this.index.getByKey(key);
 
+  // console.log('getting ' + key + '.' + this.name + ' = ' + ctype);
+  // check if reference is still valid, otherwise return null
+  if (!CloudType.isCloudType(this.CType) && this.index.state.deleted(key, this.index)) {
+    return null;
+  }
+
+  // This key does not exist for this property yet
+  if (typeof ctype === 'undefined') {
+
+    // if it is a Cloud Type, make a new default.
+    if (CloudType.isCloudType(this.CType)) {
+      ctype = this.CType.newFor(entry);
+      if (this.CType.prototype !== CSet.CSetPrototype) {
+        this.values[key] = ctype;
+      }
+      return ctype;
+
+    // if it is a reference, return null
+    } else {
+      return null;
+    }
+  }
+
+  if (!CloudType.isCloudType(this.CType)) {
+    return this.CType.getByKey(ctype);
   }
   return ctype;
 };
@@ -89,13 +118,13 @@ Property.prototype.toJSON = function () {
   
   if (CloudType.isCloudType(this.CType)) {
     type = this.CType.toJSON();
-    Object.keys(self.values).forEach(function (key) {
-      values[key] = self.values[key].toJSON();
+    self.forAllKeys(function (key, val) {
+      values[key] = val.toJSON();
     });
   } else {
     type = { reference: this.CType.name };
-    Object.keys(self.values).forEach(function (key) {
-      values[key] = self.values[key].toString();
+    self.forAllKeys(function (key, val) {
+      values[key] = val.toString();
     });
   }
   return { name: this.name, type: type, values: values };
@@ -108,7 +137,7 @@ Property.fromJSON = function (json, index) {
   if (CloudType.isCloudType(json.type)) {
     var CType = CloudType.fromJSON(json.type);
     Object.keys(json.values).forEach(function (key) {
-      values[key] = CType.fromJSON(json.values[key], key);
+      values[key] = CType.fromJSON(json.values[key], index.get(key));
     });
     return new Property(json.name, CType, index, values);
   }
@@ -117,7 +146,7 @@ Property.fromJSON = function (json, index) {
   Object.keys(json.values).forEach(function (key) {
     values[key] = json.values[key];
   });
-  return new Property(json.name, json.type, index, values)
+  return new Property(json.name, json.type.reference, index, values)
   
 };
 
@@ -126,13 +155,13 @@ Property.prototype.fork = function (index) {
   var fProperty = new Property(this.name, this.CType, index);
   // Cloud Types need to be forked
   if (CloudType.isCloudType(this.CType)) {
-    Object.keys(self.values).forEach(function (key) {
-      fProperty.values[key] = self.values[key].fork();
+    self.forAllKeys(function (key, val) {
+      fProperty.values[key] = val.fork();
     });
   // References are just copied
   } else {
-    Object.keys(self.values).forEach(function (key) {
-      fProperty.values[key] = self.values[key];
+    self.forAllKeys(function (key, val) {
+      fProperty.values[key] = val;
     });
   }
   return fProperty;

@@ -16,13 +16,14 @@ var stubs       = require('./stubs');
 var util        = require('util');
 var TableEntry = require('../shared/TableEntry');
 
-describe('CSet state dependent operations (CSet operations are always state dependent!): ', function () {
-  describe('CSet initialized in a state', function () {
+describe('CSet Property', function () {
+
+  describe('declared for Index', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    state.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
 
+    state.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });
@@ -36,9 +37,50 @@ describe('CSet state dependent operations (CSet operations are always state depe
       should.exist(state.arrays[entityName]);
       state.arrays[entityName].should.be.an.instanceof(Table);
     });
-    it('sould install a reference to the entity in the CType of the property', function () {
+    it('should install a reference to the entity in the CType of the property', function () {
       should.exist(state.arrays[name].properties.get('slots').CType.entity);
       state.arrays[name].properties.get('slots').CType.entity.should.equal(state.arrays[entityName]);
+    });
+  });
+
+  describe('with own Index declared for Index', function () {
+    var state = new State();
+    var name  = 'User';
+    var User  = state.declare(name, new Table({friends: new CSet(name)}));
+
+    it('should add the array to the arrays map with given name', function () {
+      state.arrays.should.have.property(name);
+    });
+    it('should install reference of self in index', function () {
+      state.arrays[name].state.should.equal(state);
+    });
+    it('should install reference of name in index', function () {
+      state.arrays[name].name.should.equal(name);
+    });
+    it('should have itself as type for the property', function () {
+      should.exist(User.getProperty('friends').CType.elementType);
+      User.getProperty('friends').CType.elementType.should.equal(User);
+    });
+  });
+
+  describe('with other Index declared for Index)', function () {
+    var state = new State();
+    var name  = 'Group';
+    var Group = state.declare("Group", new Table({name:CString}));
+    var User  = state.declare("User" , new Table({groups: new CSet(name)}));
+
+    it('should add the array to the arrays map with given name', function () {
+      state.arrays.should.have.property(name);
+    });
+    it('should install reference of self in index', function () {
+      state.arrays[name].state.should.equal(state);
+    });
+    it('should install reference of name in index', function () {
+      state.arrays[name].name.should.equal(name);
+    });
+    it('should have itself as type for the property', function () {
+      should.exist(User.getProperty('groups').CType.elementType);
+      User.getProperty('groups').CType.elementType.should.equal(Group);
     });
   });
 
@@ -48,6 +90,7 @@ describe('CSet state dependent operations (CSet operations are always state depe
     var entityName = name+"slots";
     state1.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
     var json = state1.toJSON();
+    console.log(require('util').inspect(json, {depth:null}));
     var state2 = State.fromJSON(json);
 
     it('should add the array to the arrays map with given name', function () {
@@ -89,25 +132,62 @@ describe('CSet state dependent operations (CSet operations are always state depe
 
   });
 
-  describe('.add(element)', function () {
+  describe('.add(element) with integer type', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = new CSet('int');
-    state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 1).get('slots');
+    var App = state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
+    var app = App.get('now', 1);
+    var set = app.get('slots');
     var entity = state.get(entityName);
     set.add(1);
 
-    state.print();
+    it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
+      state.print();
+      var entry = entity.where(function (entry) {
+        console.log(entry.get('entry') + "?=" + app);
+        console.log(entry.get('element').get() + "?=" + 1);
+        return (entry.get('entry') === app && entry.get('element').get() === 1);}).all();
+      should.exist(entry);
+      entry.length.should.equal(1);
+    });
+  });
+
+  describe('.add(element) with string type', function () {
+    var state = new State();
+    var name = "moments";
+    var entityName = name+"slots";
+    var CSetDecl = new CSet('string');
+    state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
+    var set = state.get(name).get('now', 1).get('slots');
+    var entity = state.get(entityName);
+    set.add("1");
 
     it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
-      var entry = entity.get('now', 1);
+      var entry = entity.get('now', "1");
       should.exist(entry);
     });
   });
 
-  describe('.contains(element)', function () {
+  describe('.add(element) with Table type', function () {
+    var state = new State();
+    var name = "moments";
+    var entityName = name+"slots";
+    var User = state.declare(name, new Table({name: 'CString'}));
+    var App = state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: new CSet(User)}));
+    var set = App.get('now', 1).get('slots');
+    var entity = state.get(entityName);
+    var user = User.create();
+    set.add(user);
+
+    it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
+      var entry = entity.get('now', user);
+      should.exist(entry);
+    });
+  });
+
+  describe('.contains(element) with integer type', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
@@ -128,7 +208,28 @@ describe('CSet state dependent operations (CSet operations are always state depe
     });
   });
 
-  describe('.remove(element)', function () {
+  describe('.contains(element) with string type', function () {
+    var state = new State();
+    var name = "moments";
+    var entityName = name+"slots";
+    var CSetDecl = new CSet('string');
+    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    var set = state.get(name).get('now', 2).get('slots');
+    var entity = state.get(entityName);
+    set.add("1");
+
+    it('should return false if element has not been added yet', function () {
+      set.contains("2").should.equal(false);
+    });
+
+    it('should return true if element has been added', function () {
+      set.contains("1").should.equal(true);
+      set.add("2");
+      set.contains("2").should.equal(true);
+    });
+  });
+
+  describe('.remove(element) with integer type', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
@@ -142,11 +243,25 @@ describe('CSet state dependent operations (CSet operations are always state depe
       set.remove(1);
       set.contains(1).should.equal(false);
     });
-
-
   });
 
-  describe('subsequent add/delete of same element', function () {
+  describe('.remove(element) with string type', function () {
+    var state = new State();
+    var name = "moments";
+    var entityName = name+"slots";
+    var CSetDecl = new CSet('string');
+    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    var set = state.get(name).get('now', 2).get('slots');
+    var entity = state.get(entityName);
+    set.add("1");
+    it('should remove the element from the set', function () {
+      set.contains("1").should.equal(true);
+      set.remove("1");
+      set.contains("1").should.equal(false);
+    });
+  });
+
+  describe('subsequent add/delete of same element of integer type', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
@@ -162,6 +277,25 @@ describe('CSet state dependent operations (CSet operations are always state depe
       set.contains(1).should.equal(false);
       set.add(1);
       set.contains(1).should.equal(true);
+    });
+  });
+
+  describe('subsequent add/delete of same element of string type', function () {
+    var state = new State();
+    var name = "moments";
+    var entityName = name+"slots";
+    var CSetDecl = new CSet('string');
+    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
+    var set = state.get(name).get('now', 2).get('slots');
+    var entity = state.get(entityName);
+    it('should keeps its semantics', function () {
+      set.contains("1").should.equal(false);
+      set.add("1");
+      set.contains("1").should.equal(true);
+      set.remove("1");
+      set.contains("1").should.equal(false);
+      set.add("1");
+      set.contains("1").should.equal(true);
     });
   });
 });

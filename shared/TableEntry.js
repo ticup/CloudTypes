@@ -5,16 +5,14 @@ module.exports = TableEntry;
 
 function TableEntry(index, keys) {
   IndexEntry.call(this, index, keys);
-//  this.index = index;
-//  this.keys = Keys.getKeys(keys, index);
 }
 
 TableEntry.prototype = Object.create(IndexEntry.prototype);
 
 
-TableEntry.prototype.get = function (property) {
-  return this.index.getProperty(property).saveGet(this.keys);
-};
+// TableEntry.prototype.get = function (property) {
+//   return this.index.getProperty(property).saveGet(this.keys);
+// };
 
 TableEntry.prototype.forEachKey = function (callback) {
   for (var i = 1; i<this.keys.length; i++) {

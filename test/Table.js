@@ -15,12 +15,12 @@ describe('Table state independent operations', function () {
   var entity;
 
   beforeEach(function () {
-    var properties = {address: "CString"};
+    var properties = {address: CString};
     entity = new Table(properties);
   });
 
   describe('#new(propertyDeclarations)', function () {
-    var properties = {address: "CString"};
+    var properties = {address: CString};
     var entity = new Table(properties);
     it('should create a new Table object', function () {
       entity.should.be.an.instanceOf(Table);
@@ -56,33 +56,6 @@ describe('Table state independent operations', function () {
           should.exist(table.getProperty(jsonProperty.name));
        });
      });
-    });
-  });
-
-  // describe('.toJSON()', function () {
-  //   it('should create a JSON representation', function () {
-  //     var json = entity.toJSON();
-  //     should.exist(json);
-  //     should.exist(json.keys);
-  //     should.exist(json.properties);
-  //     json.keys.should.eql(entity.keys.toJSON());
-  //     json.properties.should.eql(entity.properties.toJSON())
-  //   });
-  //   it('should be complementary with fromJSON for all stubs', function () {
-  //     stubs.entities.map(function (json) {
-  //       json.should.eql(Table.fromJSON(json).toJSON());
-  //     });
-  //   });
-  // });
-
-  describe('.get(key)', function () {
-    it('should return a TableEntry for that key and table', function () {
-      var entry = entity.get('foo');
-      should.exist(entry);
-      entry.should.be.an.instanceof(TableEntry);
-      entry.should.have.property('index');
-      entry.should.have.property('keys');
-      entry.index.should.equal(entity);
     });
   });
 
@@ -220,6 +193,39 @@ describe('Table state dependent operations: ', function () {
 //        all.length.should.equal(1)
 //      });
 //    });
+  });
+
+
+  describe('deleting an entry', function () {
+    var state  = State.fromJSON(stubs.stateChanged);
+    var Order = state.get('Order');
+    var Customer = state.get('Customer');
+    var cust = Customer.all()[1];
+    var name = cust.get('name').get();
+    Customer.where(function (cust) { return cust.get('name').get() === name; }).all().length.should.equal(1);
+    // Order.where(function (order) { 
+    //   var c = order.get('customer');
+    //   if (c)
+    //     return c.equals(cust);
+    // }).all().length.should.equal(1);
+    console.log('deleting');
+    cust.delete();
+
+    it('should make it unable to retrieve the entity', function () {
+      Customer.where(function (cust) { return cust.get('name').get() === name; }).all().length.should.equal(0);
+    });
+
+    it('should remove references to it', function () {
+      var state = new State();
+      var User = state.declare('User', new Table({child:'User'}));
+      var u1 = User.create();
+      var u2 = User.create();
+      u1.set('child', u2);
+      u2.delete();
+      User.all().length.should.equal(1);
+      should.not.exist(u1.get('child'));
+    });
+
   });
 
 

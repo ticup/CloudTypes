@@ -1,21 +1,21 @@
 var State       = require('./extensions/State');
-var Index      = require('../shared/Index');
-var Table     = require('../shared/Table');
-var IndexEntry = require('../shared/IndexEntry');
-var Keys     = require('../shared/Keys');
+var Index       = require('../shared/Index');
+var Table       = require('../shared/Table');
+var IndexEntry  = require('../shared/IndexEntry');
+var Keys        = require('../shared/Keys');
 var Properties  = require('../shared/Properties');
 var Property    = require('../shared/Property');
 var CloudType   = require('../shared/CloudType');
 var CInt        = require('./extensions/CInt');
 var CString     = require('./extensions/CString');
-var should      = require('should');
 var stubs       = require('./stubs');
+var should      = require('should');
 var util        = require('util');
 
 
 function createIndex() {
   var keyNames = [{name: "string"}];
-  var properties = {toBuy: "CInt", shop: "CString"};
+  var properties = {toBuy: CInt, shop: CString};
   var array = new Index(keyNames, properties);
   return array;
 }
@@ -25,13 +25,13 @@ describe('Index', function () {
 
   beforeEach(function () {
     array = createIndex();
-    intArray = new Index([{slot: "int"}], {toBuy: "CInt"});
+    intArray = new Index([{slot: "int"}], {toBuy: CInt});
 
   });
 
   describe('#new(keys, properties)', function () {
     var keys = [{name: "string"}];
-    var properties = {toBuy: "CInt"};
+    var properties = {toBuy: CInt};
     var array = new Index(keys, properties);
     it('should create a new Index object', function () {
       array.should.be.an.instanceOf(Index);
@@ -130,6 +130,7 @@ describe('Index', function () {
       should.exist(property);
       property.should.be.an.instanceof(Property);
       property.name.should.equal('toBuy');
+      property.CType.should.equal(CInt);
     });
   });
 
@@ -140,6 +141,7 @@ describe('Index', function () {
       should.exist(property2);
       property2.should.be.an.instanceof(Property);
       property2.name.should.equal('toBuy');
+      property.CType.should.equal(CInt);
     });
   });
 

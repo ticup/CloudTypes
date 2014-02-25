@@ -264,10 +264,10 @@ exports.customerChanged = {
       name: 'name',
       type: { tag: 'CString' },
       values: {
-        'Customer:0#0': cstring.toJSON(),
-        'Customer:0#1': cstring.toJSON(),
-        'Customer:0#2': cstring2.toJSON(),
-        'Customer:0#3': cstring3.toJSON()
+        '[Customer:0#0]': cstring.toJSON(),
+        '[Customer:0#1]': cstring.toJSON(),
+        '[Customer:0#2]': cstring2.toJSON(),
+        '[Customer:0#3]': cstring3.toJSON()
       }
     }
   ],
@@ -316,7 +316,11 @@ exports.orderChanged = {
       name: 'customer',
       type: { reference: 'Customer' },
       values: {
-        '[[Order:0#0]]': '[Customer:0#0]',
+        '[[Order:0#0]]': '[Customer:0#2]',
+        '[[Order:0#1]]': '[Customer:0#2]',
+        '[[Order:0#2]]': '[Customer:0#2]',
+        '[[Order:0#3]]': '[Customer:0#2]',
+        '[[Order:0#4]]': '[Customer:0#2]',
       }
     }
   ],

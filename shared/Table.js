@@ -15,10 +15,6 @@ var DELETED = 'deleted';
 function Table(columns) {
   var self = this;
   Index.call(this, [{uid: 'string'}], columns);
-  // Object.keys(propertyDeclarations).forEach(function (propName) {
-  //   var cTypeName = propertyDeclarations[propName];
-  //   self.addProperty(new Property(propName, cTypeName, self));
-  // });
   this.states = {};
   this.uid = 0;
 }
@@ -27,29 +23,46 @@ Table.prototype = Object.create(Index.prototype);
 Table.OK = OK;
 Table.DELETED = DELETED;
 
-Table.prototype.create = function (keys) {
-  keys = (typeof keys === 'undefined') ? [] : keys;
+Table.prototype.create = function () {
   var uid = this.name + ":" + this.state.createUID(this.uid);
   this.uid += 1;
-  var key = Keys.createIndex([uid].concat(keys));
+  var key = Keys.createIndex([uid]);
   this.setCreated(key);
-  return this.get.apply(this, [uid].concat(keys));
+  return this.getByKey(key);
 };
 
 Table.prototype.delete = function (entry) {
-  console.log("DELETING " + entry.keys);
+  console.log('deleting' + Keys.createIndex(entry.keys));
   this.setDeleted(Keys.createIndex(entry.keys));
   this.state.propagate();
 };
 
 // Pure arguments version (user input version)
+// Table.prototype.get = function () {
+//   var args = Array.prototype.slice.call(arguments);
+//   var key = Keys.createIndex(args);
+//   if (this.states[key]) {
+//     return new TableEntry(this, args);
+//   }
+//   return null;
+// };
+
+// Pure arguments version (user input version)
 Table.prototype.get = function () {
-  return new TableEntry(this, Array.prototype.slice.call(arguments));
+  var args = Array.prototype.slice.call(arguments);
+  var key = Keys.createIndex(args);
+  if (this.exists(key)) {
+    return new TableEntry(this, args);
+  }
+  return null;
 };
 
 // Flattened key version (internal version)
 Table.prototype.getByKey = function (key) {
-  return new TableEntry(this, key);
+  if (this.exists(key)) {
+    return new TableEntry(this, key);
+  }
+  return null;
 };
 
 Table.prototype.forEachState = function (callback) {
@@ -116,7 +129,7 @@ Table.fromJSON = function (json) {
   table.states = {};
   Object.keys(json.states).forEach(function (key) {
     table.states[key] = json.states[key];
-  });
+    });
   return table;
 };
 
