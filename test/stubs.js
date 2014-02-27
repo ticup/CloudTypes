@@ -84,17 +84,18 @@ exports.customerUnchanged = {
     names: ['uid'],
     types: ['string']
   },
+  keyValues : {},
   properties  : [
     {
       name: 'name',
       type: { tag: 'CString' },
       values: {
-        '[Customer:0#0]': cstring.toJSON()
+        'Customer:0#0': cstring.toJSON()
       }
     }
   ],
   states: {
-    '[Customer:0#0]': 'ok'
+    'Customer:0#0': 'ok'
   }
 };
 
@@ -104,31 +105,32 @@ exports.orderUnchanged = {
     names: ['uid'],
     types: ['string']
   },
+  keyValues : {},
   properties  : [
     {
       name: 'product',
       type: { tag: 'CString' },
       values: {
-        '[[Order:0#0]]': cstring.toJSON(),
+        'Order:0#0': cstring.toJSON(),
       }
     },
     {
       name: 'quantity',
       type: { tag: 'CInt' },
       values: {
-        '[[Order:0#0]]': cint2.toJSON()
+        'Order:0#0': cint2.toJSON()
       }
     },
     {
       name: 'customer',
       type: { reference: 'Customer' },
       values: {
-        '[[Order:0#0]]': '[Customer:0#0]',
+        'Order:0#0': 'Customer:0#0',
       }
     }
   ],
   states: {
-    '[[Order:0#0]]': 'ok'
+    'Order:0#0': 'ok'
   }
 };
 
@@ -259,24 +261,25 @@ exports.customerChanged = {
     names: ['uid'],
     types: ['string']
   },
+  keyValues : {},
   properties  : [
     {
       name: 'name',
       type: { tag: 'CString' },
       values: {
-        '[Customer:0#0]': cstring.toJSON(),
-        '[Customer:0#1]': cstring.toJSON(),
-        '[Customer:0#2]': cstring2.toJSON(),
-        '[Customer:0#3]': cstring3.toJSON()
+        'Customer:0#0': cstring.toJSON(),
+        'Customer:0#1': cstring.toJSON(),
+        'Customer:0#2': cstring2.toJSON(),
+        'Customer:0#3': cstring3.toJSON()
       }
     }
   ],
   states: {
-    '[Customer:0#0]': 'deleted',
-    '[Customer:0#1]': 'ok',
-    '[Customer:0#2]': 'ok',
-    '[Customer:0#3]': 'ok',
-    '[Customer:0#4]': 'ok'
+    'Customer:0#0': 'deleted',
+    'Customer:0#1': 'ok',
+    'Customer:0#2': 'ok',
+    'Customer:0#3': 'ok',
+    'Customer:0#4': 'ok'
   }
 };
 
@@ -286,52 +289,53 @@ exports.orderChanged = {
     names: ['uid'],
     types: ['string']
   },
+  keyValues : {},
   properties  : [
     {
       name: 'product',
       type: { tag: 'CString' },
       values: {
-        '[[Order:0#0]]': cstring.toJSON(),
-        '[[Order:0#1]]': cstring1.toJSON(),
-        '[[Order:0#2]]': cstring2.toJSON(),
-        '[[Order:0#3]]': cstring.toJSON(),
-        '[[Order:0#4]]': cstring3.toJSON(),
-        '[[Order:0#5]]': cstring3.toJSON(),
-        '[[Order:0#6]]': cstring3.toJSON()
+        'Order:0#0': cstring.toJSON(),
+        'Order:0#1': cstring1.toJSON(),
+        'Order:0#2': cstring2.toJSON(),
+        'Order:0#3': cstring.toJSON(),
+        'Order:0#4': cstring3.toJSON(),
+        'Order:0#5': cstring3.toJSON(),
+        'Order:0#6': cstring3.toJSON()
       }
     },
     {
       name: 'quantity',
       type: { tag: 'CInt' },
       values: {
-        '[[Order:0#0]]': cint2.toJSON(),
-        '[[Order:0#2]]': cint.toJSON(),
-        '[[Order:0#3]]': ucint3.toJSON(),
-        '[[Order:0#4]]': ucint3.toJSON(),
-        '[[Order:0#5]]': ucint2.toJSON(),
-        '[[Order:0#6]]': ucint1.toJSON()
+        'Order:0#0': cint2.toJSON(),
+        'Order:0#2': cint.toJSON(),
+        'Order:0#3': ucint3.toJSON(),
+        'Order:0#4': ucint3.toJSON(),
+        'Order:0#5': ucint2.toJSON(),
+        'Order:0#6': ucint1.toJSON()
       }
     },
     {
       name: 'customer',
       type: { reference: 'Customer' },
       values: {
-        '[[Order:0#0]]': '[Customer:0#2]',
-        '[[Order:0#1]]': '[Customer:0#2]',
-        '[[Order:0#2]]': '[Customer:0#2]',
-        '[[Order:0#3]]': '[Customer:0#2]',
-        '[[Order:0#4]]': '[Customer:0#2]',
+        'Order:0#0': 'Customer:0#2',
+        'Order:0#1': 'Customer:0#2',
+        'Order:0#2': 'Customer:0#2',
+        'Order:0#3': 'Customer:0#2',
+        'Order:0#4': 'Customer:0#2',
       }
     }
   ],
   states: {
-    '[[Order:0#0]]': 'deleted',
-    '[[Order:0#1]]': 'deleted',
-    '[[Order:0#2]]': 'deleted',
-    '[[Order:0#3]]': 'ok',
-    '[[Order:0#4]]': 'deleted',
-    '[[Order:0#5]]': 'ok',
-    '[[Order:0#6]]': 'ok'
+    'Order:0#0': 'deleted',
+    'Order:0#1': 'deleted',
+    'Order:0#2': 'deleted',
+    'Order:0#3': 'ok',
+    'Order:0#4': 'deleted',
+    'Order:0#5': 'ok',
+    'Order:0#6': 'ok'
   }
 };
 

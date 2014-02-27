@@ -111,41 +111,46 @@ describe('scenarios#', function () {
       all.length.should.equal(3);
     });
 
-    it('should return null for the deleted reference', function () {
-      should.equal(t1.get('row2'), null);
-    });
-
-    it('should have the remaining', function () {
+    it('should return the references when retrieving the properties', function () {
+      debugger;
+      t1.get('row2').equals(t2).should.equal(true);
+      t2.get('row2').equals(t3).should.equal(true);
       t3.get('row2').equals(t1).should.equal(true);
     });
 
-    describe(' and deleting one', function () {
-      t2.delete();
-      var all2 = thing1.all()
-      it('should leave the other two', function () {
-        all2.length.should.equal(2);
-      });
+  });
 
-      describe('and serializing/deserializing', function () {
-        var state2 = State.fromJSON(state.toJSON());
-        var thing2 = state2.get('Thing1');
-        var all2 = thing2.all();
+   describe('Creating cyclic entries with self property and deleting one', function () {
+    var state = new State();
+    var thing1 = state.declare('Thing1', new Table({row1: CInt, row2: 'Thing1'}));
+    var t1 = thing1.create();
+    var t2 = thing1.create();
+    var t3 = thing1.create();
+    t1.set('row2', t2);
+    t2.set('row2', t3);
+    t3.set('row2', t1);
+    t2.delete();
+    var all = thing1.all();
 
-        it('should still have the declared Table', function () {
-          should.exist(thing2);
-        });
-
-        it('should still have the two entries', function () {
-          all2.length.should.equal(2);
-        });
-
-        it('should still have the entry references', function () {
-          all2[1].get('row2').equals(all2[0]).should.equal(true);
-        });
-      });
-
-
+    it('should leave the other two', function () {
+      all.length.should.equal(2);
     });
+
+    describe('and serializing/deserializing', function () {
+      var state2 = State.fromJSON(state.toJSON());
+      var thing2 = state2.get('Thing1');
+      var all2 = thing2.all();
+
+      it('should still have the declared Table', function () {
+        should.exist(thing2);
+      });
+
+      it('should still have the entry references', function () {
+        all2[1].get('row2').equals(all2[0]).should.equal(true);
+      });
+    });
+
+
    });
 
 

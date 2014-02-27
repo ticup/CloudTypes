@@ -4,7 +4,6 @@ var Property      = require('./Property');
 var Properties    = require('./Properties');
 var IndexEntry    = require('./IndexEntry');
 var IndexQuery    = require('./IndexQuery');
-var CSet          = require('./CSet');
 
 var util          = require('util');
 
@@ -23,6 +22,7 @@ function Index(keys, fields) {
   if (!fields instanceof Object) {
     throw new Error('Index requires and object with properties as second argument to define its fields');
   }
+
   this.keys       = new Keys(keys);
   this.properties = new Properties();
   this.isProxy    = false;  // set true by State if used as proxy for global CloudType
@@ -31,6 +31,13 @@ function Index(keys, fields) {
     self.addProperty(new Property(propName, cType, self));
   });
 }
+
+Index.declare = function (keys, fields) {
+  return new Index(keys, fields);
+};
+
+Index.declare.type = Index;
+
 
 Index.prototype.forEachProperty = function (callback) {
   return this.properties.forEach(callback);

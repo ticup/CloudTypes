@@ -14,9 +14,9 @@ TableQuery.prototype = Object.create(IndexQuery.prototype);
 TableQuery.prototype.all = function () {
   var self = this;
   var entities = [];
-  Object.keys(self.index.states).forEach(function (key) {
-    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
-      entities.push(self.index.getByKey(key));
+  Object.keys(self.index.states).forEach(function (uid) {
+    if (self.index.exists(uid) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(uid))))
+      entities.push(self.index.getByKey(uid));
   });
   if (self.orderProperty) {
     var property = self.index.getProperty(self.orderProperty);

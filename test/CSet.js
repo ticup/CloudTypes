@@ -22,8 +22,8 @@ describe('CSet Property', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
+    state.declare(name, new Table({slots: new CSet('int')}));
 
-    state.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
     it('should add the array to the arrays map with given name', function () {
       state.arrays.should.have.property(name);
     });
@@ -63,7 +63,7 @@ describe('CSet Property', function () {
     });
   });
 
-  describe('with other Index declared for Index)', function () {
+  describe('with other Index declared for Index', function () {
     var state = new State();
     var name  = 'Group';
     var Group = state.declare("Group", new Table({name:CString}));
@@ -88,9 +88,8 @@ describe('CSet Property', function () {
     var state1 = new State();
     var name = "moments";
     var entityName = name+"slots";
-    state1.declare(name, new Index([{moment: 'string'}], {slots: new CSet('int')}));
+    state1.declare(name, new Table({slots: new CSet('int')}));
     var json = state1.toJSON();
-    console.log(require('util').inspect(json, {depth:null}));
     var state2 = State.fromJSON(json);
 
     it('should add the array to the arrays map with given name', function () {
@@ -117,8 +116,9 @@ describe('CSet Property', function () {
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = new CSet('int');
-    state.declare(name, new Index([{moment: 'string'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now').get('slots');
+    var Thing = state.declare(name, new Table({slots: CSetDecl}));
+    var thing = Thing.create();
+    var set = thing.get('slots');
 
     it('should return an instance of the declared CSet', function () {
       should.exist(set);
@@ -137,18 +137,16 @@ describe('CSet Property', function () {
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = new CSet('int');
-    var App = state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
-    var app = App.get('now', 1);
+    var App = state.declare(name, new Table({slots: CSetDecl}));
+    var app = App.create();
     var set = app.get('slots');
     var entity = state.get(entityName);
+    debugger;
     set.add(1);
 
     it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
-      state.print();
       var entry = entity.where(function (entry) {
-        console.log(entry.get('entry') + "?=" + app);
-        console.log(entry.get('element').get() + "?=" + 1);
-        return (entry.get('entry') === app && entry.get('element').get() === 1);}).all();
+        return (entry.key('entry').equals(app) && entry.key('element') === 1);}).all();
       should.exist(entry);
       entry.length.should.equal(1);
     });
@@ -159,41 +157,69 @@ describe('CSet Property', function () {
     var name = "moments";
     var entityName = name+"slots";
     var CSetDecl = new CSet('string');
-    state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 1).get('slots');
+    var App = state.declare(name, new Table({slots: CSetDecl}));
+    var app = App.create();
+    var set = app.get('slots');
     var entity = state.get(entityName);
     set.add("1");
 
     it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
-      var entry = entity.get('now', "1");
+      var entry = entity.where(function (entry) {
+        return (entry.key('entry').equals(app) && entry.key('element') === "1");}).all();
       should.exist(entry);
+      entry.length.should.equal(1);
     });
   });
+
 
   describe('.add(element) with Table type', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var User = state.declare(name, new Table({name: 'CString'}));
-    var App = state.declare(name, new Index([{moment: 'string'}, {slot: 'int'}], {slots: new CSet(User)}));
-    var set = App.get('now', 1).get('slots');
+    var User = state.declare("User", new Table({name: 'CString'}));
+    var App = state.declare(name, new Table({slots: new CSet(User)}));
+    var app = App.create();
+    var set = app.get('slots');
     var entity = state.get(entityName);
     var user = User.create();
     set.add(user);
 
     it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
-      var entry = entity.get('now', user);
+      var entry = entity.where(function (entry) {
+        return (entry.key('entry').equals(app) && entry.key('element').equals(user)); }).all();
       should.exist(entry);
+      entry.length.should.equal(1);
     });
   });
+
+
+  describe('.add(element) with recursive Table type', function () {
+    var state = new State();
+    var name = "moments";
+    var entityName = name+"slots";
+    var App = state.declare(name, new Table({slots: new CSet(name)}));
+    var app = App.create();
+    var app1 = App.create();
+    var set = app.get('slots');
+    var entity = state.get(entityName);
+    set.add(app1);
+
+    it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
+      var entry = entity.where(function (entry) {
+        return (entry.key('entry').equals(app) && entry.key('element').equals(app1));}).all();
+      should.exist(entry);
+      entry.length.should.equal(1);
+    });
+  });
+
 
   describe('.contains(element) with integer type', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = new CSet('int');
-    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 2).get('slots');
+    var App = state.declare(name, new Table({slots: new CSet('int')}));
+    var app = App.create();
+    var set = app.get('slots');
     var entity = state.get(entityName);
     set.add(1);
 
@@ -212,9 +238,9 @@ describe('CSet Property', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = new CSet('string');
-    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 2).get('slots');
+    var App = state.declare(name, new Table({slots: new CSet('string')}));
+    var app = App.create();
+    var set = app.get('slots');
     var entity = state.get(entityName);
     set.add("1");
 
@@ -229,16 +255,39 @@ describe('CSet Property', function () {
     });
   });
 
+  describe('.contains(element) with Table type', function () {
+    var set, user1, user2;
+    it('should return false if element has not been added yet', function () {
+      var state = new State();
+      var User = state.declare("User", new Table({name: 'CString'}));
+      var App = state.declare("Appointment", new Table({slots: new CSet(User)}));
+      var app = App.create();
+      set = app.get('slots');
+      user1 = User.create();
+      user2 = User.create();
+      set.add(user1);
+      set.contains(user2).should.equal(false);
+    });
+
+    it('should return true if element has been added', function () {
+      set.contains(user1).should.equal(true);
+      set.add(user2);
+      set.contains(user2).should.equal(true);
+    });
+  });
+
+
   describe('.remove(element) with integer type', function () {
-    var state = new State();
-    var name = "moments";
-    var entityName = name+"slots";
-    var CSetDecl = new CSet('int');
-    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 2).get('slots');
-    var entity = state.get(entityName);
-    set.add(1);
     it('should remove the element from the set', function () {
+      var state = new State();
+      var name = "moments";
+      var entityName = name+"slots";
+      var App = state.declare(name, new Table({slots: new CSet('int')}));
+      var app = App.create();
+      var set = app.get('slots');
+      var entity = state.get(entityName);
+      set.add(1);
+
       set.contains(1).should.equal(true);
       set.remove(1);
       set.contains(1).should.equal(false);
@@ -249,11 +298,12 @@ describe('CSet Property', function () {
     var state = new State();
     var name = "moments";
     var entityName = name+"slots";
-    var CSetDecl = new CSet('string');
-    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 2).get('slots');
+    var App = state.declare(name, new Table({slots: new CSet('string')}));
+    var app = App.create();
+    var set = app.get('slots');
     var entity = state.get(entityName);
     set.add("1");
+    
     it('should remove the element from the set', function () {
       set.contains("1").should.equal(true);
       set.remove("1");
@@ -261,15 +311,28 @@ describe('CSet Property', function () {
     });
   });
 
+  describe('.remove(element) with Table type', function () {
+    it('should remove the element from the set', function () {
+      var state = new State();
+      var User = state.declare("User", new Table({name: 'CString'}));
+      var App = state.declare("Appointment", new Table({slots: new CSet(User)}));
+      var app = App.create();
+      var set = app.get('slots');
+      var user1 = User.create();
+      var user2 = User.create();
+      set.add(user1);
+      set.contains(user1).should.equal(true);
+      set.remove(user1);
+      set.contains(user1).should.equal(false);
+    });
+  });
+
   describe('subsequent add/delete of same element of integer type', function () {
-    var state = new State();
-    var name = "moments";
-    var entityName = name+"slots";
-    var CSetDecl = new CSet('int');
-    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 2).get('slots');
-    var entity = state.get(entityName);
     it('should keeps its semantics', function () {
+      var state = new State();
+      var Thing = state.declare("Thing", new Table({slots: new CSet('int')}));
+      var thing = Thing.create();
+      var set = thing.get('slots');
       set.contains(1).should.equal(false);
       set.add(1);
       set.contains(1).should.equal(true);
@@ -281,14 +344,11 @@ describe('CSet Property', function () {
   });
 
   describe('subsequent add/delete of same element of string type', function () {
-    var state = new State();
-    var name = "moments";
-    var entityName = name+"slots";
-    var CSetDecl = new CSet('string');
-    state.declare(name, new Index([{moment: 'string'}, {time: 'int'}], {slots: CSetDecl}));
-    var set = state.get(name).get('now', 2).get('slots');
-    var entity = state.get(entityName);
     it('should keeps its semantics', function () {
+      var state = new State();
+      var Thing = state.declare("Thing", new Table({slots: new CSet('string')}));
+      var thing = Thing.create();
+      var set = thing.get('slots');
       set.contains("1").should.equal(false);
       set.add("1");
       set.contains("1").should.equal(true);
@@ -298,4 +358,48 @@ describe('CSet Property', function () {
       set.contains("1").should.equal(true);
     });
   });
+
+  describe('subsequent add/delete of same element of Table type', function () {
+    it('should keeps its semantics', function () {
+      var state = new State();
+      var User = state.declare("User", new Table({name: 'CString'}));
+      var App = state.declare("Appointment", new Table({slots: new CSet(User)}));
+      var app = App.create();
+      var set = app.get('slots');
+      var user1 = User.create();
+      var user2 = User.create();
+      set.contains(user1).should.equal(false);
+      set.add(user1);
+      set.contains(user1).should.equal(true);
+      set.remove(user1);
+      set.contains(user1).should.equal(false);
+      set.add(user1);
+      set.contains(user1).should.equal(true);
+    });
+  });
+
+
+
+  describe('deleting an entry contained in the set', function () {
+    var state = new State();
+    var name = "moments";
+    var entityName = name+"slots";
+    var User = state.declare("User", new Table({name: 'CString'}));
+    var App = state.declare(name, new Table({slots: new CSet(User)}));
+    state.print();
+    var app = App.create();
+    var set = app.get('slots');
+    var entity = state.get(entityName);
+    var user = User.create();
+    set.add(user);
+
+    it('should remove the entry from the set', function () {
+      set.get().length.should.equal(1);
+      user.delete();
+      set.get().length.should.equal(0);
+    });
+  });
+
+
+
 });

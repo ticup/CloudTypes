@@ -1,4 +1,4 @@
-function Keys(keys) {
+function Keys(keys, state) {
   var self = this;
   this.names  = [];
   this.types  = [];
@@ -14,7 +14,7 @@ function Keys(keys) {
 
 Keys.prototype.forEach = function (callback) {
   for (var i = 0; i<this.names.length; i++) {
-    callback(this.names[i], this.types[i]);
+    callback(this.names[i], this.types[i], i);
   }
 };
 
@@ -32,6 +32,7 @@ Keys.prototype.getName = function (position) {
 
 Keys.prototype.getTypeOf = function (name) {
   var position = this.getPositionOf(name);
+  // console.log(name + ' in ' + this.names + "? -> " + position);
   return this.types[position];
 };
 
@@ -43,6 +44,31 @@ Keys.prototype.get = function (keys) {
   var key = Keys.createIndex(keys);
   return key;
 };
+
+
+// Expects array of keys
+Keys.prototype.checkTypes = function (keys) {
+  if (this.types.length !== keys.length) {
+    throw new Error("uncompatible keys for declared type " + keys);
+  }
+  for (var i = 0; i < this.types.length; i++) {
+    var type = this.types[i];
+    var key = keys[i];
+    if (type === 'int') {
+      if (typeof key !== 'number') {
+        throw new Error("uncompatible key for declared type int" + key);
+      }
+    } else if (type === 'string') {
+      if (typeof key !== 'string') {
+        throw new Error("uncompatible key for declared type string" + key);
+      }
+    } else {
+      if (typeof key.index === 'undefined' || key.index !== type) {
+        throw new Error("uncompatible key for declared type " + key);
+      }
+    }
+  }
+}
 
 Keys.createIndex = function createIndex(keys) {
   if (! (keys instanceof Array))
@@ -80,6 +106,7 @@ function unParseIndex(string) {
 }
 
 Keys.getKeys = function getKeys(key, index) {
+  var Table = require('./Table');
   // Flattened string given: unflatten
   if (! (key instanceof Array)) {
     key = unParseIndex(key);
@@ -96,8 +123,9 @@ Keys.getKeys = function getKeys(key, index) {
     }
 
     // If entry is given, just store key!
-    if (typeof key[i] !== 'string' && typeof key[i] !== 'number')
+    if (typeof key[i] !== 'string' && typeof key[i] !== 'number') {
       key[i] = key[i].serialKey();
+    }
 
   }
   return key;

@@ -9,7 +9,7 @@ var CloudTypes = require('../../../server/main.js');
 function declare(server) {
   return server
       .declare('totalItems', CloudTypes.CInt)
-      .declare('Grocery',    CloudTypes.Index([{name: 'string'}], {toBuy: 'CInt'}));
+      .declare('Grocery',    new CloudTypes.Index([{name: 'string'}], {toBuy: 'CInt'}));
 }
 
 module.exports = declare;

@@ -68,7 +68,7 @@ State.prototype.flush = function (callback, timeout) {
   self.applyFork();
   return this;
 };
-},{"../shared/State":24}],2:[function(require,module,exports){
+},{"../shared/State":21}],2:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var State       = require('../shared/State');
 var io          = require('socket.io-client');
 
@@ -166,7 +166,7 @@ Client.prototype.flushPush = function (pushState, flushPull) {
     flushPull(pullState);
   });
 };
-},{"../shared/State":24,"socket.io-client":10}],3:[function(require,module,exports){
+},{"../shared/State":21,"socket.io-client":10}],3:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var CloudTypeClient = require('./CloudTypeClient');
 var ClientState     = require('./ClientState');
 
@@ -196,7 +196,7 @@ var CloudTypes = {
 
 global.CloudTypes = CloudTypes;
 module.exports = CloudTypes;
-},{"../shared/Index":11,"../shared/Table":14,"../shared/CInt":17,"../shared/CString":19,"./ClientState":1,"./CloudTypeClient":2,"./views/EditableListView":4,"./views/EntryView":5,"./views/ListView":6,"./views/View":7}],4:[function(require,module,exports){
+},{"../shared/CInt":11,"../shared/CString":13,"../shared/Index":15,"../shared/Table":22,"./ClientState":1,"./CloudTypeClient":2,"./views/EditableListView":4,"./views/EntryView":5,"./views/ListView":6,"./views/View":7}],4:[function(require,module,exports){
 /**
  * Created by ticup on 06/11/13.
  */
@@ -453,7 +453,7 @@ function _deepEqual(actual, expected) {
   // with Object.prototype.hasOwnProperty.call), the same set of keys
   // (although not necessarily the same order), equivalent values for every
   // corresponding key, and an identical "prototype" property. Note: this
-  // accounts for both named and keyed properties on Arrays.
+  // accounts for both named and indexed properties on Arrays.
   } else {
     return objEquiv(actual, expected);
   }
@@ -4894,7 +4894,7 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
   function JSONPPolling (socket) {
     io.Transport['xhr-polling'].apply(this, arguments);
 
-    this.key = io.j.length;
+    this.index = io.j.length;
 
     var self = this;
 
@@ -4931,13 +4931,13 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
     var self = this
       , query = io.util.query(
              this.socket.options.query
-          , 't='+ (+new Date) + '&i=' + this.key
+          , 't='+ (+new Date) + '&i=' + this.index
         );
 
     if (!this.form) {
       var form = document.createElement('form')
         , area = document.createElement('textarea')
-        , id = this.iframeId = 'socketio_iframe_' + this.key
+        , id = this.iframeId = 'socketio_iframe_' + this.index
         , iframe;
 
       form.className = 'socketio';
@@ -5017,7 +5017,7 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
       , script = document.createElement('script')
       , query = io.util.query(
              this.socket.options.query
-          , 't='+ (+new Date) + '&i=' + this.key
+          , 't='+ (+new Date) + '&i=' + this.index
         );
 
     if (this.script) {
@@ -5117,434 +5117,6 @@ if (typeof define === "function" && define.amd) {
 }
 })();
 },{}],11:[function(require,module,exports){
-var CloudType     = require('./CloudType');
-var Keys       = require('./Keys');
-var Property      = require('./Property');
-var Properties    = require('./Properties');
-var IndexEntry   = require('./IndexEntry');
-var IndexQuery   = require('./IndexQuery');
-
-var CSet = require('./CSet');
-
-var util          = require('util');
-
-module.exports = Index;
-
-// keyNames:  { string: IndexType }
-// when declared in a State, the state will add itself and the declared name for this Index as properties
-// to the Index object.
-// todo: create copy of initializers
-function Index(keys, properties) {
-  this.keys    = (keys instanceof Keys) ? keys : new Keys(keys);
-  this.properties = properties || new Properties();
-  this.isProxy    = false;  // set true by State if used as proxy for global CloudType
-}
-
-// properties: { string: string {"int", "string"} }
-new Index = function (keyDeclarations, propertyDeclarations) {
-  var carray = new Index(keyDeclarations);
-  Object.keys(propertyDeclarations).forEach(function (propName) {
-    var cType = propertyDeclarations[propName];
-    carray.addProperty(new Property(propName, cType, carray));
-  });
-  return carray;
-};
-
-Index.prototype.forEachProperty = function (callback) {
-  return this.properties.forEach(callback);
-};
-
-Index.prototype.get = function () {
-  return new IndexEntry(this, Array.prototype.slice.call(arguments));
-};
-
-Index.prototype.getByKey = function (key) {
-  return new IndexEntry(this, key)
-};
-
-Index.prototype.entries = function (propertyName) {
-  return this.properties.get(propertyName).entries();
-};
-
-Index.prototype.where = function (filter) {
-  return new IndexQuery(this, filter);
-};
-
-Index.prototype.getProperty = function (property) {
-  var result = this.properties.get(property);
-  if (typeof result === 'undefined') {
-    throw Error(this.name + " does not have property " + property);
-  }
-  return result;
-};
-
-Index.prototype.addProperty = function (property) {
-  return this.properties.add(property);
-};
-
-Index.prototype.fork = function () {
-  var fKeys = this.keys.fork();
-  var index = new Index(fKeys);
-  index.properties = this.properties.fork(index);
-  index.isProxy = this.isProxy;
-  return index;
-};
-
-
-Index.prototype.toJSON = function () {
-  return {
-    type        : 'Array',
-    keys     : this.keys.toJSON(),
-    properties  : this.properties.toJSON(),
-    isProxy     : this.isProxy
-  };
-};
-
-Index.fromJSON = function (json) {
-  var index = new Index();
-  index.keys = Keys.fromJSON(json.keys);
-  index.properties = Properties.fromJSON(json.properties, index);
-  index.isProxy = json.isProxy;
-  return index;
-};
-},{"./IndexEntry":12,"./IndexQuery":13,"./CSet":18,"./CloudType":20,"./Keys":21,"./Properties":22,"./Property":23,"util":40}],12:[function(require,module,exports){
-var Keys = require('./Keys');
-
-module.exports = IndexEntry;
-
-function IndexEntry(index, keys) {
-  this.index = index;
-  this.keys = Keys.getKeys(keys, index);
-}
-
-IndexEntry.prototype.get = function (property) {
-  return this.index.getProperty(property).saveGet(this.keys);
-};
-
-IndexEntry.prototype.forEachProperty = function (callback) {
-  var self = this;
-  this.index.forEachProperty(function (property) {
-    callback(property.name, self.get(property));
-  });
-};
-
-IndexEntry.prototype.forEachKey = function (callback) {
-  for (var i = 0; i<this.keys.length; i++) {
-    callback(this.index.keys.getName(i), this.keys[i]);
-  }
-};
-
-
-
-IndexEntry.prototype.key = function (name) {
-  var position = this.index.keys.getPositionOf(name);
-  if (position === -1)
-    throw Error("This Array does not have an key named " + name);
-
-  var type = this.index.keys.getType(position);
-  var value =  this.keys[position];
-  if (type === 'int') {
-    value = parseInt(value, 10);
-  }
-  if (type !== 'int' && type !== 'string') {
-    value = this.index.state.get(type).getByKey(value);
-  }
-  return value;
-};
-
-IndexEntry.prototype.deleted = function () {
-  return (this.index.state.deleted(this.keys, this.index));
-};
-
-IndexEntry.prototype.key = function () {
-  return Keys.createIndex(this.keys);
-};
-
-IndexEntry.prototype.equals = function (entry) {
-  if (this.index !== entry.index)
-    return false;
-
-  for (var i = 0; i<this.keys.length; i++) {
-    if (this.keys[i] !== entry.keys[i])
-      return false;
-  }
-  return true;
-};
-},{"./Keys":21}],13:[function(require,module,exports){
-/**
- * Created by ticup on 07/11/13.
- */
-module.exports = IndexQuery;
-
-function IndexQuery(index, filter) {
-  this.index = index;
-  this.sumFilter = filter;
-  this.orderProperty = false;
-  this.orderDir = false;
-}
-
-IndexQuery.prototype.all = function () {
-  var self = this;
-  var entities = [];
-  Object.keys(self.index.states).forEach(function (key) {
-    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
-      entities.push(self.index.getByKey(key));
-  });
-  if (self.orderProperty) {
-    var property = self.index.getProperty(self.orderProperty);
-    if (typeof property === 'undefined') {
-      throw new Error("orderBy only allowed on properties for the moment");
-    }
-    return entities.sort(function (entry1, entry2) {
-      return entry1.get(self.orderProperty).compare(entry2.get(self.orderProperty), (self.orderDir === "desc"));
-    });
-  }
-  return entities;
-};
-
-IndexQuery.prototype.entries = function (propertyName) {
-  var self = this;
-  var filtered = [];
-  var array = this.index.entries(propertyName);
-  if (typeof self.sumFilter === 'undefined') {
-    filtered = array;
-  } else {
-    array.forEach(function (entry) {
-      if (self.sumFilter(entry))
-        filtered.push(entry);
-    });
-  }
-
-  if (self.orderProperty) {
-    var property = self.index.get(self.orderProperty);
-    if (typeof property === 'undefined') {
-      throw new Error("orderBy only allowed on properties for the moment");
-    }
-    return filtered.sort(function (entry1, entry2) {
-      return entry1.get(self.orderProperty).compare(entry2.get(self.orderProperty), (self.orderDir === "desc"));
-    });
-  }
-  return filtered;
-};
-
-
-IndexQuery.prototype.orderBy = function (propertyName, dir) {
-  this.orderProperty = propertyName;
-  this.orderDir = dir;
-  return this;
-};
-
-IndexQuery.prototype.where = function (newFilter) {
-  var sumFilter = this.sumFilter;
-  this.sumFilter = function (key) { return (sumFilter(key) && newFilter(key)); };
-  return this;
-};
-},{}],14:[function(require,module,exports){
-var Index     = require('./Index');
-var Keys    = require('./Keys');
-var Properties = require('./Properties');
-var Property   = require('./Property');
-var TableEntry = require('./TableEntry');
-var TableQuery = require('./TableQuery');
-
-module.exports = Table;
-
-var OK = 'ok';
-var DELETED = 'deleted';
-
-// when declared in a State, the state will add itself and the declared name for this Index as properties
-// to the Table object.
-function Table(keys, properties, states) {
-  Index.call(this, keys, properties);
-  this.states = {} || states;
-  this.uid = 0;
-}
-Table.prototype = Object.create(Index.prototype);
-
-Table.OK = OK;
-Table.DELETED = DELETED;
-
-new Table = function (keyDeclarations, propertyDeclarations) {
-  var table = new Table([{uid: 'string'}].concat(keyDeclarations));
-  Object.keys(propertyDeclarations).forEach(function (propName) {
-    var cTypeName = propertyDeclarations[propName];
-    table.addProperty(new Property(propName, cTypeName, table));
-  });
-  return table;
-};
-
-
-Table.prototype.create = function (keys) {
-  keys = (typeof keys === 'undefined') ? [] : keys;
-  var uid = this.name + ":" + this.state.createUID(this.uid);
-  this.uid += 1;
-  var key = Keys.createIndex([uid].concat(keys));
-  this.setCreated(key);
-  return this.get.apply(this, [uid].concat(keys));
-};
-
-Table.prototype.delete = function (entry) {
-  console.log("DELETING " + entry.keys);
-  this.setDeleted(Keys.createIndex(entry.keys));
-  this.state.propagate();
-};
-
-// Pure arguments version (user input version)
-Table.prototype.get = function () {
-  return new TableEntry(this, Array.prototype.slice.call(arguments));
-};
-
-// Flattened key version (internal version)
-Table.prototype.getByKey = function (key) {
-  return new TableEntry(this, key);
-};
-
-Table.prototype.forEachState = function (callback) {
-  return Object.keys(this.states).forEach(callback);
-};
-
-Table.prototype.setMax = function (entity1, entity2, key) {
-  var val1 = entity1.states[key];
-  var val2 = entity2.states[key];
-  if (val1 === DELETED || val2 === DELETED) {
-    return this.states[key] = DELETED;
-  }
-  if (val1 === OK || val2 === OK) {
-    return this.states[key] = OK;
-  }
-
-};
-
-Table.prototype.where = function (filter) {
-  return new TableQuery(this, filter);
-};
-
-Table.prototype.all = function () {
-  var self = this;
-  var entities = [];
-  Object.keys(this.states).forEach(function (key) {
-    if (self.states[key] === OK)
-      entities.push(self.getByKey(key));
-  });
-  return entities;
-};
-
-Table.prototype.setDeleted = function (key) {
-  this.states[key] = DELETED;
-};
-
-Table.prototype.setCreated = function (key) {
-  this.states[key] = OK;
-};
-
-
-
-Table.prototype.exists = function (idx) {
-  return (typeof this.states[idx] !== 'undefined' && this.states[idx] === OK);
-};
-
-Table.prototype.deleted = function (idx) {
-  return (this.states[idx] === DELETED)
-};
-
-Table.prototype.fork = function () {
-  var fKeys = this.keys.fork();
-  var table = new Table(fKeys);
-  table.properties = this.properties.fork(table);
-  table.states     = this.states;
-  return table;
-};
-
-Table.fromJSON = function (json) {
-  var table = new Table();
-  table.keys = Keys.fromJSON(json.keys);
-  table.properties = Properties.fromJSON(json.properties, table);
-  table.states = {};
-  Object.keys(json.states).forEach(function (key) {
-    table.states[key] = json.states[key];
-  });
-  return table;
-};
-
-Table.prototype.toJSON = function () {
-  return {
-    type        : 'Entity',
-    keys     : this.keys.toJSON(),
-    properties  : this.properties.toJSON(),
-    states      : this.states
-
-  };
-};
-
-},{"./Index":11,"./TableEntry":15,"./TableQuery":16,"./Keys":21,"./Properties":22,"./Property":23}],15:[function(require,module,exports){
-var Keys     = require('./Keys');
-var IndexEntry = require('./IndexEntry');
-
-module.exports = TableEntry;
-
-function TableEntry(index, keys) {
-  IndexEntry.call(this, index, keys);
-//  this.index = index;
-//  this.keys = Keys.getKeys(keys, index);
-}
-
-TableEntry.prototype = Object.create(IndexEntry.prototype);
-
-
-TableEntry.prototype.get = function (property) {
-  return this.index.getProperty(property).saveGet(this.keys);
-};
-
-TableEntry.prototype.forEachKey = function (callback) {
-  for (var i = 1; i<this.keys.length; i++) {
-    callback(this.index.keys.getName(i), this.keys[i]);
-  }
-};
-
-TableEntry.prototype.deleted = function () {
-  return (this.index.state.deleted(this.keys, this.index));
-};
-
-TableEntry.prototype.delete = function () {
-  return this.index.delete(this);
-};
-
-TableEntry.prototype.toString = function () {
-  return Keys.createIndex(this.keys);
-};
-},{"./IndexEntry":12,"./Keys":21}],16:[function(require,module,exports){
-/**
- * Created by ticup on 07/11/13.
- */
-
-var IndexQuery = require("./IndexQuery");
-
-module.exports = TableQuery;
-
-function TableQuery(table, filter) {
-  IndexQuery.call(this, table, filter);
-}
-TableQuery.prototype = Object.create(IndexQuery.prototype);
-
-TableQuery.prototype.all = function () {
-  var self = this;
-  var entities = [];
-  Object.keys(self.index.states).forEach(function (key) {
-    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
-      entities.push(self.index.getByKey(key));
-  });
-  if (self.orderProperty) {
-    var property = self.index.getProperty(self.orderProperty);
-    if (typeof property === 'undefined') {
-      throw new Error("orderBy only allowed on properties for the moment");
-    }
-    return entities.sort(function (entry1, entry2) {
-      return entry1.get(self.orderProperty).compare(entry2.get(self.orderProperty), (self.orderDir === "desc"));
-    });
-  }
-  return entities;
-};
-},{"./IndexQuery":13}],17:[function(require,module,exports){
 var CloudType = require('./CloudType');
 var util = require('util');
 
@@ -5578,8 +5150,8 @@ function CInt(base, offset, isSet) {
 // put CloudType in prototype chain.
 CInt.prototype = Object.create(CloudType.prototype);
 
-// Create a new instance of the declared CInt for given entryIndex
-CInt.newFor = function (entryIndex) {
+// Create a new instance of the declared CInt for given entry
+CInt.newFor = function (entry) {
   return new CInt();
 };
 
@@ -5663,28 +5235,29 @@ CInt.prototype.isDefault = function () {
 CInt.prototype.compare = function (cint, reverse) {
   return ((reverse ? -1 : 1) * (this.get() - cint.get()));
 };
-},{"./CloudType":20,"util":40}],18:[function(require,module,exports){
+},{"./CloudType":14,"util":40}],12:[function(require,module,exports){
 /**
  * Created by ticup on 08/11/13.
  */
-var CloudType = require('./CloudType');
+var CloudType  = require('./CloudType');
+var IndexEntry = require('./IndexEntry');
+var TableEntry = require('./TableEntry');
+var CInt = require('./CInt');
+var CString = require('./CString');
 
-
-
-function CSetDeclaration() { }
-// CSetDeclaration: Declare a parametrized CSet type for a property
-CSetDeclaration.declare = function (elementType) {
-  function CSet(entryIndex) {
+function CSetDeclaration(elementType) { 
+  function CSet(entry) {
     this.type = CSet;
-    this.entryIndex = entryIndex;
+    this.entry = entry;
   }
 
   // CSet.entity should be set by the state to the entity that is made for this CSet.
+  // CSet.array should be set by the state to the a
   CSet.elementType = elementType;
 
 
-  CSet.newFor = function (entryIndex) {
-    return new CSet(entryIndex);
+  CSet.newFor = function (entry) {
+    return new CSet(entry);
   };
 
   // Puts the declared (parametrized) CSet into json
@@ -5693,8 +5266,16 @@ CSetDeclaration.declare = function (elementType) {
   };
 
   // Retrieves an instance of a declared (parametrized) CSet from json
-  CSet.fromJSON = function (json, entryIndex) {
-    return new CSet(entryIndex);
+  CSet.fromJSON = function (json, entry) {
+    return new CSet(entry);
+  };
+
+  CSet.declareProxyTable = function (state, index, property) {
+    var Table = require('./Table');
+    if (!(index instanceof Table)) {
+      throw new Error("Can only create CSet for a Table");
+    }
+    this.entity = state.declare(index.name + property.name, new Table([{entry: index}, {element: this.elementType}]));
   };
 
   CSet.tag = "CSet";
@@ -5704,7 +5285,7 @@ CSetDeclaration.declare = function (elementType) {
 
 // called by CloudType to initialize the parametrized CSet for a property
 CSetDeclaration.fromJSON = function (json) {
-  return CSetDeclaration.declare(json.elementType);
+  return new CSetDeclaration(json.elementType);
 };
 
 // register this declaration as usable (will also allow to create CSet with CloudType.fromJSON())
@@ -5717,35 +5298,37 @@ var CSetPrototype = Object.create(CloudType.prototype);
 
 // Operations for the parametrized CSets
 
+
+
 // don't need to save anything for a particular CSet instance of a property:
 // The info of the particular set is saved in a dedicated CSetEntity
 CSetPrototype.toJSON = function () {
   return {  };
 };
 
-// semantic operations (all delegated to the dedicated entity)
+// semantic operations (all delegated to the dedicated table)
 CSetPrototype.add = function (element) {
-  return this.type.entity.create([this.entryIndex, element]);
+  var entry = this.type.entity.create([this.entry, element]);
+  return this;
 };
 
 CSetPrototype.contains = function (element) {
-  var entryIndex = this.entryIndex;
+  var entry = this.entry;
   var elementType = this.type.elementType;
   return (this.type.entity
-      .where(function (entry) {
-        console.log(isEntryForElement(entry, entryIndex, elementType, element));
-        return isEntryForElement(entry, entryIndex, elementType, element);
+      .where(function (el) {
+        return isEntryForElement(el, entry, elementType, element);
       }).all().length !== 0);
 };
 
 CSetPrototype.remove = function (element) {
-  var entryIndex = this.entryIndex;
+  var entry = this.entry;
   var elementType = this.type.elementType;
   this.type.entity
-      .where(function (entry) {
-        return isEntryForElement(entry, entryIndex, elementType, element);
-      }).all().forEach(function (entry) {
-        entry.delete();
+      .where(function (el) {
+        return isEntryForElement(el, entry, elementType, element);
+      }).all().forEach(function (el) {
+        el.delete();
       });
 };
 
@@ -5753,11 +5336,11 @@ CSetPrototype.get = function () {
   return this.type.entity.all();
 };
 
-function isEntryForElement(entry, entryIndex, elementType, element) {
-  return (entry.key('entryIndex') === entryIndex &&
-      ((elementType === 'string' || elementType === 'int') ?
-      (entry.key('element') === element) :
-      (entry.key('element').equals(element))));
+function isEntryForElement(el, entry, elementType, element) {
+  return (el.key('entry').equals(entry) &&
+      ((elementType === 'int' || elementType === 'string') ?
+      (el.key('element') === element) :
+      (el.key('element').equals(element))));
 }
 
 // Defining _join(cint, target) provides the join and joinIn methods
@@ -5791,7 +5374,7 @@ CSetPrototype.compare = function (cset, reverse) {
 
 exports.Declaration = CSetDeclaration;
 exports.CSetPrototype = CSetPrototype;
-},{"./CloudType":20}],19:[function(require,module,exports){
+},{"./CInt":11,"./CString":13,"./CloudType":14,"./IndexEntry":16,"./Table":22,"./TableEntry":23}],13:[function(require,module,exports){
 var CloudType = require('./CloudType');
 var util = require('util');
 
@@ -5825,8 +5408,8 @@ function CString(value, written, cond) {
 // put CloudType in prototype chain.
 CString.prototype = Object.create(CloudType.prototype);
 
-// Create a new instance of the declared CString for given entryIndex
-CString.newFor = function (entryIndex) {
+// Create a new instance of the declared CString for given entry
+CString.newFor = function (entry) {
   return new CString();
 };
 
@@ -5933,7 +5516,7 @@ CString.prototype.isDefault = function () {
 CString.prototype.compare = function (cstring, reverse) {
   return ((reverse ? -1 : 1) * (this.get().localeCompare(cstring.get())));
 };
-},{"./CloudType":20,"util":40}],20:[function(require,module,exports){
+},{"./CloudType":14,"util":40}],14:[function(require,module,exports){
 module.exports = CloudType;
 
 function CloudType() {}
@@ -5951,7 +5534,11 @@ CloudType.fromTag = function (tag) {
 // Can only be used for non parametrized declarations (CInt/CString/CTime..)
 // By using this users can declare such types by their tag instead of by using the real declaration.
 CloudType.declareFromTag = function (tag) {
-  return CloudType.types[tag].declare();
+  var type = CloudType.types[tag];
+  if (typeof type === 'undefined') {
+    return undefined;
+  }
+  return type.declare();
 };
 
 CloudType.isCloudType = function (CType) {
@@ -5970,8 +5557,248 @@ CloudType.prototype.join = function (cint) {
 CloudType.prototype.joinIn = function (cint) {
   this._join(cint, cint);
 };
-},{}],21:[function(require,module,exports){
-function Keys(keys) {
+},{}],15:[function(require,module,exports){
+var CloudType     = require('./CloudType');
+var Keys          = require('./Keys');
+var Property      = require('./Property');
+var Properties    = require('./Properties');
+var IndexEntry    = require('./IndexEntry');
+var IndexQuery    = require('./IndexQuery');
+var CSet          = require('./CSet');
+
+var util          = require('util');
+
+module.exports = Index;
+
+// keyNames:  { string: IndexType }
+// when declared in a State, the state will add itself and the declared name for this Index as properties
+// to the Index object.
+// todo: create copy of initializers
+function Index(keys, fields) {
+  var self        = this;
+  fields = fields || {};
+  if (!keys instanceof Array) {
+    throw new Error('Index requires an array of single property objects as first argument to define its keys');
+  }
+  if (!fields instanceof Object) {
+    throw new Error('Index requires and object with properties as second argument to define its fields');
+  }
+
+  this.keys       = new Keys(keys);
+  this.properties = new Properties();
+  this.isProxy    = false;  // set true by State if used as proxy for global CloudType
+  Object.keys(fields).forEach(function (propName) {
+    var cType = fields[propName];
+    self.addProperty(new Property(propName, cType, self));
+  });
+}
+
+Index.prototype.forEachProperty = function (callback) {
+  return this.properties.forEach(callback);
+};
+
+Index.prototype.get = function () {
+  return new IndexEntry(this, Array.prototype.slice.call(arguments));
+};
+
+Index.prototype.getByKey = function (key) {
+  return new IndexEntry(this, key)
+};
+
+Index.prototype.entries = function (propertyName) {
+  return this.properties.get(propertyName).entries();
+};
+
+Index.prototype.where = function (filter) {
+  return new IndexQuery(this, filter);
+};
+
+Index.prototype.getProperty = function (property) {
+  var result = this.properties.get(property);
+  if (typeof result === 'undefined') {
+    throw Error(this.name + " does not have property " + property);
+  }
+  return result;
+};
+
+Index.prototype.addProperty = function (property) {
+  return this.properties.add(property);
+};
+
+Index.prototype.fork = function () {
+  var fKeys = this.keys.fork();
+  var index = new Index();
+  index.keys = fKeys;
+  index.properties = this.properties.fork(index);
+  index.isProxy = this.isProxy;
+  return index;
+};
+
+
+Index.prototype.toJSON = function () {
+  return {
+    type        : 'Array',
+    keys        : this.keys.toJSON(),
+    properties  : this.properties.toJSON(),
+    isProxy     : this.isProxy
+  };
+};
+
+Index.fromJSON = function (json) {
+  var index = new Index();
+  index.keys = Keys.fromJSON(json.keys);
+  index.properties = Properties.fromJSON(json.properties, index);
+  index.isProxy = json.isProxy;
+  return index;
+};
+},{"./CSet":12,"./CloudType":14,"./IndexEntry":16,"./IndexQuery":17,"./Keys":18,"./Properties":19,"./Property":20,"util":40}],16:[function(require,module,exports){
+var Keys       = require('./Keys');
+var CloudType  = require('./CloudType');
+module.exports = IndexEntry;
+
+// keys: an array of real keys or a flattened string of those keys
+function IndexEntry(index, keys) {
+  this.index = index;
+  this.keys = Keys.getKeys(keys, index);
+}
+
+IndexEntry.prototype.get = function (propertyName) {
+  return this.index.getProperty(propertyName).saveGet(this.keys);
+};
+
+IndexEntry.prototype.set = function (propertyName, value) {
+  var prop = this.index.getProperty(propertyName);
+  return prop.set(this.keys, value);
+};
+
+
+IndexEntry.prototype.forEachProperty = function (callback) {
+  var self = this;
+  this.index.forEachProperty(function (property) {
+    callback(property.name, self.get(property));
+  });
+};
+
+IndexEntry.prototype.forEachKey = function (callback) {
+  for (var i = 0; i<this.keys.length; i++) {
+    callback(this.index.keys.getName(i), this.keys[i]);
+  }
+};
+
+
+IndexEntry.prototype.key = function (name) {
+  if (typeof name === 'undefined') { 
+    return this.serialKey();
+  }
+  var position = this.index.keys.getPositionOf(name);
+  if (position === -1)
+    throw Error("This Array does not have a key named " + name);
+
+  var type = this.index.keys.getType(position);
+  var value =  this.keys[position];
+  if (type === 'int') {
+    value = parseInt(value, 10);
+  }
+  if (type !== 'int' && type !== 'string') {
+    debugger;
+    value = type.getByKey(value);
+  }
+  return value;
+};
+
+IndexEntry.prototype.deleted = function () {
+  return (this.index.state.deleted(this.keys, this.index));
+};
+
+IndexEntry.prototype.serialKey = function () {
+  return Keys.createIndex(this.keys);
+};
+
+IndexEntry.prototype.equals = function (entry) {
+  if (this.index !== entry.index)
+    return false;
+
+  for (var i = 0; i<this.keys.length; i++) {
+    if (this.keys[i] !== entry.keys[i])
+      return false;
+  }
+  return true;
+};
+
+IndexEntry.prototype.toString = function () {
+  return Keys.createIndex(this.keys);
+};
+},{"./CloudType":14,"./Keys":18}],17:[function(require,module,exports){
+/**
+ * Created by ticup on 07/11/13.
+ */
+module.exports = IndexQuery;
+
+function IndexQuery(index, filter) {
+  this.index = index;
+  this.sumFilter = filter;
+  this.orderProperty = false;
+  this.orderDir = false;
+}
+
+IndexQuery.prototype.all = function () {
+  var self = this;
+  var entities = [];
+  Object.keys(self.index.states).forEach(function (key) {
+    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
+      entities.push(self.index.getByKey(key));
+  });
+  if (self.orderProperty) {
+    var property = self.index.getProperty(self.orderProperty);
+    if (typeof property === 'undefined') {
+      throw new Error("orderBy only allowed on properties for the moment");
+    }
+    return entities.sort(function (entry1, entry2) {
+      return entry1.get(self.orderProperty).compare(entry2.get(self.orderProperty), (self.orderDir === "desc"));
+    });
+  }
+  return entities;
+};
+
+IndexQuery.prototype.entries = function (propertyName) {
+  var self = this;
+  var filtered = [];
+  var array = this.index.entries(propertyName);
+  if (typeof self.sumFilter === 'undefined') {
+    filtered = array;
+  } else {
+    array.forEach(function (entry) {
+      if (self.sumFilter(entry))
+        filtered.push(entry);
+    });
+  }
+
+  if (self.orderProperty) {
+    var property = self.index.get(self.orderProperty);
+    if (typeof property === 'undefined') {
+      throw new Error("orderBy only allowed on properties for the moment");
+    }
+    return filtered.sort(function (entry1, entry2) {
+      return entry1.get(self.orderProperty).compare(entry2.get(self.orderProperty), (self.orderDir === "desc"));
+    });
+  }
+  return filtered;
+};
+
+
+IndexQuery.prototype.orderBy = function (propertyName, dir) {
+  this.orderProperty = propertyName;
+  this.orderDir = dir;
+  return this;
+};
+
+IndexQuery.prototype.where = function (newFilter) {
+  var sumFilter = this.sumFilter;
+  this.sumFilter = function (key) { return (sumFilter(key) && newFilter(key)); };
+  return this;
+};
+},{}],18:[function(require,module,exports){
+function Keys(keys, state) {
   var self = this;
   this.names  = [];
   this.types  = [];
@@ -5987,7 +5814,7 @@ function Keys(keys) {
 
 Keys.prototype.forEach = function (callback) {
   for (var i = 0; i<this.names.length; i++) {
-    callback(this.names[i], this.types[i]);
+    callback(this.names[i], this.types[i], i);
   }
 };
 
@@ -6005,6 +5832,7 @@ Keys.prototype.getName = function (position) {
 
 Keys.prototype.getTypeOf = function (name) {
   var position = this.getPositionOf(name);
+  console.log(name + ' in ' + this.names + "? -> " + position);
   return this.types[position];
 };
 
@@ -6053,6 +5881,7 @@ function unParseIndex(string) {
 }
 
 Keys.getKeys = function getKeys(key, index) {
+  var Table = require('./Table');
   // Flattened string given: unflatten
   if (! (key instanceof Array)) {
     key = unParseIndex(key);
@@ -6069,8 +5898,9 @@ Keys.getKeys = function getKeys(key, index) {
     }
 
     // If entry is given, just store key!
-    if (typeof key[i] !== 'string' && typeof key[i] !== 'number')
-      key[i] = key[i].key();
+    if (typeof key[i] !== 'string' && typeof key[i] !== 'number') {
+      key[i] = key[i].serialKey();
+    }
 
   }
   return key;
@@ -6099,7 +5929,7 @@ Keys.prototype.fork = function () {
 };
 
 module.exports = Keys;
-},{}],22:[function(require,module,exports){
+},{"./Table":22}],19:[function(require,module,exports){
 var Property = require('./Property');
 
 function Properties(properties) {
@@ -6147,26 +5977,40 @@ Properties.prototype.fork = function (index) {
 };
 
 module.exports = Properties;
-},{"./Property":23}],23:[function(require,module,exports){
+},{"./Property":20}],20:[function(require,module,exports){
 var CloudType = require('./CloudType');
 var CSet      = require('./CSet');
+//var Index     = require('./Index');
 
 function Property(name, CType, index, values) {
   this.name = name;
   this.keys = index.keys;
   this.index = index;
   this.CType = CType;
-  if (typeof CType === 'string') {
-    this.CType = CloudType.declareFromTag(CType);
-  }
-  if (!CloudType.isCloudType(this.CType)) {
-    throw Error ("Unknown property type in declaration (Must be CloudType (CInt, CString, CSet,...)): " + this.CType);
-  }
   this.values = values || {};
+
+  // Should either be a cloud type or a reference to an index
+  // console.log(Index);
+  // if (!CloudType.isCloudType(this.CType) && !(this.CType instanceof Index)) {
+  //   throw Error ("Unknown property type in declaration (Must be CloudType (CInt, CString, CSet,...)): " + this.CType);
+  // }
 }
 
 Property.prototype.forEachKey = function (callback) {
-  return Object.keys(this.values).forEach(callback);
+  var self = this;
+  return Object.keys(this.values).forEach(function (key) {
+    var val = self.getByKey(key);
+    if (val) {
+      callback(key, val);
+    }
+  });
+};
+
+Property.prototype.forAllKeys = function (callback) {
+  var self = this;
+  return Object.keys(this.values).forEach(function (key) {
+    callback(key, self.values[key]);
+  });
 };
 
 Property.prototype.saveGet = function (keys) {
@@ -6191,14 +6035,44 @@ Property.prototype.get = function (keys) {
   return this.getByKey(key);
 };
 
+Property.prototype.set = function (keys, val) {
+  if (CloudType.isCloudType(this.CType)) {
+    this.saveGet(keys).set(val);
+    return this;
+  }
+  // keys == uid when reference
+  this.values[keys] = val.serialKey();
+}
+
 Property.prototype.getByKey = function (key) {
   var ctype = this.values[key];
-  if (typeof ctype === 'undefined') {
-    ctype = this.CType.newFor(key);
-    if (this.CType.prototype !== CSet.CSetPrototype) {
-      this.values[key] = ctype;
-    }
+  var entry = this.index.getByKey(key);
 
+  // console.log('getting ' + key + '.' + this.name + ' = ' + ctype);
+  // check if reference is still valid, otherwise return null
+  if (!CloudType.isCloudType(this.CType) && this.index.state.deleted(key, this.index)) {
+    return null;
+  }
+
+  // This key does not exist for this property yet
+  if (typeof ctype === 'undefined') {
+
+    // if it is a Cloud Type, make a new default.
+    if (CloudType.isCloudType(this.CType)) {
+      ctype = this.CType.newFor(entry);
+      if (this.CType.prototype !== CSet.CSetPrototype) {
+        this.values[key] = ctype;
+      }
+      return ctype;
+
+    // if it is a reference, return null
+    } else {
+      return null;
+    }
+  }
+
+  if (!CloudType.isCloudType(this.CType)) {
+    return this.CType.getByKey(ctype);
   }
   return ctype;
 };
@@ -6218,87 +6092,168 @@ Property.prototype.entries = function () {
 };
 
 Property.prototype.toJSON = function () {
+  var type;
   var self = this;
   var values = {};
-  Object.keys(self.values).forEach(function (key) {
-    values[key] = self.values[key].toJSON();
-  });
-  return { name: this.name, type: this.CType.toJSON(), values: values };
+  
+  if (CloudType.isCloudType(this.CType)) {
+    type = this.CType.toJSON();
+    self.forAllKeys(function (key, val) {
+      values[key] = val.toJSON();
+    });
+  } else {
+    type = { reference: this.CType.name };
+    self.forAllKeys(function (key, val) {
+      values[key] = val;
+    });
+  }
+  return { name: this.name, type: type, values: values };
 };
 
 Property.fromJSON = function (json, index) {
   var values = {};
-  var CType = CloudType.fromJSON(json.type);
+  
+  // If the property is a Cloud, rebuild all entries
+  if (CloudType.isCloudType(json.type)) {
+    var CType = CloudType.fromJSON(json.type);
+    Object.keys(json.values).forEach(function (key) {
+      values[key] = CType.fromJSON(json.values[key], index.getByKey(key));
+    });
+    return new Property(json.name, CType, index, values);
+  }
+
+  // Otherwise it's a reference that will be replaced by the real reference in the second scan
   Object.keys(json.values).forEach(function (key) {
-    values[key] = CType.fromJSON(json.values[key], key);
+    values[key] = json.values[key];
   });
-  return new Property(json.name, CType, index, values);
+  return new Property(json.name, json.type.reference, index, values)
+  
 };
 
 Property.prototype.fork = function (index) {
   var self = this;
   var fProperty = new Property(this.name, this.CType, index);
-  Object.keys(self.values).forEach(function (key) {
-    fProperty.values[key] = self.values[key].fork();
-  });
+  // Cloud Types need to be forked
+  if (CloudType.isCloudType(this.CType)) {
+    self.forAllKeys(function (key, val) {
+      fProperty.values[key] = val.fork();
+    });
+  // References are just copied
+  } else {
+    self.forAllKeys(function (key, val) {
+      fProperty.values[key] = val;
+    });
+  }
   return fProperty;
 };
 
 module.exports = Property;
-},{"./CSet":18,"./CloudType":20}],24:[function(require,module,exports){
+},{"./CSet":12,"./CloudType":14}],21:[function(require,module,exports){
 var CloudType = require('./CloudType');
-var Index    = require('./Index');
-var Table   = require('./Table');
+var Index     = require('./Index');
+var Table     = require('./Table');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
 
-function State(arrays, entities) {
-  this.arrays = arrays || {};
-  this.entities = entities || {};
+function State() {
+  this.arrays = {};
   this.cid = 0;
 }
 
 
 /* User API */
-//State.prototype.operation = function (name, keys, propertyName, op) {
-//  return op.apply(this.arrays[name].getProperty(propertyName).get(keys), [].slice.call(arguments, 4))
-//};
 State.prototype.get = function (name) {
   var array = this.arrays[name];
+
+  // if retrieving a global CloudType, get the value property of its proxy index instead
   if (typeof array !== 'undefined' && array.isProxy) {
     return array.getProperty('value').get([]);
   }
+
   return this.arrays[name];
 };
 
+
 State.prototype.declare = function (name, array) {
   var self = this;
+
   // Index or Table
   if (array instanceof Index) {
     array.state = this;
     array.name  = name;
+    self.arrays[name] = array;
 
-    // CSet properties -> declare their proxy Entity and give reference to the CSet properties
     array.forEachProperty(function (property) {
+
+      // Lookup CloudType/Reference of property if necessary
+      property.CType = self.resolvePropertyType(property.CType);
+
+      // Special case: CSet property
       if (property.CType.prototype === CSetPrototype) {
-        self.declare(array.name + property.name, new Table([{entryIndex: 'string'}, {element: property.CType.elementType}], {}));
-        property.CType.entity = self.get(array.name + property.name);
+
+        // Lookup Reference of the set if necessary
+        property.CType.elementType = self.resolveKeyType(property.CType.elementType);
+
+        // Declare proxy Table and set reference
+        property.CType.declareProxyTable(self, array, property);
       }
     });
-    return this.arrays[name] = array;
+
+    array.keys.forEach(function (name, type, i) {
+      array.keys.types[i] = self.resolveKeyType(type);
+    });
+
+    return array;
   }
+
   // global (CloudType) => create proxy Index
   if (typeof array.prototype !== 'undefined' && array.prototype instanceof CloudType) {
     var CType = array;
-    array = new Index([], {value: CType.name});
+    array = new Index([], {value: CType});
     array.state = this;
     array.name  = name;
     array.isProxy = true;
-    return this.arrays[name] = array;
+    this.arrays[name] = array;
+    return this.get(name);
   }
+
   // Either declare Index (Table is also a Index) or CloudType, nothing else.
-  throw "Need a Index or CloudType to declare: " + array;
+  throw new Error("Need an Index or CloudType to declare: " + array);
+};
+
+State.prototype.resolvePropertyType = function (type) {
+  var rType = type;
+  if (typeof type === 'string') {
+    // 1) try to declare as regular CloudType
+    rType = CloudType.declareFromTag(type);
+
+    // 2) try to declare as reference to an Index
+    if (typeof rType === 'undefined') {
+      rType = this.get(type);
+    }
+  }
+
+  if (typeof rType === 'undefined') {
+    throw new Error("Undefined Property Type: " + type);
+  }
+  return rType;
+};
+
+State.prototype.resolveKeyType = function (type) {
+  if (type instanceof Table) {
+    return type;
+  }
+  if (typeof type === 'string') {
+    if (type === 'string' || type === 'int') {
+      return type;
+    }
+    var rType = this.get(type);
+    if (typeof rType !== 'undefined' && rType instanceof Table) {
+      return rType;
+    }
+  }
+  throw new Error("Only int, string or Table identifiers are allowed as keys");
 };
 
 State.prototype.isDefault = function (cType) {
@@ -6326,6 +6281,8 @@ State.prototype.toJSON = function () {
 State.fromJSON = function (json) {
   var array, state;
   state = new this();
+
+  // Recreate the indexes
   Object.keys(json.arrays).forEach(function (name) {
     var arrayJson = json.arrays[name];
     if (arrayJson.type === 'Entity') {
@@ -6335,15 +6292,36 @@ State.fromJSON = function (json) {
     } else {
       throw "Unknown type in state: " + json.type;
     }
-    state.declare(name, array);
+    array.state = state;
+    array.name  = name;
+    state.arrays[name] = array;
   });
 
+  // Fix references
   state.forEachArray(function (array) {
-    // special case: CSet properties -> declare their proxy entities and give reference to the CSet properties
     array.forEachProperty(function (property) {
+      property.CType = state.resolvePropertyType(property.CType);
+
+      // if CSet property -> give reference to the proxy entity
       if (property.CType.prototype === CSetPrototype) {
-        property.CType.entity = state.get(array.name + property.name);
+        property.CType.entity      = state.get(array.name + property.name);
+        property.CType.elementType = state.resolveKeyType(property.CType.elementType);
       }
+
+      // If property is a reference, find all the references for all keys of that property
+      // if (property.CType instanceof Index) {
+      //   var refIndex = property.CType;
+
+      //   property.forAllKeys(function (key, val) {
+      //     var ref = refIndex.getByKey(val) || val;
+      //     property.values[key] = ref;
+      //   });
+      // }
+    });
+
+    // Resolve the key types to the real types
+    array.keys.forEach(function (name, type, i) {
+      array.keys.types[i] = state.resolveKeyType(type);
     });
   });
   return state;
@@ -6381,6 +6359,7 @@ State.prototype.propagate = function () {
   var changed = false;
   this.forEachEntity(function (entity) {
     entity.forEachState(function (key) {
+      console.log(entity.name +"["+key+"] deleted?");
       if (entity.exists(key) && self.deleted(key, entity)) {
         entity.setDeleted(key);
       }
@@ -6393,16 +6372,18 @@ State.prototype.deleted = function (key, entity) {
   // Entity
   if (typeof entity !== 'undefined' && entity instanceof Table) {
     var entry = entity.getByKey(key);
-//    console.log(key + ' of ' + entity.name + ' deleted ?');
+    // console.log(key + ' of ' + entity.name + ' deleted ?');
 
     if (entity.deleted(key))
       return true;
     var del = false;
     entry.forEachKey(function (name, value) {
       var type = entity.keys.getTypeOf(name);
-      if (typeof type !== 'undefined')
-        type = self.get(type);
-//      console.log('key deleted? ' + value + " of type " + type);
+
+      // when types are not stored as real references to the types but rather as their names:
+      // if (typeof type !== 'undefined')
+      //   type = self.get(type);
+     // console.log('key deleted? ' + value + " of type " + type + "(" + name+ ")");
       if (self.deleted(value, type))
         del = true;
     });
@@ -6430,17 +6411,18 @@ State.prototype.deleted = function (key, entity) {
 State.prototype._join = function (rev, target) {
   var master = (this === target) ? rev : this;
   var self = this;
+  
   master.forEachProperty(function (property) {
-    property.forEachKey(function (key) {
-      var joiner = rev.getProperty(property).getByKey(key);
-      var joinee = self.getProperty(property).getByKey(key);
-      var t = target.getProperty(property).getByKey(key);
-
-//      console.log("joining: " + require('util').inspect(joiner) + " and " + require('util').inspect(joinee) + ' in ' + require('util').inspect(t));
-      joinee._join(joiner, t);
-//      console.log("joined: " + require('util').inspect(t));
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var joiner = rev.getProperty(property).getByKey(key);
+        var joinee = self.getProperty(property).getByKey(key);
+        var t = target.getProperty(property).getByKey(key);
+        joinee._join(joiner, t);
+      });
+    }
   });
+  
   master.forEachEntity(function (entity) {
     var joiner = rev.get(entity.name);
     var joinee = self.get(entity.name);
@@ -6464,9 +6446,24 @@ State.prototype.join = function (rev) {
 State.prototype.fork = function () {
   var forked = new State();
   var forker = this;
+  
+  // 
   forker.forEachArray(function (index) {
-    var fArray = index.fork();
-    forked.declare(index.name, fArray);
+    var fIndex = index.fork();
+    forked.declare(index.name, fIndex);
+  });
+
+  // set new references
+  forked.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+      if (!CloudType.isCloudType(property.CType)) {
+        var fIndex = forked.get(property.CType.name);
+        property.CType = fIndex;
+        property.forEachKey(function (key, val) {
+          property.values[key] = fIndex.getByKey.apply(fIndex, val.keys);
+        });
+      }
+    });
   });
   return forked;
 };
@@ -6474,21 +6471,25 @@ State.prototype.fork = function () {
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
-    property.forEachKey(function (key) {
-      var type = property.getByKey(key);
-      type.applyFork();
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var type = property.getByKey(key);
+        type.applyFork();
+      });
+    }
   });
 };
 
 State.prototype.replaceBy = function (state) {
   var self = this;
   state.forEachProperty(function (property) {
-    property.forEachKey(function (key) {
-      var type1 = property.getByKey(key);
-      var type2 = self.getProperty(property).getByKey(key);
-      type2.replaceBy(type1);
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var type1 = property.getByKey(key);
+        var type2 = self.getProperty(property).getByKey(key);
+        type2.replaceBy(type1);
+      });
+    }
   });
   state.forEachEntity(function (entity) {
     self.get(entity.name).states = entity.states;
@@ -6496,9 +6497,296 @@ State.prototype.replaceBy = function (state) {
 };
 
 State.prototype.print = function () {
-  console.log(require('util').inspect(this.toJSON(), {depth: null}));
+  console.log(require('util').inspect(this, {depth: null}));
 };
-},{"./Index":11,"./Table":14,"./CSet":18,"./CloudType":20,"util":40}],25:[function(require,module,exports){
+},{"./CSet":12,"./CloudType":14,"./Index":15,"./Table":22,"util":40}],22:[function(require,module,exports){
+var Index     = require('./Index');
+var Keys       = require('./Keys');
+var Properties = require('./Properties');
+var Property   = require('./Property');
+var TableEntry = require('./TableEntry');
+var TableQuery = require('./TableQuery');
+
+module.exports = Table;
+
+var OK = 'ok';
+var DELETED = 'deleted';
+
+// when declared in a State, the state will add itself and the declared name for this Index as properties
+// to the Table object.
+function Table(keys, columns) {
+  var self = this;
+
+  // declare with only columns
+  if (typeof columns === 'undefined' && !(keys instanceof Array)) {
+    columns = keys;
+    keys = [];
+  }
+  // declare with no keys/columns (from json)
+  else if (typeof columns === 'undefined' && typeof keys === 'undefined') {
+    columns = {};
+    keys = [];
+  }
+
+  Index.call(this, [{uid: 'string'}].concat(keys), columns);
+  this.keyValues = {};
+  this.states    = {};
+  this.uid       = 0;
+}
+
+Table.prototype = Object.create(Index.prototype);
+
+Table.OK = OK;
+Table.DELETED = DELETED;
+
+Table.prototype.create = function (keys) {
+  var uid = this.name + ":" + this.state.createUID(this.uid);
+  keys = (typeof keys === 'undefined') ? [] : Keys.getKeys([uid].concat(keys), this).slice(1);
+  this.uid += 1;
+  this.setCreated(uid);
+  this.setKeyValues(uid, keys);
+  return this.getByKey(uid);
+};
+
+Table.prototype.delete = function (entry) {
+  console.log('deleting: ' + entry.uid);
+  this.setDeleted(entry.uid);
+  this.state.propagate();
+};
+
+Table.prototype.getKeyValues = function (uid) {
+  var values = this.keyValues[uid];
+  if (typeof values === 'undefined') {
+    return [];
+  }
+  return values;
+};
+
+Table.prototype.setKeyValues = function (uid, keys) {
+  return this.keyValues[uid] = keys;
+};
+
+// Pure arguments version (user input version)
+// Table.prototype.get = function () {
+//   var args = Array.prototype.slice.call(arguments);
+//   var key = Keys.createIndex(args);
+//   if (this.states[key]) {
+//     return new TableEntry(this, args);
+//   }
+//   return null;
+// };
+
+// Pure arguments version (user input version)
+// Table.prototype.get = function () {
+//   var args = Array.prototype.slice.call(arguments);
+//   var key = Keys.createIndex(args);
+//   if (this.exists(key)) {
+//     return new TableEntry(this, args);
+//   }
+//   return null;
+// };
+
+Table.prototype.get = function () {
+  throw new Error("should not call get on table");
+};
+
+// Flattened key version (internal version)
+Table.prototype.getByKey = function (uid) {
+  if (this.exists(uid)) {
+    var keys = this.getKeyValues(uid);
+    return new TableEntry(this, uid, keys);
+  }
+  return null;
+};
+
+Table.prototype.forEachState = function (callback) {
+  return Object.keys(this.states).forEach(callback);
+};
+
+Table.prototype.setMax = function (entity1, entity2, key) {
+  var val1 = entity1.states[key];
+  var val2 = entity2.states[key];
+  if (val1 === DELETED || val2 === DELETED) {
+    return this.states[key] = DELETED;
+  }
+  if (val1 === OK || val2 === OK) {
+    return this.states[key] = OK;
+  }
+
+};
+
+Table.prototype.where = function (filter) {
+  return new TableQuery(this, filter);
+};
+
+Table.prototype.all = function () {
+  var self = this;
+  var entities = [];
+  Object.keys(this.states).forEach(function (uid) {
+    if (self.exists(uid))
+      entities.push(self.getByKey(uid));
+  });
+  return entities;
+};
+
+Table.prototype.setDeleted = function (key) {
+  this.states[key] = DELETED;
+};
+
+Table.prototype.setCreated = function (key) {
+  this.states[key] = OK;
+};
+
+
+
+Table.prototype.exists = function (idx) {
+  return (typeof this.states[idx] !== 'undefined' && this.states[idx] === OK);
+};
+
+Table.prototype.deleted = function (idx) {
+  return (this.states[idx] === DELETED)
+};
+
+Table.prototype.fork = function () {
+  var fKeys = this.keys.fork();
+  var table = new Table();
+  table.keys = fKeys;
+  table.properties = this.properties.fork(table);
+  table.states     = this.states;
+  return table;
+};
+
+Table.fromJSON = function (json) {
+  var table = new Table();
+  table.keys = Keys.fromJSON(json.keys);
+  table.keyValues = json.keyValues;
+  table.properties = Properties.fromJSON(json.properties, table);
+  table.states = {};
+  Object.keys(json.states).forEach(function (key) {
+    table.states[key] = json.states[key];
+  });
+  return table;
+};
+
+Table.prototype.toJSON = function () {
+  return {
+    type        : 'Entity',
+    keys        : this.keys.toJSON(),
+    keyValues   : this.keyValues,
+    properties  : this.properties.toJSON(),
+    states      : this.states
+  };
+};
+
+},{"./Index":15,"./Keys":18,"./Properties":19,"./Property":20,"./TableEntry":23,"./TableQuery":24}],23:[function(require,module,exports){
+var Keys        = require('./Keys');
+var IndexEntry = require('./IndexEntry');
+
+module.exports = TableEntry;
+
+function TableEntry(index, uid, keys) {
+  this.index = index;
+  this.uid   = uid;
+  this.keys  = Keys.getKeys(keys, index);
+}
+
+TableEntry.prototype = Object.create(IndexEntry.prototype);
+
+
+TableEntry.prototype.get = function (property) {
+  return this.index.getProperty(property).getByKey(this.uid);
+};
+
+TableEntry.prototype.set = function (propertyName, value) {
+  var prop = this.index.getProperty(propertyName);
+  return prop.set(this.uid, value);
+};
+
+TableEntry.prototype.forEachKey = function (callback) {
+  for (var i = 0; i<this.keys.length; i++) {
+    callback(this.index.keys.getName(i+1), this.keys[i]);
+  }
+};
+
+TableEntry.prototype.key = function (name) {
+  if (typeof name === 'undefined') { 
+    return this.serialKey();
+  } 
+  var position = this.index.keys.getPositionOf(name);
+  if (position === -1)
+    throw Error("This Array does not have a key named " + name);
+
+  var type  = this.index.keys.getType(position);
+  var value =  this.keys[position-1];
+
+  if (type === 'int') {
+    value = parseInt(value, 10);
+  }
+  if (type !== 'int' && type !== 'string') {
+    value = type.getByKey(value);
+  }
+  return value;
+};
+
+
+TableEntry.prototype.deleted = function () {
+  return (this.index.state.deleted(this.uid, this.index));
+};
+
+TableEntry.prototype.delete = function () {
+  return this.index.delete(this);
+};    
+
+
+TableEntry.prototype.equals = function (entry) {
+  if (this.index !== entry.index)
+    return false;
+
+  return this.uid === entry.uid;
+};
+
+
+
+TableEntry.prototype.serialKey = function () {
+  return this.toString();
+};
+
+TableEntry.prototype.toString = function () {
+  return this.uid;
+};
+},{"./IndexEntry":16,"./Keys":18}],24:[function(require,module,exports){
+/**
+ * Created by ticup on 07/11/13.
+ */
+
+var IndexQuery = require("./IndexQuery");
+
+module.exports = TableQuery;
+
+function TableQuery(table, filter) {
+  IndexQuery.call(this, table, filter);
+}
+TableQuery.prototype = Object.create(IndexQuery.prototype);
+
+TableQuery.prototype.all = function () {
+  var self = this;
+  var entities = [];
+  Object.keys(self.index.states).forEach(function (uid) {
+    if (self.index.exists(uid) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(uid))))
+      entities.push(self.index.getByKey(uid));
+  });
+  if (self.orderProperty) {
+    var property = self.index.getProperty(self.orderProperty);
+    if (typeof property === 'undefined') {
+      throw new Error("orderBy only allowed on properties for the moment");
+    }
+    return entities.sort(function (entry1, entry2) {
+      return entry1.get(self.orderProperty).compare(entry2.get(self.orderProperty), (self.orderDir === "desc"));
+    });
+  }
+  return entities;
+};
+},{"./IndexQuery":17}],25:[function(require,module,exports){
 
 // load normal client file
 var main = require('../../client/main');
@@ -6546,7 +6834,7 @@ CInt.prototype.isEqual = function (cint) {
 CInt.prototype.isConsistent = function (cint) {
   this.get().should.equal(cint.get());
 };
-},{"../../shared/CInt":17,"should":9}],27:[function(require,module,exports){
+},{"../../shared/CInt":11,"should":9}],27:[function(require,module,exports){
 // test/extensions/CString.js
 //
 // Extends the CString CloudType with the necessary test
@@ -6604,8 +6892,9 @@ CString.prototype.isConsistent = function (cstring) {
 //  console.log(this.get() + " =? " + cint.get());
   this.get().should.equal(cstring.get());
 };
-},{"../../shared/CString":19,"should":9,"util":40}],28:[function(require,module,exports){
+},{"../../shared/CString":13,"should":9,"util":40}],28:[function(require,module,exports){
 var State = require('../../shared/State');
+var CloudType = require('../../shared/CloudType');
 var should = require('should');
 
 module.exports = State;
@@ -6654,12 +6943,14 @@ var DELETED = 'deleted';
 State.prototype.forPairs = function (state2, callback) {
   var state1 = this;
   state1.forEachProperty(function (property) {
-    property.forEachKey(function (key) {
-      var type1 = property.getByKey(key);
-      var type2 = state2.getProperty(property).getByKey(key);
-      should.exist(type2);
-      callback(type1, type2);
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var type1 = property.getByKey(key);
+        var type2 = state2.getProperty(property).getByKey(key);
+        should.exist(type2);
+        callback(type1, type2);
+      });
+    }
   });
 };
 
@@ -6672,14 +6963,16 @@ State.prototype.isForkOf = function (state) {
 State.prototype.isJoinOf = function (state1, state2) {
   var self = this;
   this.forEachProperty(function (property) {
-    property.forEachKey(function (key) {
-      var jType = property.getByKey(key);
-      var type1 = state1.getProperty(property).getByKey(key);
-      var type2 = state2.getProperty(property).getByKey(key);
-      should.exist(type1);
-      should.exist(type2);
-      jType.isJoinOf(type1, type2);
-    });
+    if (CloudType.isCloudType(property.CType)) {
+      property.forEachKey(function (key) {
+        var jType = property.getByKey(key);
+        var type1 = state1.getProperty(property).getByKey(key);
+        var type2 = state2.getProperty(property).getByKey(key);
+        should.exist(type1);
+        should.exist(type2);
+        jType.isJoinOf(type1, type2);
+      });
+    }
   });
   this.forEachEntity(function (entity) {
     entity.forEachState(function (key) {
@@ -6717,7 +7010,7 @@ State.prototype.isConsistent = function (state) {
     });
   });
 };
-},{"../../shared/State":24,"should":9}],29:[function(require,module,exports){
+},{"../../shared/CloudType":14,"../../shared/State":21,"should":9}],29:[function(require,module,exports){
 
 
 //
@@ -6796,7 +7089,7 @@ exports.reduce = function reduce(array, callback, opt_initialValue) {
   return value;
 };
 
-// String.prototype.substr - negative key don't work in IE8
+// String.prototype.substr - negative index don't work in IE8
 if ('ab'.substr(-1) !== 'b') {
   exports.substr = function (str, start, length) {
     // did we get a negative start, calculate how much it is from the beginning of the string
@@ -8725,7 +9018,7 @@ function _deepEqual(actual, expected) {
   // with Object.prototype.hasOwnProperty.call), the same set of keys
   // (although not necessarily the same order), equivalent values for every
   // corresponding key, and an identical 'prototype' property. Note: this
-  // accounts for both named and keyed properties on Arrays.
+  // accounts for both named and indexed properties on Arrays.
   } else {
     return objEquiv(actual, expected);
   }
@@ -10529,13 +10822,13 @@ Buffer.prototype.write = function(string, offset, length, encoding) {
 };
 
 // slice(start, end)
-function clamp(key, len, defaultValue) {
-  if (typeof key !== 'number') return defaultValue;
-  key = ~~key;  // Coerce to integer.
-  if (key >= len) return len;
-  if (key >= 0) return key;
-  key += len;
-  if (key >= 0) return key;
+function clamp(index, len, defaultValue) {
+  if (typeof index !== 'number') return defaultValue;
+  index = ~~index;  // Coerce to integer.
+  if (index >= len) return len;
+  if (index >= 0) return index;
+  index += len;
+  if (index >= 0) return index;
   return 0;
 }
 
@@ -11766,7 +12059,7 @@ var isArray = Array.isArray || function (xs) {
     for (
       // initialize result and counter
       var block, charCode, idx = 0, map = chars, output = '';
-      // if the next input key does not exist:
+      // if the next input index does not exist:
       //   change the mapping table to "="
       //   check if d has no fractional digits
       input.charAt(idx | 0) || (map = '=', idx % 1);
@@ -12759,13 +13052,13 @@ Buffer.prototype.write = function(string, offset, length, encoding) {
 };
 
 // slice(start, end)
-function clamp(key, len, defaultValue) {
-  if (typeof key !== 'number') return defaultValue;
-  key = ~~key;  // Coerce to integer.
-  if (key >= len) return len;
-  if (key >= 0) return key;
-  key += len;
-  if (key >= 0) return key;
+function clamp(index, len, defaultValue) {
+  if (typeof index !== 'number') return defaultValue;
+  index = ~~index;  // Coerce to integer.
+  if (index >= len) return len;
+  if (index >= 0) return index;
+  index += len;
+  if (index >= 0) return index;
   return 0;
 }
 
@@ -13741,7 +14034,7 @@ exports.reduce = function reduce(array, callback, opt_initialValue) {
   return value;
 };
 
-// String.prototype.substr - negative key don't work in IE8
+// String.prototype.substr - negative index don't work in IE8
 if ('ab'.substr(-1) !== 'b') {
   exports.substr = function (str, start, length) {
     // did we get a negative start, calculate how much it is from the beginning of the string
@@ -14057,7 +14350,7 @@ function _deepEqual(actual, expected) {
   // with Object.prototype.hasOwnProperty.call), the same set of keys
   // (although not necessarily the same order), equivalent values for every
   // corresponding key, and an identical 'prototype' property. Note: this
-  // accounts for both named and keyed properties on Arrays.
+  // accounts for both named and indexed properties on Arrays.
   } else {
     return objEquiv(actual, expected);
   }

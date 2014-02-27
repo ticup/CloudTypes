@@ -1,5 +1,6 @@
 var CloudType = require('./CloudType');
 var CSet      = require('./CSet');
+var TypeChecker = require('./TypeChecker');
 //var Index     = require('./Index');
 
 function Property(name, CType, index, values) {
@@ -33,14 +34,6 @@ Property.prototype.forAllKeys = function (callback) {
   });
 };
 
-Property.prototype.saveGet = function (keys) {
-  var key = this.keys.get(keys);
-  if (this.index.state.deleted(key, this.index)) {
-    return null;
-  }
-  return this.get(keys);
-};
-
 Property.prototype.get = function (keys) {
   var key;
   keys = keys || [];
@@ -55,46 +48,59 @@ Property.prototype.get = function (keys) {
   return this.getByKey(key);
 };
 
-Property.prototype.set = function (keys, val) {
-  if (CloudType.isCloudType(this.CType)) {
-    this.saveGet(keys).set(val);
-    return this;
+// Not to be used by the user
+Property.prototype.set = function (index, val) {
+  if (this.CType.prototype === CSet.CSetPrototype) {
+    throw new Error("Can not call set on a CSet propety");
   }
-  var key = this.keys.get(keys);
-  this.values[key] = val.serialKey();
-}
+  TypeChecker.property(this.CType, val);
+  
+  // Store id for references
+  if (!CloudType.isCloudType(this.CType)) {
+    val = val.serialKey();
+  }
+  this.values[index] = val;
+};
 
 Property.prototype.getByKey = function (key) {
   var ctype = this.values[key];
-  var entry = this.index.getByKey(key);
 
-  // console.log('getting ' + key + '.' + this.name + ' = ' + ctype);
+  // console.log('getting ' + key + '.' + this.name + ' = ' + ctype + ' (' + typeof ctype + ')');
   // check if reference is still valid, otherwise return null
   if (!CloudType.isCloudType(this.CType) && this.index.state.deleted(key, this.index)) {
     return null;
   }
 
-  // This key does not exist for this property yet
+  // 1) This key does not exist yet
   if (typeof ctype === 'undefined') {
+    var entry = this.index.getByKey(key);
 
     // if it is a Cloud Type, make a new default.
     if (CloudType.isCloudType(this.CType)) {
       ctype = this.CType.newFor(entry);
-      if (this.CType.prototype !== CSet.CSetPrototype) {
-        this.values[key] = ctype;
+
+      // do not add to values property for a CSet, because it is kept in dedicated Table
+      if (this.CType.prototype === CSet.CSetPrototype) {
+        return ctype;
       }
+      
+      // otherwise add the new cloudtype to the values property for this key
+      this.values[key] = ctype;
       return ctype;
 
-    // if it is a reference, return null
+    // if it is a reference and the key does not exist yet, return null
     } else {
       return null;
     }
   }
 
-  if (!CloudType.isCloudType(this.CType)) {
-    return this.CType.getByKey(ctype);
+  // 2) The key exists
+  // if it is a Cloud Type, simply return the value
+  if (CloudType.isCloudType(this.CType)) {
+    return ctype;
   }
-  return ctype;
+  // if it's a reference, retrieve the entry for that key from the referred Table.
+  return this.CType.getByKey(ctype);
 };
 
 Property.prototype.entries = function () {
@@ -124,7 +130,7 @@ Property.prototype.toJSON = function () {
   } else {
     type = { reference: this.CType.name };
     self.forAllKeys(function (key, val) {
-      values[key] = val.toString();
+      values[key] = val;
     });
   }
   return { name: this.name, type: type, values: values };
@@ -137,7 +143,7 @@ Property.fromJSON = function (json, index) {
   if (CloudType.isCloudType(json.type)) {
     var CType = CloudType.fromJSON(json.type);
     Object.keys(json.values).forEach(function (key) {
-      values[key] = CType.fromJSON(json.values[key], index.get(key));
+      values[key] = CType.fromJSON(json.values[key], index.getByKey(key));
     });
     return new Property(json.name, CType, index, values);
   }

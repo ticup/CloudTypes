@@ -1,4 +1,4 @@
-var Index     = require('./Index');
+var Index      = require('./Index');
 var Keys       = require('./Keys');
 var Properties = require('./Properties');
 var Property   = require('./Property');
@@ -12,29 +12,66 @@ var DELETED = 'deleted';
 
 // when declared in a State, the state will add itself and the declared name for this Index as properties
 // to the Table object.
-function Table(columns) {
+function Table(keys, columns) {
   var self = this;
-  Index.call(this, [{uid: 'string'}], columns);
-  this.states = {};
-  this.uid = 0;
+
+  // declare with only columns
+  if (typeof columns === 'undefined' && !(keys instanceof Array)) {
+    columns = keys;
+    keys = [];
+  }
+  // declare with no keys/columns (from json)
+  else if (typeof columns === 'undefined' && typeof keys === 'undefined') {
+    columns = {};
+    keys = [];
+  }
+
+  Index.call(this, keys, columns);
+  this.keyValues = {};
+  this.states    = {};
+  this.uid       = 0;
 }
+
 Table.prototype = Object.create(Index.prototype);
 
 Table.OK = OK;
 Table.DELETED = DELETED;
 
-Table.prototype.create = function () {
+Table.declare = function (keys, columns) {
+  return new Table(keys, columns);
+};
+
+Table.declare.type = Table;
+
+Table.prototype.create = function (keys) {
   var uid = this.name + ":" + this.state.createUID(this.uid);
+  if (!(keys instanceof Array)) {
+    keys = Array.prototype.slice.call(arguments, 0);
+  }
+  this.keys.checkTypes(keys);
+  // keys = Keys.getKeys(keys, this).slice(1);
   this.uid += 1;
-  var key = Keys.createIndex([uid]);
-  this.setCreated(key);
-  return this.getByKey(key);
+  this.setCreated(uid);
+  this.setKeyValues(uid, keys);
+  return this.getByKey(uid);
 };
 
 Table.prototype.delete = function (entry) {
-  console.log('deleting' + Keys.createIndex(entry.keys));
-  this.setDeleted(Keys.createIndex(entry.keys));
+  console.log('deleting: ' + entry.uid);
+  this.setDeleted(entry.uid);
   this.state.propagate();
+};  
+
+Table.prototype.getKeyValues = function (uid) {
+  var values = this.keyValues[uid];
+  if (typeof values === 'undefined') {
+    return [];
+  }
+  return values;
+};
+
+Table.prototype.setKeyValues = function (uid, keys) {
+  return this.keyValues[uid] = keys;
 };
 
 // Pure arguments version (user input version)
@@ -48,19 +85,24 @@ Table.prototype.delete = function (entry) {
 // };
 
 // Pure arguments version (user input version)
+// Table.prototype.get = function () {
+//   var args = Array.prototype.slice.call(arguments);
+//   var key = Keys.createIndex(args);
+//   if (this.exists(key)) {
+//     return new TableEntry(this, args);
+//   }
+//   return null;
+// };
+
 Table.prototype.get = function () {
-  var args = Array.prototype.slice.call(arguments);
-  var key = Keys.createIndex(args);
-  if (this.exists(key)) {
-    return new TableEntry(this, args);
-  }
-  return null;
+  throw new Error("should not call get on table");
 };
 
 // Flattened key version (internal version)
-Table.prototype.getByKey = function (key) {
-  if (this.exists(key)) {
-    return new TableEntry(this, key);
+Table.prototype.getByKey = function (uid) {
+  if (this.exists(uid)) {
+    var keys = this.getKeyValues(uid);
+    return new TableEntry(this, uid, keys);
   }
   return null;
 };
@@ -88,9 +130,9 @@ Table.prototype.where = function (filter) {
 Table.prototype.all = function () {
   var self = this;
   var entities = [];
-  Object.keys(this.states).forEach(function (key) {
-    if (self.states[key] === OK)
-      entities.push(self.getByKey(key));
+  Object.keys(this.states).forEach(function (uid) {
+    if (self.exists(uid))
+      entities.push(self.getByKey(uid));
   });
   return entities;
 };
@@ -125,11 +167,12 @@ Table.prototype.fork = function () {
 Table.fromJSON = function (json) {
   var table = new Table();
   table.keys = Keys.fromJSON(json.keys);
+  table.keyValues = json.keyValues;
   table.properties = Properties.fromJSON(json.properties, table);
   table.states = {};
   Object.keys(json.states).forEach(function (key) {
     table.states[key] = json.states[key];
-    });
+  });
   return table;
 };
 
@@ -137,8 +180,8 @@ Table.prototype.toJSON = function () {
   return {
     type        : 'Entity',
     keys        : this.keys.toJSON(),
+    keyValues   : this.keyValues,
     properties  : this.properties.toJSON(),
     states      : this.states
-
   };
 };

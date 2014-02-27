@@ -2,10 +2,6 @@
  * Created by ticup on 08/11/13.
  */
 var CloudType  = require('./CloudType');
-var IndexEntry = require('./IndexEntry');
-var TableEntry = require('./TableEntry');
-var CInt = require('./CInt');
-var CString = require('./CString');
 
 function CSetDeclaration(elementType) { 
   function CSet(entry) {
@@ -34,24 +30,20 @@ function CSetDeclaration(elementType) {
 
   CSet.declareProxyTable = function (state, index, property) {
     var Table = require('./Table');
-    // console.log(this.getElementCloudType());
-    this.entity = state.declare(index.name + property.name, new Table({entry: index, element: this.getElementCloudType()}));
-  };
-
-  CSet.getElementCloudType = function () {
-    if (this.elementType === 'int') {
-      return CInt.CInt;
+    if (!(index instanceof Table)) {
+      throw new Error("Can only create CSet for a Table");
     }
-    if (this.elementType === 'string') {
-      return CString.CString;
-    }
-    return this.elementType;
+    this.entity = state.declare(index.name + property.name, new Table([{entry: index}, {element: this.elementType}]));
   };
 
   CSet.tag = "CSet";
   CSet.prototype = CSetPrototype;
   return CSet;
 }
+
+CSetDeclaration.declare = function (elementType) {
+  new CSsetDeclaration(elementType);
+};
 
 // called by CloudType to initialize the parametrized CSet for a property
 CSetDeclaration.fromJSON = function (json) {
@@ -78,9 +70,7 @@ CSetPrototype.toJSON = function () {
 
 // semantic operations (all delegated to the dedicated table)
 CSetPrototype.add = function (element) {
-  var entry = this.type.entity.create();
-  entry.set('entry', this.entry);
-  entry.set('element', element);
+  var entry = this.type.entity.create([this.entry, element]);
   return this;
 };
 
@@ -98,7 +88,7 @@ CSetPrototype.remove = function (element) {
   var elementType = this.type.elementType;
   this.type.entity
       .where(function (el) {
-        return isEntryForElement(el, entryIndex, elementType, element);
+        return isEntryForElement(el, entry, elementType, element);
       }).all().forEach(function (el) {
         el.delete();
       });
@@ -109,10 +99,10 @@ CSetPrototype.get = function () {
 };
 
 function isEntryForElement(el, entry, elementType, element) {
-  return (el.get('entry').equal(entry) &&
-      (elementType === 'int' || elementType === 'string') ?
-      (entry.get('element').get() === element) :
-      (entry.get('element').equal(element)));
+  return (el.key('entry').equals(entry) &&
+      ((elementType === 'int' || elementType === 'string') ?
+      (el.key('element') === element) :
+      (el.key('element').equals(element))));
 }
 
 // Defining _join(cint, target) provides the join and joinIn methods

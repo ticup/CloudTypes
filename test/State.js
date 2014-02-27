@@ -148,6 +148,19 @@ describe('State', function () {
   });
 
 
+  describe('.declare(name, index) with previously declared name', function () {
+    var state = new State();
+    var name  = 'User';
+    state.declare(name, new Table({friend: 'User'})); 
+
+    it('should throw an error', function () {
+      (function () {
+        state.declare(name, new Table({friend: 'User'})); 
+      }).should.throwError();
+    })
+  });
+
+
   describe('.get(indexName)', function () {
     var state = new State();
     var name = "Grocery";

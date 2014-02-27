@@ -20,7 +20,7 @@ var ListView = View.extend({
 
     // create new views or update existing ones
     this.value().forEach(function (item) {
-      var id = item.key();
+      var id = item.    key();
       var view = views[id];
 
       // view already present: update + delete from old views

@@ -11,37 +11,36 @@ var stubs       = require('./stubs');
 var util        = require('util');
 var TableEntry  = require('../shared/TableEntry');
 
-describe('Table state independent operations', function () {
-  var entity;
+describe('Table state independent operations |', function () {
+  var table, table2;
 
   beforeEach(function () {
-    var properties = {address: CString};
-    entity = new Table(properties);
+    var keys = [{name: 'string'}, {surname: 'string'}];
+    var columns = {address: CString, nr: CInt};
+    table = new Table(keys, columns);
   });
 
-  describe('#new(propertyDeclarations)', function () {
-    var properties = {address: CString};
-    var entity = new Table(properties);
+  describe('#new(columnDeclarations)', function () {
     it('should create a new Table object', function () {
-      entity.should.be.an.instanceOf(Table);
+      table.should.be.an.instanceOf(Table);
     });
     it('should have properties property', function () {
-      entity.should.have.property('properties');
-      entity.properties.should.be.an.instanceof(Properties);
+      table.should.have.property('properties');
+      table.properties.should.be.an.instanceof(Properties);
     });
     it('should have keys property', function () {
-      entity.should.have.property('keys');
-      entity.keys.should.be.an.instanceof(Keys);
+      table.should.have.property('keys');
+      table.keys.should.be.an.instanceof(Keys);
     });
   });
 
   describe('#fromJSON(json)', function () {
     it('should create a Table', function () {
-      var json = entity.toJSON();
-      var entity2 = Table.fromJSON(stubs.customerUnchanged);
-      should.exist(entity2);
-      entity2.should.be.an.instanceof(Table);
-      entity2.getProperty('name').should.be.an.instanceof(Property);
+      var json = table.toJSON();
+      var table2 = Table.fromJSON(stubs.customerUnchanged);
+      should.exist(table2);
+      table2.should.be.an.instanceof(Table);
+      table2.getProperty('name').should.be.an.instanceof(Property);
     });
 
     it('should create a Table for all stubs', function () {
@@ -61,22 +60,22 @@ describe('Table state independent operations', function () {
 
   describe('.all()', function () {
     it('should return an array with all non-deleted entries', function () {
-      var entity1 = Table.fromJSON(stubs.customerUnchanged);
-      var entity2 = Table.fromJSON(stubs.customerChanged);
-      entity1.all().length.should.equal(1);
-      entity2.all().length.should.equal(4);
+      var table1 = Table.fromJSON(stubs.customerUnchanged);
+      var table2 = Table.fromJSON(stubs.customerChanged);
+      table1.all().length.should.equal(1);
+      table2.all().length.should.equal(4);
     });
   });
 
   describe('.forEachState(callback)', function () {
     it('should call callback for every entry in states', function () {
       var ctr = 0;
-      entity.forEachState(function (idx) {
+      table.forEachState(function (idx) {
         ctr++
       });
       ctr.should.equal(0);
-      var entity2 = Table.fromJSON(stubs.customerChanged);
-      entity2.forEachState(function (idx) {
+      var table2 = Table.fromJSON(stubs.customerChanged);
+      table2.forEachState(function (idx) {
         ctr++
       });
       ctr.should.equal(5);
@@ -86,20 +85,22 @@ describe('Table state independent operations', function () {
   describe('.forEachProperty(callback)', function () {
     it('should call the callback for each property', function () {
       var ctr = 0;
-      entity.forEachProperty(function (property) {
+      var props = {};
+      table.forEachProperty(function (property) {
         property.should.be.an.instanceof(Property);
-        property.name.should.equal("address");
-        property.CType.should.equal(CString);
+        props[property.name] = property;
         ctr++;
       });
-      ctr.should.equal(1);
+      ctr.should.equal(2);
+      props["address"].CType.should.equal(CString);
+      props["nr"].CType.should.equal(CInt);
     });
   });
 
   describe('.getProperty', function () {
     describe('.getProperty(propertyName)', function () {
       it('sould return the property with that name', function () {
-        var property = entity.getProperty('address');
+        var property = table.getProperty('address');
         should.exist(property);
         property.should.be.an.instanceof(Property);
         property.name.should.equal('address');
@@ -108,8 +109,8 @@ describe('Table state independent operations', function () {
 
     describe('.getProperty(property)', function () {
       it('sould return the property with the same name', function () {
-        var property = entity.getProperty('address');
-        var property2 = entity.getProperty(property);
+        var property = table.getProperty('address');
+        var property2 = table.getProperty(property);
         should.exist(property2);
         property2.should.be.an.instanceof(Property);
         property2.name.should.equal(property.name);
@@ -118,37 +119,31 @@ describe('Table state independent operations', function () {
   });
 
 
-  describe('.setMax(entity1, entity2, key)', function () {
-    it('should set the max value of entity1 and entity2 for state of key (max: undefined < OK < DELETED)', function () {
-      var entity1 = Table.fromJSON(stubs.customerUnchanged);
-      var entity2 = Table.fromJSON(stubs.customerChanged);
+  describe('.setMax(table1, table2, key)', function () {
+    it('should set the max value of table1 and table2 for state of key (max: undefined < OK < DELETED)', function () {
+      var table1 = Table.fromJSON(stubs.customerUnchanged);
+      var table2 = Table.fromJSON(stubs.customerChanged);
 
       // undefined < OK
-      should.not.exist(entity1.states['[Customer:0#1]']);
-      entity2.states['[Customer:0#1]'].should.equal("ok");
-      entity1.setMax(entity1, entity2, '[Customer:0#1]');
-      entity1.states['[Customer:0#1]'].should.equal("ok");
+      should.not.exist(table1.states['Customer:0#1']);
+      table2.states['Customer:0#1'].should.equal("ok");
+      table1.setMax(table1, table2, 'Customer:0#1');
+      table1.states['Customer:0#1'].should.equal("ok");
 
       // OK < DELETED
-      entity1.states['[Customer:0#0]'].should.equal("ok");
-      entity2.states['[Customer:0#0]'].should.equal("deleted");
-      entity1.setMax(entity1, entity2, '[Customer:0#0]');
-      entity1.states['[Customer:0#0]'].should.equal("deleted");
+      table1.states['Customer:0#0'].should.equal("ok");
+      table2.states['Customer:0#0'].should.equal("deleted");
+      table1.setMax(table1, table2, 'Customer:0#0');
+      table1.states['Customer:0#0'].should.equal("deleted");
 
       // undefined < DELETED
-      entity2.states['[Customer:0#7]'] = "deleted";
-      should.not.exist(entity1.states['[Customer:0#7]']);
-      entity1.setMax(entity1, entity2, '[Customer:0#7]');
-      entity1.states['[Customer:0#7]'].should.equal("deleted");
+      table2.states['Customer:0#7'] = "deleted";
+      should.not.exist(table1.states['Customer:0#7']);
+      table1.setMax(table1, table2, 'Customer:0#7');
+      table1.states['Customer:0#7'].should.equal("deleted");
 
     });
   });
-
-
-
-
-
-
 });
 
 describe('Table state dependent operations: ', function () {
@@ -182,17 +177,17 @@ describe('Table state dependent operations: ', function () {
         should.exist(all);
         all.length.should.equal(3);
       });
+
+      it('should call where callback with all entries', function () {
+        var count = 0;
+        Order.where(function (entry) {
+          entry.should.be.an.instanceof(TableEntry);
+          count = count + 1;
+        }).all();
+        count.should.equal(3);
+      });
     });
 
-//    describe('.where(callback)', function () {
-//      it('should be chaining all the filters', function () {
-//        var all = Customer.where(function (entry) {
-//          entry.get('quantity').where(function (entry) { return entry.get('name').get() === 'foo'; }).all();
-//        }
-//        should.exist(all);
-//        all.length.should.equal(1)
-//      });
-//    });
   });
 
 
@@ -208,10 +203,9 @@ describe('Table state dependent operations: ', function () {
     //   if (c)
     //     return c.equals(cust);
     // }).all().length.should.equal(1);
-    console.log('deleting');
     cust.delete();
 
-    it('should make it unable to retrieve the entity', function () {
+    it('should make it unable to retrieve the table', function () {
       Customer.where(function (cust) { return cust.get('name').get() === name; }).all().length.should.equal(0);
     });
 
@@ -225,8 +219,6 @@ describe('Table state dependent operations: ', function () {
       User.all().length.should.equal(1);
       should.not.exist(u1.get('child'));
     });
-
   });
-
 
 });

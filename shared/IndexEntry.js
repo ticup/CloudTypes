@@ -9,7 +9,7 @@ function IndexEntry(index, keys) {
 }
 
 IndexEntry.prototype.get = function (propertyName) {
-  return this.index.getProperty(propertyName).saveGet(this.keys);
+  return this.index.getProperty(propertyName).get(this.keys);
 };
 
 IndexEntry.prototype.set = function (propertyName, value) {
@@ -33,6 +33,9 @@ IndexEntry.prototype.forEachKey = function (callback) {
 
 
 IndexEntry.prototype.key = function (name) {
+  if (typeof name === 'undefined') { 
+    return this.serialKey();
+  }
   var position = this.index.keys.getPositionOf(name);
   if (position === -1)
     throw Error("This Array does not have a key named " + name);
@@ -43,7 +46,8 @@ IndexEntry.prototype.key = function (name) {
     value = parseInt(value, 10);
   }
   if (type !== 'int' && type !== 'string') {
-    value = this.index.state.get(type).getByKey(value);
+    debugger;
+    value = type.getByKey(value);
   }
   return value;
 };

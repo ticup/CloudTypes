@@ -27,6 +27,10 @@ State.prototype.get = function (name) {
 State.prototype.declare = function (name, array) {
   var self = this;
 
+  if (typeof self.arrays[name] !== 'undefined') {
+    throw new Error("A type with name " + name + " is already declared");
+  }
+
   // Index or Table
   if (array instanceof Index) {
     array.state = this;
@@ -49,21 +53,26 @@ State.prototype.declare = function (name, array) {
       }
     });
 
+    array.keys.forEach(function (name, type, i) {
+      array.keys.types[i] = self.resolveKeyType(type);
+    });
+
     return array;
   }
 
   // global (CloudType) => create proxy Index
-  if (typeof array.prototype !== 'undefined' && array.prototype instanceof CloudType) {
+  if (CloudType.isCloudType(array)) {
     var CType = array;
     array = new Index([], {value: CType});
     array.state = this;
     array.name  = name;
     array.isProxy = true;
-    return this.arrays[name] = array;
+    this.arrays[name] = array;
+    return this.get(name);
   }
 
   // Either declare Index (Table is also a Index) or CloudType, nothing else.
-  throw new Error("Need a Index or CloudType to declare: " + array);
+  throw new Error("Need an Index or CloudType to declare: " + array);
 };
 
 State.prototype.resolvePropertyType = function (type) {
@@ -85,14 +94,19 @@ State.prototype.resolvePropertyType = function (type) {
 };
 
 State.prototype.resolveKeyType = function (type) {
-  var rType = type;
+  if (type instanceof Table) {
+    return type;
+  }
   if (typeof type === 'string') {
-    rType = this.get(type);
-    if (typeof rType === 'undefined') {
-      rType = type;
+    if (type === 'string' || type === 'int') {
+      return type;
+    }
+    var rType = this.get(type);
+    if (typeof rType !== 'undefined' && rType instanceof Table) {
+      return rType;
     }
   }
-  return rType;
+  throw new Error("Only int, string or Table identifiers are allowed as keys");
 };
 
 State.prototype.isDefault = function (cType) {
@@ -145,7 +159,6 @@ State.fromJSON = function (json) {
       if (property.CType.prototype === CSetPrototype) {
         property.CType.entity      = state.get(array.name + property.name);
         property.CType.elementType = state.resolveKeyType(property.CType.elementType);
-
       }
 
       // If property is a reference, find all the references for all keys of that property
@@ -157,6 +170,11 @@ State.fromJSON = function (json) {
       //     property.values[key] = ref;
       //   });
       // }
+    });
+
+    // Resolve the key types to the real types
+    array.keys.forEach(function (name, type, i) {
+      array.keys.types[i] = state.resolveKeyType(type);
     });
   });
   return state;
@@ -194,6 +212,7 @@ State.prototype.propagate = function () {
   var changed = false;
   this.forEachEntity(function (entity) {
     entity.forEachState(function (key) {
+      // console.log(entity.name +"["+key+"] deleted?");
       if (entity.exists(key) && self.deleted(key, entity)) {
         entity.setDeleted(key);
       }
@@ -206,16 +225,23 @@ State.prototype.deleted = function (key, entity) {
   // Entity
   if (typeof entity !== 'undefined' && entity instanceof Table) {
     var entry = entity.getByKey(key);
-//    console.log(key + ' of ' + entity.name + ' deleted ?');
+
+    if (entry === null) {
+      return true;
+    }
+
+    // console.log(key + ' of ' + entity.name + ' deleted ?');
 
     if (entity.deleted(key))
       return true;
     var del = false;
     entry.forEachKey(function (name, value) {
       var type = entity.keys.getTypeOf(name);
-      if (typeof type !== 'undefined')
-        type = self.get(type);
-//      console.log('key deleted? ' + value + " of type " + type);
+
+      // when types are not stored as real references to the types but rather as their names:
+      // if (typeof type !== 'undefined')
+      //   type = self.get(type);
+     // console.log('key deleted? ' + value + " of type " + type + "(" + name+ ")");
       if (self.deleted(value, type))
         del = true;
     });

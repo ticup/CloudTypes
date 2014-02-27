@@ -176,24 +176,14 @@ describe('Index', function () {
         (typeof entry.key('slot')).should.equal('number');
       });
 
-      it('should be a Index if key is of declared Array type', function () {
-        var state = new State();
-        var array1 = state.declare('array1', new Index([{name: 'string'}], {prop: 'CString'}));
-        var array2 = state.declare('array2', new Index([{ref: 'array1'}], {prop: 'CString'}));
-        var entry1 = array1.get('foo');
-        var entry2 = array2.get(entry1);
-        should.exist(entry2);
-        should.exist(entry2.key('ref'));
-        entry2.key('ref').should.be.an.instanceof(IndexEntry);
-        should(entry2.key('ref').equals(entry1));
-      });
 
       it('should be a Table if key is of declared Entity type', function () {
         var state = new State();
         var entity = state.declare('entity', new Table({prop: 'CString'}));
         var array  = state.declare('array', new Index([{ref: 'entity'}], {prop: 'CString'}));
-        var entry1 = entity.create('foo');
+        var entry1 = entity.create();
         var entry2 = array.get(entry1);
+        state.print();
         should.exist(entry2);
         should.exist(entry2.key('ref'));
         entry2.key('ref').should.be.an.instanceof(IndexEntry);

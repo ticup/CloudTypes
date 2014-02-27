@@ -8,9 +8,9 @@ var CloudTypes = require('../../../server/main.js');
 
 function declareProjects(server) {
   return server
-      .declare('Member' , CloudTypes.Table({name: 'CString'}))
-      .declare('Project', CloudTypes.Table({name: 'CString'}))
-      .declare('Task'   , CloudTypes.Table({assignee: 'Member', project: 'Project', description: 'CString', priority: 'CInt'}));
+      .declare('Member' , new CloudTypes.Table({name: 'CString'}))
+      .declare('Project', new CloudTypes.Table({name: 'CString'}))
+      .declare('Task'   , new CloudTypes.Table({assignee: 'Member', project: 'Project', description: 'CString', priority: 'CInt'}));
 }
 
-module.exports = declareProjects;
+module.exports = declareProjects; 
