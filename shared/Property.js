@@ -53,7 +53,7 @@ Property.prototype.set = function (index, val) {
   if (this.CType.prototype === CSet.CSetPrototype) {
     throw new Error("Can not call set on a CSet propety");
   }
-  TypeChecker.property(this.CType, val);
+  // TypeChecker.property(this.CType, val);
   
   // Store id for references
   if (!CloudType.isCloudType(this.CType)) {

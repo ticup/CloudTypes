@@ -73,6 +73,10 @@ Keys.prototype.checkTypes = function (keys) {
 Keys.createIndex = function createIndex(keys) {
   if (! (keys instanceof Array))
     throw Error("createIndex: expects an array of keys, given: " + keys);
+
+  if (keys.length === 0)
+      return 'singleton';
+    
   return "[" + [].map.call(keys, function (val) { return val.toString(); }).join(".") + "]";
 };
 

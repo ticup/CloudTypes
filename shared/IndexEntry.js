@@ -1,5 +1,7 @@
 var Keys       = require('./Keys');
 var CloudType  = require('./CloudType');
+var TypeChecker = require('./TypeChecker');
+
 module.exports = IndexEntry;
 
 // keys: an array of real keys or a flattened string of those keys
@@ -9,12 +11,32 @@ function IndexEntry(index, keys) {
 }
 
 IndexEntry.prototype.get = function (propertyName) {
-  return this.index.getProperty(propertyName).get(this.keys);
+  var property = this.index.getProperty(propertyName);
+  var key = this.key();
+  return property.getByKey(key);
 };
 
+// IndexEntry.prototype.set = function (propertyName, value) {
+//   var property = this.index.getProperty(propertyName); 
+//   TypeChecker.property(value, property.CType);
+
+//   return property.set(this.keys, value);
+// };
+
 IndexEntry.prototype.set = function (propertyName, value) {
-  var prop = this.index.getProperty(propertyName);
-  return prop.set(this.keys, value);
+  var property = this.index.getProperty(propertyName);
+  var key = this.key();
+  TypeChecker.property(value, property.CType);
+
+  // If it is a Cloud Type column, retrieve it and call set(value) on it
+  if (CloudType.isCloudType(property.CType)) {
+    property.getByKey(key).set(value);
+    return this;
+  }
+  
+  // Otherwise replace the reference
+  property.set(key, value);
+  return this;
 };
 
 

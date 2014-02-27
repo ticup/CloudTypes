@@ -44,7 +44,9 @@ Index.prototype.forEachProperty = function (callback) {
 };
 
 Index.prototype.get = function () {
-  return new IndexEntry(this, Array.prototype.slice.call(arguments));
+  var keys = Array.prototype.slice.call(arguments);
+  this.keys.checkTypes(keys);
+  return new IndexEntry(this, keys);
 };
 
 Index.prototype.getByKey = function (key) {

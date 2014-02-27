@@ -13,26 +13,25 @@ function TableEntry(index, uid, keys) {
 TableEntry.prototype = Object.create(IndexEntry.prototype);
 
 
-TableEntry.prototype.get = function (property) {
-  // console.log('getting ' + this.uid + ' (' + typeof this.uid + ')');
-  return this.index.getProperty(property).getByKey(this.uid);
-};
+// TableEntry.prototype.get = function (property) {
+//   // console.log('getting ' + this.uid + ' (' + typeof this.uid + ')');
+//   return this.index.getProperty(property).getByKey(this.uid);
+// };
 
-TableEntry.prototype.set = function (propertyName, value) {
-  var prop = this.index.getProperty(propertyName);
+// TableEntry.prototype.set = function (propertyName, value) {
+//   var prop = this.index.getProperty(propertyName);
+//   TypeChecker.property(value, property.CType);
 
-  TypeChecker.property(prop.CType, value);
-
-  // If it is a Cloud Type column, retrieve it and call set(value) on it
-  if (CloudType.isCloudType(prop.CType)) {
-    prop.getByKey(this.uid).set(value);
-    return this;
-  }
+//   // If it is a Cloud Type column, retrieve it and call set(value) on it
+//   if (CloudType.isCloudType(prop.CType)) {
+//     prop.getByKey(this.uid).set(value);
+//     return this;
+//   }
   
-  // Otherwise replace the reference
-  prop.set(this.uid, value);
-  return this;
-};
+//   // Otherwise replace the reference
+//   prop.set(this.uid, value);
+//   return this;
+// };
 
 TableEntry.prototype.forEachKey = function (callback) {
   for (var i = 0; i<this.keys.length; i++) {
