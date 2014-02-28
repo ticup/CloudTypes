@@ -4,7 +4,7 @@ var Property      = require('./Property');
 var Properties    = require('./Properties');
 var IndexEntry    = require('./IndexEntry');
 var IndexQuery    = require('./IndexQuery');
-
+var TypeChecker   = require('./TypeChecker');
 var util          = require('util');
 
 module.exports = Index;
@@ -45,7 +45,7 @@ Index.prototype.forEachProperty = function (callback) {
 
 Index.prototype.get = function () {
   var keys = Array.prototype.slice.call(arguments);
-  this.keys.checkTypes(keys);
+  TypeChecker.keys(keys, this.keys);
   return new IndexEntry(this, keys);
 };
 

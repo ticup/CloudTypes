@@ -1,3 +1,6 @@
+/**
+ * Created by ticup on 15/11/13.
+ */
 var CloudType = require('./CloudType');
 var util = require('util');
 

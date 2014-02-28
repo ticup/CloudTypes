@@ -100,9 +100,9 @@ CSetPrototype.get = function () {
 
 function isEntryForElement(el, entry, elementType, element) {
   return (el.key('entry').equals(entry) &&
-      ((elementType === 'int' || elementType === 'string') ?
-      (el.key('element') === element) :
-      (el.key('element').equals(element))));
+         ((elementType === 'int' || elementType === 'string') ?
+          (el.key('element') === element) :
+          (el.key('element').equals(element))));
 }
 
 // Defining _join(cint, target) provides the join and joinIn methods

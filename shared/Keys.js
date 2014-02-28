@@ -1,3 +1,4 @@
+// The names and types of the keys of an Index
 function Keys(keys, state) {
   var self = this;
   this.names  = [];

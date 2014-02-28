@@ -4,7 +4,7 @@ var Properties = require('./Properties');
 var Property   = require('./Property');
 var TableEntry = require('./TableEntry');
 var TableQuery = require('./TableQuery');
-
+var TypeChecker = require('./TypeChecker');
 module.exports = Table;
 
 var OK = 'ok';
@@ -48,7 +48,7 @@ Table.prototype.create = function (keys) {
   if (!(keys instanceof Array)) {
     keys = Array.prototype.slice.call(arguments, 0);
   }
-  this.keys.checkTypes(keys);
+  TypeChecker.keys(keys, this.keys);
   // keys = Keys.getKeys(keys, this).slice(1);
   this.uid += 1;
   this.setCreated(uid);

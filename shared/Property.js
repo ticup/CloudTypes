@@ -34,19 +34,19 @@ Property.prototype.forAllKeys = function (callback) {
   });
 };
 
-Property.prototype.get = function (keys) {
-  var key;
+ Property.prototype.get = function (keys) {
+  // var key;
   keys = keys || [];
-  // TODO: perform check on types
-  if (keys.length !== this.keys.length())
-    throw Error("Given keys do not match declaration of Property: " + keys);
+  // // TODO: perform check on types
+  // if (keys.length !== this.keys.length())
+  //   throw Error("Given keys do not match declaration of Property: " + keys);
 
-  if (keys.length === 0)
-    key = 'singleton';
-  else
-    key = this.keys.get(keys);
-  return this.getByKey(key);
-};
+  // if (keys.length === 0)
+  //   key = 'singleton';
+  // else
+   var key = this.keys.get(keys);
+   return this.getByKey(key);
+ };
 
 // Not to be used by the user
 Property.prototype.set = function (index, val) {

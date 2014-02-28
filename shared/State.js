@@ -17,7 +17,7 @@ State.prototype.get = function (name) {
 
   // if retrieving a global CloudType, get the value property of its proxy index instead
   if (typeof array !== 'undefined' && array.isProxy) {
-    return array.getProperty('value').get([]);
+    return array.getProperty('value').get();
   }
 
   return this.arrays[name];
