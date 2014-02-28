@@ -9,7 +9,6 @@ function TableEntry(index, uid, keys) {
   this.uid   = uid;
   this.keys  = Keys.getKeys(keys, index);
 }
-
 TableEntry.prototype = Object.create(IndexEntry.prototype);
 
 TableEntry.prototype.forEachColumn = function (callback) {

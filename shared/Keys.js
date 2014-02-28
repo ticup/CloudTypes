@@ -45,38 +45,13 @@ Keys.prototype.get = function (keys) {
   return key;
 };
 
-
-// Expects array of keys
-Keys.prototype.checkTypes = function (keys) {
-  if (this.types.length !== keys.length) {
-    throw new Error("uncompatible keys for declared type " + keys);
-  }
-  for (var i = 0; i < this.types.length; i++) {
-    var type = this.types[i];
-    var key = keys[i];
-    if (type === 'int') {
-      if (typeof key !== 'number') {
-        throw new Error("uncompatible key for declared type int" + key);
-      }
-    } else if (type === 'string') {
-      if (typeof key !== 'string') {
-        throw new Error("uncompatible key for declared type string" + key);
-      }
-    } else {
-      if (typeof key.index === 'undefined' || key.index !== type) {
-        throw new Error("uncompatible key for declared type " + key);
-      }
-    }
-  }
-}
-
 Keys.createIndex = function createIndex(keys) {
   if (! (keys instanceof Array))
     throw Error("createIndex: expects an array of keys, given: " + keys);
 
   if (keys.length === 0)
       return 'singleton';
-    
+
   return "[" + [].map.call(keys, function (val) { return val.toString(); }).join(".") + "]";
 };
 
