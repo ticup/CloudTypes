@@ -49,26 +49,6 @@ describe('Property state independent operations', function () {
     });
   });
 
-  describe('.get(keys)', function () {
-    it('should get a cloud type of given type', function () {
-      var ctype = name1.get(['foo']);
-      console.log(ctype);
-      should.exist(ctype);
-      ctype.should.be.an.instanceof(CInt);
-    });
-
-    it('should work for multi-keys', function () {
-      var ctype = name2.get(['foo', 'bar']);
-      should.exist(ctype);
-      ctype.should.be.an.instanceof(CInt);
-    });
-
-    it('should every time return same type', function () {
-      var ctype = name1.get(['foo']);
-      var ctype2 = name1.get(['foo']);
-      ctype.should.equal(ctype2);
-    });
-  });
 
   describe('.forEachKey(callback)', function () {
     it('should not be called if no keys are accessed', function () {
@@ -81,10 +61,10 @@ describe('Property state independent operations', function () {
 
     it('should be called for every key that has been accessed', function () {
       var idxs = [];
-      name1.get(['foo']);
-      name1.get(['bar']);
-      name1.get(['foobar']);
-      name1.get(['foo']);
+      name1.getByKey('[foo]');
+      name1.getByKey('[bar]');
+      name1.getByKey('[foobar]');
+      name1.getByKey('[foo]');
       name1.forEachKey(function (key) {
         idxs.push(key);
       });
@@ -110,12 +90,12 @@ describe('Property state independent operations', function () {
     it('should include all accessed values', function () {
       var json = name1.toJSON();
       Object.keys(json.values).length.should.equal(0);
-      name1.get(['foo']);
-      name1.get(['bar']);
+      name1.getByKey('[foo]');
+      name1.getByKey('[bar]');
       json = name1.toJSON();
       Object.keys(json.values).length.should.equal(2);
       name1.forEachKey(function (key) {
-        json.values[key].should.eql(name1.get([key]).toJSON());
+        json.values[key].should.eql(name1.getByKey(key).toJSON());
       });
     });
   });

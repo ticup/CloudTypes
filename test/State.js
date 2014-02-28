@@ -93,9 +93,9 @@ describe('State', function () {
         property.CType.should.equal(CInt);
       });
 
-      describe('value property .get()', function () {
-        var cType  = property.get();
-        var cType2 = property.get();
+      describe('value property .getByKey(singleton)', function () {
+        var cType  = property.getByKey('singleton');
+        var cType2 = property.getByKey('singleton');
         it('should return CloudType', function () {
           should.exist(cType);
           cType.should.be.an.instanceof(CInt);

@@ -1,22 +1,19 @@
-var CloudType = require('./CloudType');
-var CSet      = require('./CSet');
+var CloudType   = require('./CloudType');
+var CSet        = require('./CSet');
 var TypeChecker = require('./TypeChecker');
-//var Index     = require('./Index');
+var Keys        = require('./Keys');
 
 function Property(name, CType, index, values) {
-  this.name = name;
-  this.keys = index.keys;
-  this.index = index;
-  this.CType = CType;
+  this.name   = name;
+  this.keys   = index.keys;
+  this.index  = index;
+  this.CType  = CType;
   this.values = values || {};
-
-  // Should either be a cloud type or a reference to an index
-  // console.log(Index);
-  // if (!CloudType.isCloudType(this.CType) && !(this.CType instanceof Index)) {
-  //   throw Error ("Unknown property type in declaration (Must be CloudType (CInt, CString, CSet,...)): " + this.CType);
-  // }
 }
 
+/* User API */
+
+// Calls callback with (keyName, keyEntry) for each valid key of this property
 Property.prototype.forEachKey = function (callback) {
   var self = this;
   return Object.keys(this.values).forEach(function (key) {
@@ -27,6 +24,18 @@ Property.prototype.forEachKey = function (callback) {
   });
 };
 
+// 
+// Property.prototype.get = function (keys) {
+//   keys = keys || [];
+//   var key = Keys.createIndex(keys);
+//   return this.getByKey(key);
+// };
+
+
+
+/* Internal */
+// Cals callback with (keyName, keyValue) for each key (regardless of the value of keyValue) for this property
+// Not be used by users, since this also includes values that are possibly already deleted.
 Property.prototype.forAllKeys = function (callback) {
   var self = this;
   return Object.keys(this.values).forEach(function (key) {
@@ -34,19 +43,6 @@ Property.prototype.forAllKeys = function (callback) {
   });
 };
 
- Property.prototype.get = function (keys) {
-  // var key;
-  keys = keys || [];
-  // // TODO: perform check on types
-  // if (keys.length !== this.keys.length())
-  //   throw Error("Given keys do not match declaration of Property: " + keys);
-
-  // if (keys.length === 0)
-  //   key = 'singleton';
-  // else
-   var key = this.keys.get(keys);
-   return this.getByKey(key);
- };
 
 // Not to be used by the user
 Property.prototype.set = function (index, val) {
