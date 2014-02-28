@@ -31,7 +31,7 @@ State.prototype.declare = function (name, array) {
     throw new Error("A type with name " + name + " is already declared");
   }
 
-  // Index or Table
+  // 1) Index or Table
   if (array instanceof Index) {
     array.state = this;
     array.name  = name;
@@ -60,7 +60,7 @@ State.prototype.declare = function (name, array) {
     return array;
   }
 
-  // global (CloudType) => create proxy Index
+  // 2) global (CloudType) => create proxy Index
   if (CloudType.isCloudType(array)) {
     var CType = array;
     array = new Index([], {value: CType});
@@ -75,45 +75,13 @@ State.prototype.declare = function (name, array) {
   throw new Error("Need an Index or CloudType to declare: " + array);
 };
 
-State.prototype.resolvePropertyType = function (type) {
-  var rType = type;
-  if (typeof type === 'string') {
-    // 1) try to declare as regular CloudType
-    rType = CloudType.declareFromTag(type);
 
-    // 2) try to declare as reference to an Index
-    if (typeof rType === 'undefined') {
-      rType = this.get(type);
-    }
-  }
 
-  if (typeof rType === 'undefined') {
-    throw new Error("Undefined Property Type: " + type);
-  }
-  return rType;
-};
-
-State.prototype.resolveKeyType = function (type) {
-  if (type instanceof Table) {
-    return type;
-  }
-  if (typeof type === 'string') {
-    if (type === 'string' || type === 'int') {
-      return type;
-    }
-    var rType = this.get(type);
-    if (typeof rType !== 'undefined' && rType instanceof Table) {
-      return rType;
-    }
-  }
-  throw new Error("Only int, string or Table identifiers are allowed as keys");
-};
-
+/* Internal */
+/***********/
 State.prototype.isDefault = function (cType) {
   return cType.isDefault();
 }
-
-/* Private */
 
 State.prototype.createUID = function (uid) {
   var id = this.cid + "#" + uid;
@@ -352,6 +320,43 @@ State.prototype.replaceBy = function (state) {
   state.forEachEntity(function (entity) {
     self.get(entity.name).states = entity.states;
   });
+};
+
+
+// Try to resolve to real property type from a string
+State.prototype.resolvePropertyType = function (type) {
+  var rType = type;
+  if (typeof type === 'string') {
+    // 1) try to declare as regular CloudType
+    rType = CloudType.declareFromTag(type);
+
+    // 2) try to declare as reference to an Index
+    if (typeof rType === 'undefined') {
+      rType = this.get(type);
+    }
+  }
+
+  if (typeof rType === 'undefined') {
+    throw new Error("Undefined Property Type: " + type);
+  }
+  return rType;
+};
+
+// Try to resolve to a real key type from a string
+State.prototype.resolveKeyType = function (type) {
+  if (type instanceof Table) {
+    return type;
+  }
+  if (typeof type === 'string') {
+    if (type === 'string' || type === 'int') {
+      return type;
+    }
+    var rType = this.get(type);
+    if (typeof rType !== 'undefined' && rType instanceof Table) {
+      return rType;
+    }
+  }
+  throw new Error("Only int, string or Table identifiers are allowed as keys");
 };
 
 State.prototype.print = function () {
