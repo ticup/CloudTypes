@@ -24,14 +24,6 @@ Property.prototype.forEachKey = function (callback) {
   });
 };
 
-// 
-// Property.prototype.get = function (keys) {
-//   keys = keys || [];
-//   var key = Keys.createIndex(keys);
-//   return this.getByKey(key);
-// };
-
-
 
 /* Internal */
 // Cals callback with (keyName, keyValue) for each key (regardless of the value of keyValue) for this property
@@ -45,17 +37,17 @@ Property.prototype.forAllKeys = function (callback) {
 
 
 // Not to be used by the user
-Property.prototype.set = function (index, val) {
+Property.prototype.set = function (key, val) {
   if (this.CType.prototype === CSet.CSetPrototype) {
     throw new Error("Can not call set on a CSet propety");
   }
-  // TypeChecker.property(this.CType, val);
+  TypeChecker.property(this.CType, val);
   
   // Store id for references
   if (!CloudType.isCloudType(this.CType)) {
     val = val.serialKey();
   }
-  this.values[index] = val;
+  this.values[key] = val;
 };
 
 Property.prototype.getByKey = function (key) {
