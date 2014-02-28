@@ -297,6 +297,63 @@ State.prototype.fork = function () {
   return forked;
 };
 
+State.prototype.restrictedFork = function (auths) {
+  var forked = new State();
+  var forker = this;
+  
+  forker.forEachArray(function (index) {
+    if (authedFor(index, auths)) {
+      var fIndex = index.fork();
+      forked.declare(index.name, fIndex);
+    }
+  });
+
+  // set new references
+  forked.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+      if (!CloudType.isCloudType(property.CType)) {
+        var fIndex = forked.get(property.CType.name);
+        property.CType = fIndex;
+        // property.forEachKey(function (key, val) {
+        //   var ref = fIndex.getByKey(val);
+        //   property.values[key] = .apply(fIndex, val.keys);
+        // });
+      }
+    });
+  });
+  return forked;
+};
+
+function authedFor(type, auths) {
+    var authed = false;
+
+    // Find authorization for this table
+    auths.forEach(function (auth) {
+      if (auth.get('tname').get() === index.name) {
+        authed = true;
+      }
+    });
+    if (!authed)
+      return false;
+
+
+    // Has to be authorized for all tables of keys
+    index.keys.forEach(function (key, type) {
+      if (type instanceof Table && !authedFor(type)) {
+        authed = false;
+      }
+    });
+
+    // Has to be authrozied for all tables of properties
+    index.forEachProperty(function (property) {
+      if (property.CType instanceof Table && !authedFor(property.CType)) {
+        authed = false;
+      }
+    });
+
+    return authed;
+}
+
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
