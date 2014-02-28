@@ -99,6 +99,7 @@ describe('scenarios#', function () {
     var t1 = thing1.create();
     var t2 = thing1.create();
     var t3 = thing1.create();
+    debugger;
     t1.set('row2', t2);
     t2.set('row2', t3);
     t3.set('row2', t1);

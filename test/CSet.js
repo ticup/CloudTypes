@@ -141,7 +141,6 @@ describe('CSet Property', function () {
     var app = App.create();
     var set = app.get('slots');
     var entity = state.get(entityName);
-    debugger;
     set.add(1);
 
     it('should create an entity in the dedicated CSet Entity with key [entryIndex, element]', function () {
