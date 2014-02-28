@@ -49,7 +49,8 @@ IndexEntry.prototype.forEachProperty = function (callback) {
 
 IndexEntry.prototype.forEachKey = function (callback) {
   for (var i = 0; i<this.keys.length; i++) {
-    callback(this.index.keys.getName(i), this.keys[i]);
+    var name = this.index.keys.getName(i);
+    callback(name, this.key(name));
   }
 };
 

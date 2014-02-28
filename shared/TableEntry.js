@@ -33,37 +33,36 @@ TableEntry.prototype = Object.create(IndexEntry.prototype);
 //   return this;
 // };
 
-TableEntry.prototype.forEachKey = function (callback) {
-  for (var i = 0; i<this.keys.length; i++) {
-    var name = this.index.keys.getName(i);
-    callback(name, this.key(name));
-  }
-};
+// TableEntry.prototype.forEachKey = function (callback) {
+//   for (var i = 0; i<this.keys.length; i++) {
+//     var name = this.index.keys.getName(i);
+//     callback(name, this.key(name));
+//   }
+// };
 
 TableEntry.prototype.forEachColumn = function (callback) {
   return this.forEachProperty(callback);
 };
 
-TableEntry.prototype.key = function (name) {
-  if (typeof name === 'undefined') { 
-    return this.serialKey();
-  } 
-  var position = this.index.keys.getPositionOf(name);
-  if (position === -1)
-    throw Error("This Array does not have a key named " + name);
+// TableEntry.prototype.key = function (name) {
+//   if (typeof name === 'undefined') { 
+//     return this.serialKey();
+//   } 
+//   var position = this.index.keys.getPositionOf(name);
+//   if (position === -1)
+//     throw Error("This Array does not have a key named " + name);
 
-  var type  = this.index.keys.getType(position);
-  var value =  this.keys[position];
+//   var type  = this.index.keys.getType(position);
+//   var value =  this.keys[position];
 
-  if (type === 'int') {
-    value = parseInt(value, 10);
-  }
-  if (type !== 'int' && type !== 'string') {
-    value = type.getByKey(value);
-  }
-  return value;
-};
-
+//   if (type === 'int') {
+//     value = parseInt(value, 10);
+//   }
+//   if (type !== 'int' && type !== 'string') {
+//     value = type.getByKey(value);
+//   }
+//   return value;
+// };
 
 TableEntry.prototype.deleted = function () {
   return (this.index.state.deleted(this.uid, this.index));
