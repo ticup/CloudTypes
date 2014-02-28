@@ -222,18 +222,18 @@ State.prototype.propagate = function () {
 
 State.prototype.deleted = function (key, entity) {
   var self = this;
-  // Entity
-  if (typeof entity !== 'undefined' && entity instanceof Table) {
+  // Index
+  if (typeof entity !== 'undefined' && entity instanceof Index) {
     var entry = entity.getByKey(key);
 
-    if (entry === null) {
-      return true;
+    if (entity instanceof Table) {
+      if (entry === null)
+        return true;
+
+      if (entity.deleted(key))
+        return true;
     }
 
-    // console.log(key + ' of ' + entity.name + ' deleted ?');
-
-    if (entity.deleted(key))
-      return true;
     var del = false;
     entry.forEachKey(function (name, value) {
       var type = entity.keys.getTypeOf(name);
@@ -248,17 +248,17 @@ State.prototype.deleted = function (key, entity) {
     return del;
   }
 
-  // Array
-  if (typeof entity !== 'undefined' && entity instanceof Index) {
-    var del = false;
-    var entry = entity.get(key);
-    entry.forEachKey(function (name, value) {
-      var type = entity.keys.getTypeOf(name);
-      if (self.deleted(value, type))
-        del = true;
-    });
-    return del;
-  }
+  // // Array
+  // if (typeof entity !== 'undefined' && entity instanceof Index) {
+  //   var del = false;
+  //   var entry = entity.get(key);
+  //   entry.forEachKey(function (name, value) {
+  //     var type = entity.keys.getTypeOf(name);
+  //     if (self.deleted(value, type))
+  //       del = true;
+  //   });
+  //   return del;
+  // }
 
   // string/int
   return false;

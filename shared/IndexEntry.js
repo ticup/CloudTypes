@@ -16,13 +16,6 @@ IndexEntry.prototype.get = function (propertyName) {
   return property.getByKey(key);
 };
 
-// IndexEntry.prototype.set = function (propertyName, value) {
-//   var property = this.index.getProperty(propertyName); 
-//   TypeChecker.property(value, property.CType);
-
-//   return property.set(this.keys, value);
-// };
-
 IndexEntry.prototype.set = function (propertyName, value) {
   var property = this.index.getProperty(propertyName);
   var key = this.key();
@@ -39,7 +32,6 @@ IndexEntry.prototype.set = function (propertyName, value) {
   return this;
 };
 
-
 IndexEntry.prototype.forEachProperty = function (callback) {
   var self = this;
   this.index.forEachProperty(function (property) {
@@ -53,7 +45,6 @@ IndexEntry.prototype.forEachKey = function (callback) {
     callback(name, this.key(name));
   }
 };
-
 
 IndexEntry.prototype.key = function (name) {
   if (typeof name === 'undefined') { 
@@ -76,7 +67,7 @@ IndexEntry.prototype.key = function (name) {
 };
 
 IndexEntry.prototype.deleted = function () {
-  return (this.index.state.deleted(this.keys, this.index));
+  return (this.index.state.deleted(this.key(), this.index));
 };
 
 IndexEntry.prototype.serialKey = function () {
