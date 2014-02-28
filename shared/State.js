@@ -190,10 +190,12 @@ State.prototype.propagate = function () {
 
 State.prototype.deleted = function (key, entity) {
   var self = this;
-  // Index
+
+  // Index/Table
   if (typeof entity !== 'undefined' && entity instanceof Index) {
     var entry = entity.getByKey(key);
 
+    // Table
     if (entity instanceof Table) {
       if (entry === null)
         return true;
@@ -285,9 +287,10 @@ State.prototype.fork = function () {
       if (!CloudType.isCloudType(property.CType)) {
         var fIndex = forked.get(property.CType.name);
         property.CType = fIndex;
-        property.forEachKey(function (key, val) {
-          property.values[key] = fIndex.getByKey.apply(fIndex, val.keys);
-        });
+        // property.forEachKey(function (key, val) {
+        //   var ref = fIndex.getByKey(val);
+        //   property.values[key] = .apply(fIndex, val.keys);
+        // });
       }
     });
   });

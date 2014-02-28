@@ -1,3 +1,11 @@
+/* 
+ * Property
+ * ---------
+ * A single property: column of Table or field of Index.
+ * Stores all the values for that property using the serialized index of an entry of the Index/Table.
+ * CloudType values are stored as the real values, Table references as their serialized index.
+ */
+
 var CloudType   = require('./CloudType');
 var CSet        = require('./CSet');
 var TypeChecker = require('./TypeChecker');
@@ -11,50 +19,36 @@ function Property(name, CType, index, values) {
   this.values = values || {};
 }
 
-/* User API */
-
 // Calls callback with (keyName, keyEntry) for each valid key of this property
 Property.prototype.forEachKey = function (callback) {
   var self = this;
   return Object.keys(this.values).forEach(function (key) {
-    var val = self.getByKey(key);
-    if (val) {
-      callback(key, val);
-    }
+      callback(key, self.values[key]);
   });
 };
 
 
-/* Internal */
-// Cals callback with (keyName, keyValue) for each key (regardless of the value of keyValue) for this property
-// Not be used by users, since this also includes values that are possibly already deleted.
-Property.prototype.forAllKeys = function (callback) {
-  var self = this;
-  return Object.keys(this.values).forEach(function (key) {
-    callback(key, self.values[key]);
-  });
-};
-
-
-// Not to be used by the user
+// Sets given value for given key and checks the type
 Property.prototype.set = function (key, val) {
   if (this.CType.prototype === CSet.CSetPrototype) {
     throw new Error("Can not call set on a CSet propety");
   }
   TypeChecker.property(val, this.CType);
   
-  // Store id for references
+  // If it's a reference, simply store its uid
   if (!CloudType.isCloudType(this.CType)) {
     val = val.serialKey();
   }
   this.values[key] = val;
 };
 
+// Gets the value of given key
 Property.prototype.getByKey = function (key) {
   var ctype = this.values[key];
 
   // console.log('getting ' + key + '.' + this.name + ' = ' + ctype + ' (' + typeof ctype + ')');
-  // check if reference is still valid, otherwise return null
+  
+  // If reference: check if reference is still valid, otherwise return null
   if (!CloudType.isCloudType(this.CType) && this.index.state.deleted(key, this.index)) {
     return null;
   }
@@ -91,6 +85,8 @@ Property.prototype.getByKey = function (key) {
   return this.CType.getByKey(ctype);
 };
 
+
+// Returns an array of all entries for which the values of this property are not default
 Property.prototype.entries = function () {
   var self = this;
   var result = [];
@@ -98,6 +94,7 @@ Property.prototype.entries = function () {
 //    console.log("____entry checking : " + key + "____");
 //    console.log("deleted: " + self.index.state.deleted(key, self.index));
 //    console.log("default: " + self.index.state.isDefault(self.getByKey(key)));
+
     if (!self.index.state.deleted(key, self.index) && !self.index.state.isDefault(self.getByKey(key))) {
       result.push(self.index.getByKey(key));
     }
@@ -112,12 +109,12 @@ Property.prototype.toJSON = function () {
   
   if (CloudType.isCloudType(this.CType)) {
     type = this.CType.toJSON();
-    self.forAllKeys(function (key, val) {
+    self.forEachKey(function (key, val) {
       values[key] = val.toJSON();
     });
   } else {
     type = { reference: this.CType.name };
-    self.forAllKeys(function (key, val) {
+    self.forEachKey(function (key, val) {
       values[key] = val;
     });
   }
@@ -149,12 +146,12 @@ Property.prototype.fork = function (index) {
   var fProperty = new Property(this.name, this.CType, index);
   // Cloud Types need to be forked
   if (CloudType.isCloudType(this.CType)) {
-    self.forAllKeys(function (key, val) {
+    self.forEachKey(function (key, val) {
       fProperty.values[key] = val.fork();
     });
   // References are just copied
   } else {
-    self.forAllKeys(function (key, val) {
+    self.forEachKey(function (key, val) {
       fProperty.values[key] = val;
     });
   }
