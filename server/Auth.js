@@ -1,10 +1,11 @@
 var Index  = require('../shared/Index');
-var Table  = require('../shard/Table');
-var CSet   = require('../shared/CSet');
+var Table  = require('../shared/Table');
+var CSet   = require('../shared/CSet').Declaration;
 
 module.exports = Auth;
 
 function Auth(state) {
+  this.state  = state;
   this.groups = state.declare('SysGroup', new Table({name: 'CString', children: new CSet('SysGroup')}));
   this.users  = state.declare('SysUser',  new Table({name: 'CString', password: 'CString', group: 'SysGroup'}));
   this.auth   = state.declare('SysAuth',  new Table({group:    'SysGroup',
@@ -14,29 +15,35 @@ function Auth(state) {
                                                      insert:   'CString', 
                                                      delete:   'CString', 
                                                      update:   'CString',
-                                                     grantopt: 'CString' });
+                                                     grantopt: 'CString' }));
   this.colauth = state.declare('SysColAuth', new Table({group:   'SysGroup',
                                                         tname:   'CString',
                                                         column:  'CString',
                                                         grantor: 'SysGroup',
-                                                        grantop: 'SysteGroup"'}))
+                                                        grantop: 'SysGroup'}));
 
   // init groups
-  var guest = this.groups.create().set('name', 'Guest');
-  var admin = this.groups.create().set('name', 'Admin');
-  admin.get('children').add(guest);
+  this.guest = this.groups.create().set('name', 'Guest');
+  this.admin = this.groups.create().set('name', 'Admin');
+  this.admin.get('children').add(this.guest);
+  this.populateGuest(this.guest);
+  this.populateAdmin(this.admin);
 
   // init root user
   var root = this.users.create();
   root.set('name', 'root')
       .set('password','root')
-      .set('group', admin);
+      .set('group', this.admin);
 }
 
 Auth.prototype.privileges = function (user) {
-  var group = user.get('group');
+  if (user) {
+    var group = user.get('group');
+  } else {
+    var group = this.guest;
+  }
   var auths = this.auth.where(function (auth) {
-    return auth.get('group') === group;
+    return auth.get('group').equals(group);
   }).all();
   return auths;
 };
@@ -160,5 +167,30 @@ Auth.prototype.login = function (username, password, finish) {
   if (user.password === password)
     return finish(null, user);
   return finish("incorrect password");
+};
+
+
+Auth.prototype.populateGuest = function (group) {
+  var auth = this.auth.create();
+  auth.set('group', group)
+      .set('tname', '*')
+      .set('type', 'R')
+      .set('read', 'Y')
+      .set('insert', 'N')
+      .set('delete', 'N')
+      .set('update', 'N')
+      .set('grantopt', 'N');
+};
+
+Auth.prototype.populateAdmin = function (group) {
+  var auth = this.auth.create();
+  auth.set('group', group)
+      .set('tname', '*')
+      .set('type', 'R')
+      .set('read', 'Y')
+      .set('insert', 'Y')
+      .set('delete', 'Y')
+      .set('update', 'Y')
+      .set('grantopt', 'Y');
 };
 

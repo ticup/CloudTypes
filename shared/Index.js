@@ -82,7 +82,6 @@ Index.prototype.fork = function () {
   return index;
 };
 
-
 Index.prototype.toJSON = function () {
   return {
     type        : 'Array',

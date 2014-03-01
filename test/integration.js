@@ -5,8 +5,8 @@ var http        = require('http');
 var util        = require('util');
 
 var State       = require('./extensions/State');
-var Index      = require('../shared/Index');
-var Table     = require('../shared/Table');
+var Index       = require('../shared/Index');
+var Table       = require('../shared/Table');
 var ServerState = require('../server/State');
 var CloudType   = require('../shared/CloudType');
 var CInt        = require('./extensions/CInt');

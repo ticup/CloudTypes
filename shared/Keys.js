@@ -43,7 +43,6 @@ Keys.prototype.getName = function (position) {
 // Returns the type of given key name.
 Keys.prototype.getTypeOf = function (name) {
   var position = this.getPositionOf(name);
-  // console.log(name + ' in ' + this.names + "? -> " + position);
   return this.types[position];
 };
 
@@ -54,12 +53,21 @@ Keys.prototype.getPositionOf = function (name) {
 
 
 Keys.prototype.toJSON = function () {
+  var types = this.types.map(function (type) {
+    // 'int' or 'string'
+    if (typeof type === 'string')
+      return type;
+    // a Table reference, store the name
+    return type.name;
+  });
   return {
     names: this.names,
-    types: this.types
+    types: types
   };
 };
 
+
+// The state replaces Table references by the real Table reference in a second scan
 Keys.fromJSON = function (json) {
   var keys = new Keys();
   keys.names = json.names;

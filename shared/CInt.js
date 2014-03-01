@@ -34,6 +34,11 @@ function CInt(base, offset, isSet) {
 // put CloudType in prototype chain.
 CInt.prototype = Object.create(CloudType.prototype);
 
+CInt.fork = function () {
+  return CInt;
+};
+
+
 // Create a new instance of the declared CInt for given entry
 CInt.newFor = function (entry) {
   return new CInt();

@@ -113,7 +113,7 @@ Property.prototype.toJSON = function () {
       values[key] = val.toJSON();
     });
   } else {
-    type = { reference: this.CType.name };
+    type = this.CType.name;
     self.forEachKey(function (key, val) {
       values[key] = val;
     });
@@ -124,7 +124,7 @@ Property.prototype.toJSON = function () {
 Property.fromJSON = function (json, index) {
   var values = {};
   
-  // If the property is a Cloud, rebuild all entries
+  // If the property is a Cloud Type, rebuild all entries
   if (CloudType.isCloudType(json.type)) {
     var CType = CloudType.fromJSON(json.type);
     Object.keys(json.values).forEach(function (key) {
@@ -137,20 +137,22 @@ Property.fromJSON = function (json, index) {
   Object.keys(json.values).forEach(function (key) {
     values[key] = json.values[key];
   });
-  return new Property(json.name, json.type.reference, index, values)
+  return new Property(json.name, json.type, index, values)
   
 };
 
 Property.prototype.fork = function (index) {
   var self = this;
-  var fProperty = new Property(this.name, this.CType, index);
+  var fProperty;
   // Cloud Types need to be forked
   if (CloudType.isCloudType(this.CType)) {
+    fProperty = new Property(this.name, this.CType.fork(), index);
     self.forEachKey(function (key, val) {
       fProperty.values[key] = val.fork();
     });
   // References are just copied
   } else {
+    fProperty = new Property(this.name, this.CType, index);
     self.forEachKey(function (key, val) {
       fProperty.values[key] = val;
     });

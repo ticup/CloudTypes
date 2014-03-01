@@ -10,6 +10,7 @@ module.exports = Server;
 function Server(state) {
   this.state = state;
   this.clients = {};
+  this.auth = new Auth(state);
 }
 
 // target: port or http server (default = port 8090)

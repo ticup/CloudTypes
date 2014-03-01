@@ -75,6 +75,11 @@ State.prototype.declare = function (name, array) {
   throw new Error("Need an Index or CloudType to declare: " + array);
 };
 
+State.prototype.add = function (index) {
+  this.arrays[index.name] = index;
+  return this;
+}
+
 
 
 /* Internal */
@@ -102,6 +107,7 @@ State.prototype.toJSON = function () {
 State.fromJSON = function (json) {
   var array, state;
   state = new this();
+  debugger;
 
   // Recreate the indexes
   Object.keys(json.arrays).forEach(function (name) {
@@ -142,9 +148,11 @@ State.fromJSON = function (json) {
 
     // Resolve the key types to the real types
     array.keys.forEach(function (name, type, i) {
+      if (typeof type !== 'string')
+        debugger;
       array.keys.types[i] = state.resolveKeyType(type);
     });
-  });
+  }); 
   return state;
 };
 
@@ -300,17 +308,19 @@ State.prototype.fork = function () {
 State.prototype.restrictedFork = function (auths) {
   var forked = new State();
   var forker = this;
-  
   forker.forEachArray(function (index) {
     if (authedFor(index, auths)) {
       var fIndex = index.fork();
-      forked.declare(index.name, fIndex);
+      fIndex.name = index.name;
+      fIndex.state = forked;
+      forked.add(fIndex);
     }
   });
 
-  // set new references
+  // Fix Type references
   forked.forEachArray(function (index) {
     index.forEachProperty(function (property) {
+      // Table Reference Type: replace by the new Table
       if (!CloudType.isCloudType(property.CType)) {
         var fIndex = forked.get(property.CType.name);
         property.CType = fIndex;
@@ -319,17 +329,32 @@ State.prototype.restrictedFork = function (auths) {
         //   property.values[key] = .apply(fIndex, val.keys);
         // });
       }
+
+      // if CSet property -> give reference to the proxy entity
+      if (property.CType.prototype === CSetPrototype) {
+        property.CType.entity      = forked.get(index.name + property.name);
+        if (property.CType.elementType instanceof Table) {
+          property.CType.elementType = forked.get(property.CType.elementType.name);
+        }
+      }
+    });
+
+    index.keys.forEach(function (key, type, i) {
+      if (type instanceof Table) {
+        index.keys.types[i] = forked.get(type.name);
+      }
     });
   });
   return forked;
 };
 
-function authedFor(type, auths) {
+function authedFor(table, auths) {
     var authed = false;
 
     // Find authorization for this table
     auths.forEach(function (auth) {
-      if (auth.get('tname').get() === index.name) {
+      if ((auth.get('tname').get() === table.name || auth.get('tname').get() === '*') &&
+          (auth.get('read').get() === 'Y')) {
         authed = true;
       }
     });
@@ -338,15 +363,15 @@ function authedFor(type, auths) {
 
 
     // Has to be authorized for all tables of keys
-    index.keys.forEach(function (key, type) {
-      if (type instanceof Table && !authedFor(type)) {
+    table.keys.forEach(function (key, type) {
+      if (type instanceof Table && !authedFor(type, auths)) {
         authed = false;
       }
     });
 
     // Has to be authrozied for all tables of properties
-    index.forEachProperty(function (property) {
-      if (property.CType instanceof Table && !authedFor(property.CType)) {
+    table.forEachProperty(function (property) {
+      if (property.CType instanceof Table && !authedFor(property.CType, auths)) {
         authed = false;
       }
     });
@@ -416,7 +441,8 @@ State.prototype.resolveKeyType = function (type) {
       return rType;
     }
   }
-  throw new Error("Only int, string or Table identifiers are allowed as keys");
+  debugger;
+  throw new Error("Only int, string or Table identifiers are allowed as keys, given " + type);
 };
 
 State.prototype.print = function () {

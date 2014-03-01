@@ -10,7 +10,6 @@ function CSetDeclaration(elementType) {
   }
 
   // CSet.entity should be set by the state to the entity that is made for this CSet.
-  // CSet.array should be set by the state to the a
   CSet.elementType = elementType;
 
 
@@ -20,12 +19,21 @@ function CSetDeclaration(elementType) {
 
   // Puts the declared (parametrized) CSet into json
   CSet.toJSON = function () {
-    return { tag: CSetDeclaration.tag, elementType: elementType };
+    if (typeof elementType === 'string') {
+      type = elementType;
+    } else {
+      type = elementType.name;
+    }
+    return { tag: CSetDeclaration.tag, elementType: type };
   };
 
   // Retrieves an instance of a declared (parametrized) CSet from json
   CSet.fromJSON = function (json, entry) {
     return new CSet(entry);
+  };
+
+  CSet.fork = function () {
+    return new CSetDeclaration(this.elementType);
   };
 
   CSet.declareProxyTable = function (state, index, property) {
@@ -49,6 +57,8 @@ CSetDeclaration.declare = function (elementType) {
 CSetDeclaration.fromJSON = function (json) {
   return new CSetDeclaration(json.elementType);
 };
+
+
 
 // register this declaration as usable (will also allow to create CSet with CloudType.fromJSON())
 CSetDeclaration.tag = "CSet";
