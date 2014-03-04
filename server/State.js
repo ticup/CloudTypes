@@ -1,4 +1,5 @@
 var State = require('../shared/State');
+var Table = require('../shared/Table');
 
 var util = require('util');
 
@@ -8,6 +9,7 @@ State.prototype.published = function (server) {
   this.server = server;
   this.publish = true;
 };
+
 
 //ServerState.prototype.declare = function (name, cvar) {
 //  if (this.isPublished)

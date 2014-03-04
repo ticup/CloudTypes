@@ -36,12 +36,12 @@ function CSetDeclaration(elementType) {
     return new CSetDeclaration(this.elementType);
   };
 
-  CSet.declareProxyTable = function (state, index, property) {
+  CSet.declareProxyTable = function (state, index, property, grant) {
     var Table = require('./Table');
     if (!(index instanceof Table)) {
       throw new Error("Can only create CSet for a Table");
     }
-    this.entity = state.declare(index.name + property.name, new Table([{entry: index}, {element: this.elementType}]));
+    this.entity = state.declare(index.name + property.name, new Table([{entry: index}, {element: this.elementType}]), grant);
   };
 
   CSet.tag = "CSet";
@@ -57,8 +57,6 @@ CSetDeclaration.declare = function (elementType) {
 CSetDeclaration.fromJSON = function (json) {
   return new CSetDeclaration(json.elementType);
 };
-
-
 
 // register this declaration as usable (will also allow to create CSet with CloudType.fromJSON())
 CSetDeclaration.tag = "CSet";

@@ -38,3 +38,9 @@ CloudType.prototype.join = function (cint) {
 CloudType.prototype.joinIn = function (cint) {
   this._join(cint, cint);
 };
+
+CloudType.prototype.equals = function (val) {
+  if (CloudType.isCloudType(val))
+      return this.get() === val.get();
+  return this.get() === val;
+};

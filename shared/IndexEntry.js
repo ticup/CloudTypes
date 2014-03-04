@@ -60,7 +60,6 @@ IndexEntry.prototype.key = function (name) {
     value = parseInt(value, 10);
   }
   if (type !== 'int' && type !== 'string') {
-    debugger;
     value = type.getByKey(value);
   }
   return value;
@@ -75,6 +74,9 @@ IndexEntry.prototype.serialKey = function () {
 };
 
 IndexEntry.prototype.equals = function (entry) {
+  if (!(entry instanceof IndexEntry))
+    return false;
+  
   if (this.index !== entry.index)
     return false;
 

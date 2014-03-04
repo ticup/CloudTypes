@@ -37,7 +37,9 @@ Property.prototype.set = function (key, val) {
   
   // If it's a reference, simply store its uid
   if (!CloudType.isCloudType(this.CType)) {
-    val = val.serialKey();
+    if (val !== null) {
+      val = val.serialKey();
+    }
   }
   this.values[key] = val;
 };
@@ -137,7 +139,7 @@ Property.fromJSON = function (json, index) {
   Object.keys(json.values).forEach(function (key) {
     values[key] = json.values[key];
   });
-  return new Property(json.name, json.type, index, values)
+  return new Property(json.name, json.type, index, values);
   
 };
 

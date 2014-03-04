@@ -1,4 +1,4 @@
-var State       = require('../shared/State');
+var State       = require('./ClientState');
 var io          = require('socket.io-client');
 
 global.io = io;
@@ -28,7 +28,6 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
 
   this.socket = io.connect(host, options);
   this.socket.on('connect', function () {
-
     if (typeof self.uid === 'undefined') {
       console.log('client connected for first time');
       self.socket.emit('init', function (json) {
@@ -37,6 +36,7 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
         self.uid = json.uid;
         self.state = state;
         self.state.init(json.cid, self);
+        self.group = state.get('SysGroup').getByProperties({name: 'Guest'});
         connected(self.state);
       });
     } else {
@@ -93,5 +93,26 @@ Client.prototype.flushPush = function (pushState, flushPull) {
     }
     var pullState = State.fromJSON(stateJson);
     flushPull(pullState);
+  });
+};
+
+/* Authentication */
+// Client.prototype.register = function (username, password, group, finish) {
+//   if (typeof this.socket === 'undefined')
+//     return finish("not connected");
+//   this.socket.emit('Register', {username: username, password: password, group: group}, finish);
+// };
+
+Client.prototype.login = function (username, password, finish) {
+  var self = this;
+  if (typeof this.socket === 'undefined')
+    return finish("not connected");
+  this.socket.emit('Login', {username: username, password: password}, function (err, groupName) {
+    if (err)
+      throw err;
+    self.group = self.state.get('SysGroup').where(function (group) {
+      return group.get('name').get() === groupName;
+    }).all()[0];
+    finish(null, groupName);
   });
 };

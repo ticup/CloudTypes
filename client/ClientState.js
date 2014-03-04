@@ -1,7 +1,6 @@
 var State = require('../shared/State');
-
+var CSetPrototype  = require('../shared/CSet').CSetPrototype;
 module.exports = State;
-
 
 State.prototype.init = function (cid, client) {
   this.pending  = false;
@@ -56,8 +55,10 @@ State.prototype.flush = function (callback, timeout) {
   this.client.flushPush(this, function flushPull(state) {
     // should actually replace this state,
     // but since there should be no operations done merging is the same.
-//    self.print();
+    // self.print();
     console.log('received flushpull on client');
+
+      console.log('received: ' + Object.keys(state.arrays).map(function (n) { return n + "(" + state.arrays[n].constructor.name+")";}));
 
     state.joinIn(self);
 
@@ -66,4 +67,12 @@ State.prototype.flush = function (callback, timeout) {
   });
   self.applyFork();
   return this;
+};
+
+State.prototype.getPrivileges = function () {
+  var self = this;
+  var Auth = this.get('SysAuth');
+  return Auth.where(function (auth) {
+    return (auth.get('group').equals(self.client.group));
+  }).all();
 };

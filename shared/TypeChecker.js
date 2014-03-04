@@ -23,8 +23,8 @@ var TypeChecker = {
       if (!val instanceof type) {
         throw new Error("uncompatible property for declared property " + type.tag + " : " + val);
       }
-    // Reference property: value has to be an entry of declared Table.
-    } else if (val.index === 'undefined' || val.index !== type) {
+    // Reference property: value has to be an entry of declared Table or null.
+    } else if (val !== null && (val.index === 'undefined' || val.index !== type)) {
         throw new Error("uncompatible property for declared property " + type + " : " + val);
     }
   },

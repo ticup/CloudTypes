@@ -10,7 +10,7 @@ function CServer(state) {
 
 CServer.prototype.publish = function (target, static) {
   this.server.open(target, static);
-  this.state.published(this.server);
+  // this.state.published(this.server);
   return this;
 };
 

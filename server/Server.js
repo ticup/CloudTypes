@@ -2,7 +2,7 @@ var IO      = require('socket.io');
 var util    = require('util');
 var shortId = require('shortid');
 
-var State   = require('../shared/State');
+var State   = require('./State');
 var Auth    = require('./Auth');
 
 module.exports = Server;
@@ -24,7 +24,7 @@ Server.prototype.open = function (target, staticPath) {
   // setup static file serving
   if (typeof staticPath === 'string') {
     var file = new (require('node-static').Server)(staticPath);
-    console.log('#### Static File Server Added To : ' + target + ' #### ')
+    console.log('#### Static File Server Added To : ' + target + ' #### ');
     console.log("-> from path: " + staticPath);
     target = require('http').createServer(function (req, res) {
       req.addListener('end', function () {
@@ -79,31 +79,18 @@ Server.prototype.open = function (target, staticPath) {
         if (err)
           return finish(err);
         cuser = user;
-        finish(null, user.toJSON());
+        finish(null, user.get('group').get('name').get());
       });
     });
 
-    socket.on('Register', function (json, finish) {
-      self.auth.register(json.username,
-                         json.password,
-                         json.group,
-                         cuser,
-                         function (err, user) { if (user) { user = user.toJSON(); } finish(err, user);});
-    });
-
-    socket.on('CreateGroup', function (json, finish) {
-      self.auth.createGroup(json.name,
-                            self.auth.getGroup(json.aGroup),
-                            cuser,
-                            function (err, group)  { if (group) { group = group.toJSON(); } finish(err, group); });
-    });
-
-    socket.on('Prohibit', function (json, finish) {
-      self.auth.prohibit(self.auth.getGroup(json.groupName),
-                         self.state.expandRestriction(json.arrayName),
-                         cuser,
-                         finish);
-    });
+    // socket.on('Register', function (json, finish) {
+    //   self.auth.register(json.username,
+    //                      json.password,
+    //                      json.group,
+    //                      cuser,
+    //                      function (err, user) { if (user) { user = user.toJSON(); } finish(err, user);});
+    // });
+    
   });
 };
 

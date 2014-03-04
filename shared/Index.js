@@ -50,7 +50,7 @@ Index.prototype.get = function () {
 };
 
 Index.prototype.getByKey = function (key) {
-  return new IndexEntry(this, key)
+  return new IndexEntry(this, key);
 };
 
 Index.prototype.entries = function (propertyName) {

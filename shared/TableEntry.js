@@ -20,6 +20,9 @@ TableEntry.prototype.delete = function () {
 };    
 
 TableEntry.prototype.equals = function (entry) {
+  if (!(entry instanceof TableEntry))
+    return false;
+
   if (this.index !== entry.index)
     return false;
 
