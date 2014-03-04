@@ -207,12 +207,13 @@ describe('Access Control | ', function () {
 
 
     describe('CREATE access on a table', function () {
-      it('should make the table (and all dependencies) available to that group', function (done) {
+      it('should be able to create new entries', function (done) {
         client.login("root", "root", function () {
           state.grant("Guest", "Thing1", "create");
+          state.grant("Guest", "Thing2", "create");
           state.flush(function () {
             createClient(function (client2, state2) {
-              state2.get('Thing1').create('foo');
+              var t1 = state2.get('Thing1').create('foo');
               done();
             });
           });
@@ -340,9 +341,117 @@ describe('Access Control | ', function () {
           });
         });
       });
-    });
 
     
+      describe('CREATE access on a Table', function () {
+        it('should not be able to update the table and all dependend tables', function (done) {
+          client.login("root", "root", function (err, success) {
+            state.grant("Guest", 'Thing1', 'create', 'N');
+            state.grant("Guest", 'Thing2', 'create', 'N');
+            state.grant("Guest", 'Thing3', 'create', 'N');
+            state.revoke("Guest", "Thing1", "create");
+            state.flush(function () {
+              createClient(function (client2, state2) {
+                (function () {
+                  state2.get('Thing1').create();
+                }).should.throwError("Not authorized to perform create on Thing1");
+                (function () {
+                  state2.get('Thing2').create(state2.get('Thing1').all()[0]);
+                }).should.throwError("Not authorized to perform create on Thing2");
+                (function () {
+                  state2.get('Thing3').create(state2.get('Thing2').all()[0]);
+                }).should.throwError("Not authorized to perform create on Thing3");
+               done();
+              });
+            });
+          });
+        });
+
+        describe('and subsequently Granting CREATE access again', function () {
+          it('should make the Tables available again on the next sync', function (done) {
+            client.login("root", "root", function (err, success) {
+              state.grant("Guest", 'Thing1', 'create', 'N');
+              state.grant("Guest", 'Thing2', 'create', 'N');
+              state.grant("Guest", 'Thing3', 'create', 'N');
+              state.revoke("Guest", "Thing1", "create");
+              state.flush(function () {
+                createClient(function (client2, state2) {
+                  (function () {
+                    state2.get('Thing1').all()[0].set('column1', 1);
+                  }).should.throwError();
+                  state.grant("Guest", 'Thing1', 'create', 'N');
+                  state.flush(function () {
+                    state2.flush(function () {
+                      var t1 = state2.get('Thing1').create('foo');
+                      var t2 = state2.get('Thing2').create(t1);
+                      state2.get('Thing3').create(t2);
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+
+      
+      describe('UPDATE access on a Table', function () {
+        it('should not be able to update the table and all dependend tables', function (done) {
+          client.login("root", "root", function (err, success) {
+            state.grant("Guest", 'Thing1', 'update', 'N');
+            state.grant("Guest", 'Thing2', 'update', 'N');
+            state.grant("Guest", 'Thing3', 'update', 'N');
+            state.revoke("Guest", "Thing1", "update");
+            state.flush(function () {
+              createClient(function (client2, state2) {
+                (function () {
+                  state2.get('Thing1').all()[0].set('column1', 1);
+                }).should.throwError("Not authorized to perform update on Thing1");
+                (function () {
+                  state2.get('Thing2').all()[0].set('column1', 1);
+                }).should.throwError("Not authorized to perform update on Thing2");
+                (function () {
+                  state2.get('Thing3').all()[0].set('column1', 1);
+                }).should.throwError("Not authorized to perform update on Thing3");
+                done();
+              });
+            });
+          });
+        });
+
+        describe('and subsequently Granting UPDATE access again', function () {
+          it('should make the Tables available again on the next sync', function (done) {
+            client.login("root", "root", function (err, success) {
+              state.grant("Guest", 'Thing1', 'update', 'N');
+              state.grant("Guest", 'Thing2', 'update', 'N');
+              state.grant("Guest", 'Thing3', 'update', 'N');
+              state.revoke("Guest", "Thing1", "update");
+              state.flush(function () {
+                createClient(function (client2, state2) {
+                  (function () {
+                    state2.get('Thing1').all()[0].set('column1', 1);
+                  }).should.throwError();
+                  state.grant("Guest", 'Thing1', 'update', 'N');
+                  state.flush(function () {
+                    state2.flush(function () {
+                      state2.get('Thing1').all()[0].set('column1', 1);
+                      state2.get('Thing2').all()[0].set('column1', 1);
+                      state2.get('Thing3').all()[0].set('column1', 1);
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+     
+
+
+    });
+
   });
 });
 

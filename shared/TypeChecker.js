@@ -45,7 +45,7 @@ var TypeChecker = {
         }
       } else {
         if (typeof value.index === 'undefined' || value.index !== type) {
-          throw new Error("uncompatible key for declared type " + value);
+          throw new Error("uncompatible key for declared type " + typeof type + " " + value.index);
         }
       }
     }

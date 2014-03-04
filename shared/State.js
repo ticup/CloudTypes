@@ -154,8 +154,9 @@ State.fromJSON = function (json) {
 
     // Resolve the key types to the real types
     array.keys.forEach(function (name, type, i) {
-      if (typeof type !== 'string')
-      array.keys.types[i] = state.resolveKeyType(type);
+      if (typeof type === 'string') {
+        array.keys.types[i] = state.resolveKeyType(type);
+      }
     });
   }); 
   return state;
