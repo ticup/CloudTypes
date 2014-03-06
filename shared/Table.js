@@ -143,6 +143,14 @@ Table.prototype.all = function () {
   return entities;
 };
 
+Table.prototype.forEachRow = function (callback) {
+  var self = this;
+  Object.keys(this.states).forEach(function (uid) {
+    if (!self.state.deleted(uid, self))
+      callback(self.getByKey(uid));
+  });
+};
+
 Table.prototype.setDeleted = function (key) {
   this.states[key] = DELETED;
 };

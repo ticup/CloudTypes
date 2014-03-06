@@ -535,7 +535,7 @@ State.prototype.revoke = function (action, table, group) {
     group = self.get('SysGroup').getByProperties({name: group});
   }
 
-  self.checkGrantPermission(action, table, group);
+  self.checkGrantPermission(action, table, self.getGroup());
   Auth.all().forEach(function (auth) {
     if (auth.get('group').equals(group) &&
         auth.get('tname').equals(table.name)) {
@@ -546,9 +546,9 @@ State.prototype.revoke = function (action, table, group) {
   return this;
 };
 
-State.prototype.grant = function (action, table, group, grantOpt) {
+State.prototype.grant = function (action, table, group, grantopt) {
   var self = this;
-  grantOpt = grantOpt || 'N';
+  grantopt = grantopt || 'N';
   action   = action || 'read';
   if (typeof table === 'string') {
     table = self.get(table);
@@ -557,13 +557,13 @@ State.prototype.grant = function (action, table, group, grantOpt) {
     group = self.get('SysGroup').getByProperties({name: group});
   }
 
-  self.checkGrantPermission(action, table, group);
+  self.checkGrantPermission(action, table, self.getGroup());
   this.get('SysAuth').all().forEach(function (auth) {
     if (auth.get('group').equals(group) &&
         auth.get('tname').equals(table.name) &&
-        auth.get('grantopt').equals(grantOpt)) {
+        auth.get('grantopt').equals(grantopt)) {
       auth.set(action, 'Y');
-      console.log('granted '+ action + ' to ' + group.get('name').get() + ' grantOpt: ' + grantOpt);
+      console.log('granted '+ action + ' to ' + group.get('name').get() + ' grantopt: ' + grantopt);
     }
   });
 
@@ -571,10 +571,10 @@ State.prototype.grant = function (action, table, group, grantOpt) {
   table.forEachProperty(function (property) {
     if (property.CType.prototype === CSetPrototype) {
       console.log(property.CType.prototype);
-      self.grant(group, property.CType.entity, action, grantOpt);
+      self.grant(group, property.CType.entity, action, grantopt);
     }
   });
-  console.log('granted read to ' + group.get('name').get() + ' grantOpt: ' + grantOpt);
+  console.log('granted read to ' + group.get('name').get() + ' grantOpt: ' + grantopt);
   return this;
 };
 
@@ -584,18 +584,26 @@ State.prototype.checkPermission = function (action, index, group) {
   }
 };
 
-State.prototype.checkGrantPermission = function (action, table, group) {
+State.prototype.checkGrantPermission = function (action, table, grantingGroup) {
+  if (!this.canGrant(action, table, grantingGroup)) {
+    throw new Error("You don't have " + action + " grant permissions for " + table.name);
+  }
+};
+
+State.prototype.getGroup = function () {
+  throw new Error("should be implemented by client/server");
+};
+
+State.prototype.canGrant = function (action, table, grantingGroup) {
   var self = this;
   var Auth = this.get('SysAuth');
   var permission = Auth.where(function (auth) {
-    return (auth.get('group').equals(self.client.group) &&
+    return (auth.get('group').equals(grantingGroup) &&
             auth.get('tname').equals(table.name) &&
             auth.get(action).equals('Y') &&
             auth.get('grantopt').equals('Y'));
   }).all().length > 0;
-  if (!permission) {
-    throw new Error("You don't have " + action + " grant permissions for " + table.name);
-  }
+  return permission;
 };
 
 State.prototype.print = function () {

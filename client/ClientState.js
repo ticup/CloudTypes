@@ -69,6 +69,10 @@ State.prototype.flush = function (callback, timeout) {
   return this;
 };
 
+State.prototype.getGroup = function () {
+  return this.client.group;
+};
+
 var checkPermission = State.prototype.checkPermission;
 
 State.prototype.checkPermission = function (action, table) {

@@ -13,30 +13,59 @@ State.prototype.published = function (server) {
 
 State.prototype.checkChanges = function (state, group) {
   var self = this;
-  var permission = true;
+  var valid = true;
   // console.log('joining ' + Object.keys(master.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   // console.log('with ' + Object.keys(target.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   
-  // Check create/delete permissions
+
+  // Check SysAuth table changes
+  var ClientAuth = state.get('SysAuth');
+  var ServerAuth = self.get('SysAuth');
+  ClientAuth.forEachRow(function (clientAuth) {
+    // the grantopt/tname/group columns should never be changed
+    var serverAuth = ServerAuth.getByKey(clientAuth.uid);
+    ['grantopt', 'tname', 'group'].forEach(function (column) {
+      if (isChanged(serverAuth.get(column), clientAuth.get(column), ServerAuth.getProperty(column))) {
+        console.log(column + ' was changed!');
+        valid = false;
+      }
+    });
+
+    // If the action is changed (= revoked or granted)
+    // check if user had the permission to do that action
+    ['read', 'create', 'update', 'delete'].forEach(function (action) {
+      if (isChanged(serverAuth.get(action), clientAuth.get(action), ServerAuth.getProperty(action))) {
+        var table = self.get(clientAuth.get('tname').get());
+        if (!self.canGrant(action, table, group)) {
+          console.log(group.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name);
+          valid = false;
+        }
+      }
+    });
+  });
+
+  if (!valid) return valid;
+
+  // Check create/delete operations
   state.forEachEntity(function (clientEntity) {
     var serverEntity = self.get(clientEntity.name);
     clientEntity.forEachState(function (key, val) {
       if (clientEntity.deleted(key) && !serverEntity.deleted(key)) {
         if (!self.authedFor('delete', clientEntity, group)) {
           console.log(group.get('name').get() + ' not authed for delete of ' + clientEntity.name);
-          permission = false;
+          valid = false;
         }
       }
       if (clientEntity.exists(key) && !serverEntity.exists(key)) {
         if (!self.authedFor('create', clientEntity, group)) {
           console.log(group.get('name').get() + ' not authed for create of ' + clientEntity.name);
-          permission = false;
+          valid = false;
         }
       }
     });
   });
 
-  // Check update permissions
+  // Check update operations
   state.forEachArray(function (array) {
     array.forEachProperty(function (property) {
       property.forEachKey(function (key) {
@@ -45,14 +74,14 @@ State.prototype.checkChanges = function (state, group) {
         if (isChanged(joinee, joiner, property)) {
           if (!self.authedFor('update', array, group)) {
             console.log(group.get('name').get() + ' not authed for update of ' + array.name);
-            permission = false;
+            valid = false;
           }
         }
       });
     });
   });
 
-  return permission;
+  return valid;
 };
 
 function isChanged(joineeValue, joiningValue, property) {
@@ -61,17 +90,17 @@ function isChanged(joineeValue, joiningValue, property) {
     return joiningValue.isChanged();
   }
 
-  // If Table Reference
-  // 1) both are null, nothing changed
-  if (joineeValue === null && joiningValue === null) {
-    return false;
-  }
-  // 2) one of the values is null, the client changed the value
-  if (joineeValue === null || joiningValue === null) {
-    return true;
-  }
-  // 3) both are a reference, see if they are the same reference
-  return (joineeValue.key() === joiningValue.key());
+  // // If Table Reference
+  // // 1) both are null, nothing changed
+  // if (joineeValue === null && joiningValue === null) {
+  //   return false;
+  // }
+  // // 2) one of the values is null, the client changed the value
+  // if (joineeValue === null || joiningValue === null) {
+  //   return true;
+  // }
+  // 3) both are a reference, see if it is changed
+  return (joineeValue.key() !== joiningValue.key());
 }
 
 //ServerState.prototype.declare = function (name, cvar) {
