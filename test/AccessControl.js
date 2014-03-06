@@ -117,25 +117,25 @@ describe('Access Control | ', function () {
     describe('Guest Group (non logged in users)', function () {
       it('should NOT have READ GRANT permissions', function () {
         (function () {
-          state.grant("Guest", "Thing1", "read");
+          state.grant("read", "Thing1", "Guest");
         }).should.throwError("You don't have read grant permissions for Thing1");
       });
 
       it('should NOT have CREATE GRANT permissions', function () {
         (function () { 
-          state.grant("Guest", "Thing1", "create");
+          state.grant("create", "Thing1", "Guest");
         }).should.throwError("You don't have create grant permissions for Thing1");
       });
 
       it('should NOT have UPDATE GRANT permissions', function () {
         (function () {
-          state.grant("Guest", "Thing1", "update");
+          state.grant("update", "Thing1", "Guest");
         }).should.throwError("You don't have update grant permissions for Thing1");
       });
 
       it('should NOT have DELETE GRANT permissions', function () {
         (function () {
-          state.grant("Guest", "Thing1", "delete");
+          state.grant("delete", "Thing1", "Guest");
         }).should.throwError("You don't have delete grant permissions for Thing1");
       });
     });
@@ -145,28 +145,28 @@ describe('Access Control | ', function () {
     describe('Root Group', function () {
       it('should have READ GRANT permissions', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "read");
+          state.grant("read", "Thing1", "Guest");
           done();
         });
       });
 
       it('should have CREATE GRANT permissions', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "create");
+          state.grant("create", "Thing1", "Guest");
           done();
         });
       });
 
       it('should have UPDATE GRANT permissions', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "update");
+          state.grant("update", "Thing1", "Guest");
           done();
         });
       });
 
       it('should have DELETE GRANT permissions', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "delete");
+          state.grant("delete", "Thing1", "Guest");
           done();
         });
       });
@@ -179,7 +179,7 @@ describe('Access Control | ', function () {
     describe('READ access on a table', function () {
       it('should make the table (and all dependencies) available to that group', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "read");
+          state.grant("read", "Thing1", "Guest");
           state.flush(function () {
             createClient(function (client2, state2) {
               state2.get('Thing1').should.be.an.instanceOf(Table);
@@ -193,11 +193,11 @@ describe('Access Control | ', function () {
     describe('READ access with GRANTOP on a table', function () {
       it('should allow the group to grant the privilege', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "read", "Y");
+          state.grant("read", "Thing1", "Guest", "Y");
           state.flush(function () {
             createClient(function (client2, state2) {
               state2.get('Thing1').should.be.an.instanceOf(Table);
-              state2.grant("Guest", "Thing1", "read", "Y");
+              state2.grant("read", "Thing1", "Guest", "Y");
               done();
             });
           });
@@ -209,8 +209,8 @@ describe('Access Control | ', function () {
     describe('CREATE access on a table', function () {
       it('should be able to create new entries', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "create");
-          state.grant("Guest", "Thing2", "create");
+          state.grant("create", "Thing1", "Guest");
+          state.grant("create", "Thing2", "Guest");
           state.flush(function () {
             createClient(function (client2, state2) {
               var t1 = state2.get('Thing1').create('foo');
@@ -224,11 +224,11 @@ describe('Access Control | ', function () {
     describe('CREATE access with GRANTOP on a table', function () {
       it('should allow the group to grant the privilege', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "create", "Y");
+          state.grant("create", "Thing1", "Guest", "Y");
           state.flush(function () {
             createClient(function (client2, state2) {
-              state2.get('Thing1').create('foo');
-              state2.grant("Guest", "Thing1", "create", "Y");
+                state2.get('Thing1').create('foo');
+              state.grant("create", "Thing1", "Guest", "Y");
               done();
             });
           });
@@ -240,7 +240,7 @@ describe('Access Control | ', function () {
     describe('UPDATE access on a table', function () {
       it('should make the table (and all dependencies) available to that group', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "update");
+          state.grant("update", "Thing1", "Guest");
           state.flush(function () {
             createClient(function (client2, state2) {
               state2.get('Thing1').all()[0].set('column1', 1);
@@ -254,11 +254,11 @@ describe('Access Control | ', function () {
     describe('UPDATE access with GRANTOP on a table', function () {
       it('should allow the group to grant the privilege', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "update", "Y");
+          state.grant("update", "Thing1", "Guest", "Y");
           state.flush(function () {
             createClient(function (client2, state2) {
               state2.get('Thing1').all()[0].set('column1', 1);
-              state2.grant("Guest", "Thing1", "update", "Y");
+              state.grant("update", "Thing1", "Guest", "Y");
               done();
             });
           });
@@ -270,7 +270,7 @@ describe('Access Control | ', function () {
     describe('DELETE access on a table', function () {
       it('should allow the create an entry of that table', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "delete");
+          state.grant("delete", "Thing1", "Guest");
           state.flush(function () {
             createClient(function (client2, state2) {
               state2.get('Thing1').all()[0].delete();
@@ -284,11 +284,11 @@ describe('Access Control | ', function () {
     describe('DELETE access with GRANTOP on a table', function () {
       it('should allow the group to grant the privilege', function (done) {
         client.login("root", "root", function () {
-          state.grant("Guest", "Thing1", "delete", "Y");
+          state.grant("delete", "Thing1", "Guest", "Y");
           state.flush(function () {
             createClient(function (client2, state2) {
               state2.get('Thing1').all()[0].delete();
-              state2.grant("Guest", "Thing1", "delete", "Y");
+              state.grant("delete", "Thing1", "Guest", "Y");
               done();
             });
           });
@@ -303,7 +303,7 @@ describe('Access Control | ', function () {
     describe('READ access on a Table', function () {
       it('should have a Restricted object for the revoked table and all depending tables', function (done) {
         client.login("root", "root", function (err, success) {
-          state.revoke("Guest", "Thing1", "read");
+          state.revoke("read", "Thing1", "Guest");
           state.flush(function () {
             createClient(function (client2, state2) {
               state2.get('Thing1').should.be.an.instanceOf(Restricted);
@@ -318,7 +318,7 @@ describe('Access Control | ', function () {
       describe('and subsequently Granting READ access again', function () {
         it('should make the Tables available again on the next sync', function (done) {
           client.login("root", "root", function (err, success) {
-            state.revoke("Guest", "Thing1", "read");
+            state.revoke("read", "Thing1", "Guest");
             state.flush(function () {
               createClient(function (client2, state2) {
                 state2.get('Thing1').should.be.an.instanceOf(Restricted);
@@ -326,7 +326,7 @@ describe('Access Control | ', function () {
                 state2.get('Thing3').should.be.an.instanceOf(Restricted);
                 state2.get('Thing4').should.be.an.instanceOf(Table);
 
-                state.grant("Guest", 'Thing1', 'read', 'N');
+                state.grant("read", "Thing1", "Guest", "N");
                 state.flush(function () {
                   state2.flush(function () {
                     state2.get('Thing1').should.be.an.instanceOf(Table);
@@ -346,10 +346,10 @@ describe('Access Control | ', function () {
       describe('CREATE access on a Table', function () {
         it('should not be able to update the table and all dependend tables', function (done) {
           client.login("root", "root", function (err, success) {
-            state.grant("Guest", 'Thing1', 'create', 'N');
-            state.grant("Guest", 'Thing2', 'create', 'N');
-            state.grant("Guest", 'Thing3', 'create', 'N');
-            state.revoke("Guest", "Thing1", "create");
+            state.grant("create", "Thing1", "Guest", "N");
+            state.grant("create", "Thing2", "Guest", "N");
+            state.grant("create", "Thing3", "Guest", "N");
+            state.revoke("create", "Thing1", "Guest");
             state.flush(function () {
               createClient(function (client2, state2) {
                 (function () {
@@ -370,16 +370,16 @@ describe('Access Control | ', function () {
         describe('and subsequently Granting CREATE access again', function () {
           it('should make the Tables available again on the next sync', function (done) {
             client.login("root", "root", function (err, success) {
-              state.grant("Guest", 'Thing1', 'create', 'N');
-              state.grant("Guest", 'Thing2', 'create', 'N');
-              state.grant("Guest", 'Thing3', 'create', 'N');
-              state.revoke("Guest", "Thing1", "create");
+              state.grant("create", "Thing1", "Guest", "N");
+              state.grant("create", "Thing2", "Guest", "N");
+              state.grant("create", "Thing3", "Guest", "N");
+              state.revoke("create", "Thing1", "Guest");
               state.flush(function () {
                 createClient(function (client2, state2) {
                   (function () {
                     state2.get('Thing1').all()[0].set('column1', 1);
                   }).should.throwError();
-                  state.grant("Guest", 'Thing1', 'create', 'N');
+                  state.grant("create", "Thing1", "Guest", "N");
                   state.flush(function () {
                     state2.flush(function () {
                       var t1 = state2.get('Thing1').create('foo');
@@ -399,10 +399,10 @@ describe('Access Control | ', function () {
       describe('UPDATE access on a Table', function () {
         it('should not be able to update the table and all dependend tables', function (done) {
           client.login("root", "root", function (err, success) {
-            state.grant("Guest", 'Thing1', 'update', 'N');
-            state.grant("Guest", 'Thing2', 'update', 'N');
-            state.grant("Guest", 'Thing3', 'update', 'N');
-            state.revoke("Guest", "Thing1", "update");
+            state.grant("update", "Thing1", "Guest", "N");
+            state.grant("update", "Thing2", "Guest", "N");
+            state.grant("update", "Thing3", "Guest", "N");
+            state.revoke("update", "Thing1", "Guest");
             state.flush(function () {
               createClient(function (client2, state2) {
                 (function () {
@@ -423,16 +423,16 @@ describe('Access Control | ', function () {
         describe('and subsequently Granting UPDATE access again', function () {
           it('should make the Tables available again on the next sync', function (done) {
             client.login("root", "root", function (err, success) {
-              state.grant("Guest", 'Thing1', 'update', 'N');
-              state.grant("Guest", 'Thing2', 'update', 'N');
-              state.grant("Guest", 'Thing3', 'update', 'N');
-              state.revoke("Guest", "Thing1", "update");
+              state.grant("update", "Thing1", "Guest", "N");
+              state.grant("update", "Thing2", "Guest", "N");
+              state.grant("update", "Thing3", "Guest", "N");
+              state.revoke("update", "Thing1", "Guest");
               state.flush(function () {
                 createClient(function (client2, state2) {
                   (function () {
                     state2.get('Thing1').all()[0].set('column1', 1);
                   }).should.throwError();
-                  state.grant("Guest", 'Thing1', 'update', 'N');
+                  state.grant("update", "Thing1", "Guest", "N");
                   state.flush(function () {
                     state2.flush(function () {
                       state2.get('Thing1').all()[0].set('column1', 1);
@@ -454,31 +454,3 @@ describe('Access Control | ', function () {
 
   });
 });
-
-// describe('Grant READ access on a Table with grantOpt=Y', function () {
-//     it('it should allow the granted group to grant the READ access on that table', function (done) {
-//       createClient(function (client, state) {
-//         // Normally Guest does not have grantOpt
-//         (function () { state2.grant(group, state2.get('Thing1'), 'Y'); }).should.throwError();
-
-//         // Login as root and give grantOpt privileges to Guest
-//         client.login("root", "root", function (err, success) {
-//           var group = state.get('SysGroup').getByProperties({name: 'Guest'});
-//           state.grant(group, state.get('Thing1'), 'read', 'Y');
-//           state.flush(function () {
-//             createClient(function (client2, state2) {
-//               group = state2.get('SysGroup').getByProperties({name: 'Guest'});
-//               state2.get('Thing1').should.be.an.instanceOf(Table.type);
-//               state2.get('Thing2').should.be.an.instanceOf(Table.type);
-//               state2.get('Thing3').should.be.an.instanceOf(Table.type);
-//               state2.get('Thing4').should.be.an.instanceOf(Table.type);
-
-//               // We now have grantOpt as Guest
-//               state2.grant(group, state2.get('Thing1'), 'read', 'Y');
-//               done();
-//             });
-//           });
-//         });
-//       });
-//     });
-//   });

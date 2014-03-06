@@ -137,6 +137,11 @@ CSetPrototype.isDefault = function () {
   return (this.get().length !== 0);
 };
 
+// Change detection is incorporated through the proxyTable
+CSetPrototype.isChanged = function () {
+  return false;
+};
+
 CSetPrototype.compare = function (cset, reverse) {
   return ((reverse ? -1 : 1) * (this.get().length - cset.get().length));
 };

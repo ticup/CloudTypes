@@ -1,17 +1,23 @@
 var IO      = require('socket.io');
 var util    = require('util');
+var State  = require('./State');
 var shortId = require('shortid');
-
-var State   = require('./State');
-var Auth    = require('./Auth');
 
 module.exports = Server;
 
-function Server(state) {
-  this.state = state;
+function Server(state, auth, views) {
+  this.state   = state;
+  this.auth    = auth;
+  this.views   = views;
   this.clients = {};
-  this.auth = new Auth(state);
 }
+
+Server.prototype.getGroup = function (user) {
+  if (typeof user === 'undefined') {
+    return this.auth.guest;
+  }
+  return user.get('group');
+};
 
 // target: port or http server (default = port 8090)
 // staticPath: if given, will serve static files from given path
@@ -46,29 +52,41 @@ Server.prototype.open = function (target, staticPath) {
     // Initial connect: initialize client with a uid, cid and a fork of current state
     socket.on('init', function (initClient) {
       uid = self.generateUID();
-      var privileges = self.auth.privileges(cuser);
-      initClient({ uid: uid, cid: ++cid, state: self.state.restrictedFork(privileges) });
+      var group = self.getGroup(cuser);
+      initClient({ uid: uid, cid: ++cid, state: self.state.restrictedFork(group) });
     });
 
     socket.on('YieldPush', function (json, yieldPull) {
-      if (!self.exists(json.uid))
+      var group = self.getGroup(cuser);
+      if (!self.exists(json.uid)) {
         return yieldPull("unrecognized client");
+      }
       var state = State.fromJSON(json.state);
-      var privileges = self.auth.privileges(cuser);
+      if (!self.state.checkChanges(state, group)) {
+        console.log('UNAUTHORIZED ACCESS');
+        return yieldPull("Unauthorized Access!");
+      }
       self.state.join(state);
-      var fork = self.state.restrictedFork(privileges);
+      var fork = self.state.restrictedFork(group);
       yieldPull(null, fork);
     });
 
     socket.on('FlushPush', function (json, flushPull) {
-      if (!self.exists(json.uid))
+      var group = self.getGroup(cuser);
+      if (!self.exists(json.uid)) {
         return flushPull("unrecognized client");
-
+      }
+      console.log('recognized');
       var state = State.fromJSON(json.state);
-      var privileges = self.auth.privileges(cuser);
-
+      if (!self.state.checkChanges(state, group)) {
+        console.log('UNAUTHORIZED ACCESS');
+        return flushPull("Unauthorized Access!");
+      }
+      console.log('authorized');
       self.state.join(state);
-      var fork = self.state.restrictedFork(privileges);
+      console.log('joined');
+      var fork = self.state.restrictedFork(group);
+      console.log('forked');
       flushPull(null, fork);
     });
 

@@ -58,7 +58,7 @@ State.prototype.flush = function (callback, timeout) {
     // self.print();
     console.log('received flushpull on client');
 
-      console.log('received: ' + Object.keys(state.arrays).map(function (n) { return n + "(" + state.arrays[n].constructor.name+")";}));
+    // console.log('received: ' + Object.keys(state.arrays).map(function (n) { return n + "(" + state.arrays[n].constructor.name+")";}));
 
     state.joinIn(self);
 
@@ -69,10 +69,8 @@ State.prototype.flush = function (callback, timeout) {
   return this;
 };
 
-State.prototype.getPrivileges = function () {
-  var self = this;
-  var Auth = this.get('SysAuth');
-  return Auth.where(function (auth) {
-    return (auth.get('group').equals(self.client.group));
-  }).all();
+var checkPermission = State.prototype.checkPermission;
+
+State.prototype.checkPermission = function (action, table) {
+  return checkPermission.call(this, action, table, this.client.group);
 };

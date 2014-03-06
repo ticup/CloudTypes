@@ -280,7 +280,7 @@ ClientTable.prototype = Object.create(Table.prototype);
 var create = Table.prototype.create;
 ClientTable.prototype.create = function () {
   console.log('CREATING');
-  this.state.checkAuthorization(this, 'create');
+  this.state.checkPermission(this, 'create');
   return create(Array.prototype.slice(arguments));
 };
 },{"../shared/Table":22}],4:[function(require,module,exports){
@@ -5978,7 +5978,7 @@ State.prototype.getPrivileges = function () {
   throw new Error("Has to be implemented by server/client State");
 };
 
-State.prototype.checkAuthorization = function (index, action) {
+State.prototype.checkPermission = function (index, action) {
   if (!this.authedFor(index, action)) {
     throw new Error("Not authorized to do " + action + " on " + index.name);
   }

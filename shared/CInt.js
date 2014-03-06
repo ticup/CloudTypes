@@ -121,6 +121,9 @@ CInt.prototype.isDefault = function () {
   return (this.get() === 0);
 };
 
+CInt.prototype.isChanged = function () {
+  return (this.isSet || this.offset !== 0);
+};
 
 CInt.prototype.compare = function (cint, reverse) {
   return ((reverse ? -1 : 1) * (this.get() - cint.get()));

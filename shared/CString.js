@@ -143,6 +143,10 @@ CString.prototype.isDefault = function () {
   return (this.get() === '');
 };
 
+CString.prototype.isChanged = function () {
+  return !!this.written;
+};
+
 CString.prototype.compare = function (cstring, reverse) {
   return ((reverse ? -1 : 1) * (this.get().localeCompare(cstring.get())));
 };

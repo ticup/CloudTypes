@@ -1,8 +1,8 @@
 var Index  = require('../shared/Index');
 var Table  = require('../shared/Table');
 var CSet   = require('../shared/CSet').Declaration;
-var CSetPrototype = require('../shared/CSet').CSetPrototype;
 var State  = require('./State');
+var CSetPrototype = require('../shared/CSet').CSetPrototype;
 
 module.exports = Auth;
 
@@ -87,7 +87,7 @@ Auth.prototype.getGroup = function (name) {
 };
 
 
-Auth.prototype.checkAuthorization = function (aGroup, user, finish) {
+Auth.prototype.checkPermission = function (aGroup, user, finish) {
   if (!this.isLoggedIn(user)) {
     finish("not authorized");
     return false;
