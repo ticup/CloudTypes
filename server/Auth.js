@@ -21,9 +21,7 @@ function Auth(state) {
                                                      grantopt: 'CString' }), 'N');
   this.ColAuth = state.declare('SysColAuth', new Table({group:   'SysGroup',
                                                         tname:   'CString',
-                                                        column:  'CString',
-                                                        grantor: 'SysGroup',
-                                                        grantop: 'SysGroup'}), 'N');
+                                                        column:  'CString' }), 'N');
 
   // init groups
   this.guest = this.Group.create().set('name', 'Guest');
@@ -120,45 +118,56 @@ Auth.prototype.grantAll = function (tableName, sys) {
   var self = this;
   var auth = self.Auth.create();
   var table = this.state.get(tableName);
+
+  // Guest group
+  // 1) with grantopt: no access
   auth.set('group', self.guest)
       .set('tname', tableName)
-      .set('read', 'N')
+      .set('read', 'None')
       .set('create', 'N')
-      .set('update', 'N')
+      .set('update', 'None')
       .set('delete', 'N')
       .set('grantopt', 'Y');
+
+  // 2) without grantopt:
   auth = self.Auth.create();
   if (sys) {
+    // all access when system table
     auth.set('group', self.guest)
       .set('tname', tableName)
-      .set('read', 'Y')
+      .set('read', 'All')
       .set('create', 'Y')
-      .set('update', 'Y')
+      .set('update', 'All')
       .set('delete', 'Y')
       .set('grantopt', 'N');
   } else {
+    // only read access otherwise
     auth.set('group', self.guest)
       .set('tname', tableName)
-      .set('read', 'Y')
+      .set('read', 'All')
       .set('create', 'N')
-      .set('update', 'N')
+      .set('update', 'None')
       .set('delete', 'N')
       .set('grantopt', 'N');
   }
+
+  // Root Group
+  // 1) with grantopt: all access
   auth = self.Auth.create();
   auth.set('group', self.root)
       .set('tname', tableName)
-      .set('read', 'Y')
+      .set('read', 'All')
       .set('create', 'Y')
-      .set('update', 'Y')
+      .set('update', 'All')
       .set('delete', 'Y')
       .set('grantopt', 'Y');
+  // 2) without grantopt: all access
   auth = self.Auth.create();
   auth.set('group', self.root)
       .set('tname', tableName)
-      .set('read', 'Y')
+      .set('read', 'All')
       .set('create', 'Y')
-      .set('update', 'Y')
+      .set('update', 'All')
       .set('delete', 'Y')
       .set('grantopt', 'N');
   table.forEachProperty(function (property) {

@@ -14,10 +14,10 @@ function CStringDeclaration() { }
 
 CStringDeclaration.declare = function () {
   return CString;
-}
+};
 CStringDeclaration.fromJSON = function () {
   return CString;
-}
+};
 
 // register this declaration as usable (will also allow to create CString with CloudType.fromJSON())
 CStringDeclaration.tag = "CString";
@@ -143,7 +143,7 @@ CString.prototype.isDefault = function () {
   return (this.get() === '');
 };
 
-CString.prototype.isChanged = function () {
+CString.prototype.isChanged = function (cstring) {
   return !!this.written;
 };
 

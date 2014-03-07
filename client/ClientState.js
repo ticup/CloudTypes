@@ -73,8 +73,14 @@ State.prototype.getGroup = function () {
   return this.client.group;
 };
 
-var checkPermission = State.prototype.checkPermission;
+// var checkTablePermission = State.prototype.checkTablePermission;
 
-State.prototype.checkPermission = function (action, table) {
-  return checkPermission.call(this, action, table, this.client.group);
-};
+// State.prototype.checkTablePermission = function (action, table) {
+//   return checkTablePermission.call(this, action, table, this.client.group);
+// };
+
+// var checkColumnPermission = State.prototype.checkColumnPermission;
+
+// State.prototype.checkColumnPermission = function (action, table, cname) {
+//   return checkColumnPermission.call(this, action, table, cname, this.client.group);
+// };

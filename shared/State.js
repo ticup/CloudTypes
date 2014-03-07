@@ -6,10 +6,14 @@ var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
 
+
 function State() {
   this.arrays = {};
   this.cid = 0;
 }
+
+// Adds Authorization methods
+require('./Auth')(State);
 
 /* User API */
 State.prototype.get = function (name) {
@@ -370,12 +374,12 @@ State.prototype.restrictedFork = function (group) {
 
   forker.forAllArray(function (index) {
     var fIndex;
-    if (forker.authedFor('read', index, group)) {
-      // console.log('authed for: ' + index.name);
-      fIndex = index.fork();
-    } else {
-      // console.log('NOT authed for: ' + index.name);
+    if (forker.restrictedForTable(index, group)) {
+       // console.log('NOT authed for: ' + index.name);
       fIndex = new Restricted();
+    } else {
+       // console.log('authed for: ' + index.name);
+      fIndex = index.fork();
     }
     fIndex.name = index.name;
     fIndex.state = forked;
@@ -477,133 +481,6 @@ State.prototype.resolveKeyType = function (type) {
     }
   }
   throw new Error("Only int, string or Table identifiers are allowed as keys, given " + type);
-};
-
-
-
-/* Authentication */
-
-State.prototype.getPrivileges = function () {
-  throw new Error("Has to be implemented by server/client State");
-};
-
-
-
-State.prototype.authedFor = function (action, table, group) {
-  var self = this;
-
-  // already restricted
-  if (table instanceof Restricted)
-    return false;
-
-  // Find authorization for this table
-  var authed = this.get('SysAuth').where(function (auth) {
-    return (auth.get('tname').equals(table.name) &&
-            auth.get('group').equals(group) &&
-            auth.get(action).equals('Y'));
-  }).all().length > 0;
-
-  if (!authed) {
-    return false;
-  }
-
-  // Has to be authorized for all tables of keys
-  table.keys.forEach(function (key, type) {
-    if (type instanceof Table && !self.authedFor(action, type, group)) {
-      authed = false;
-    } 
-  });
-
-  // Has to be authrozied for all tables of properties ( NOT!!)
-  // table.forEachProperty(function (property) {
-  //   if (property.CType instanceof Table && !authedFor(property.CType, auths)) {
-  //     authed = false;
-  //   }
-  // });
-
-  return authed;
-};
-
-State.prototype.revoke = function (action, table, group) {
-  var self = this;
-  var Auth = this.get('SysAuth');
-  action = action || 'read';
-  if (typeof table === 'string') {
-    table = self.get(table);    
-  }
-  if (typeof group === 'string') {
-    group = self.get('SysGroup').getByProperties({name: group});
-  }
-
-  self.checkGrantPermission(action, table, self.getGroup());
-  Auth.all().forEach(function (auth) {
-    if (auth.get('group').equals(group) &&
-        auth.get('tname').equals(table.name)) {
-      auth.set(action, 'N');
-    console.log('revoked '+ action+ ' from ' + group.get('name').get());
-    }
-  });
-  return this;
-};
-
-State.prototype.grant = function (action, table, group, grantopt) {
-  var self = this;
-  grantopt = grantopt || 'N';
-  action   = action || 'read';
-  if (typeof table === 'string') {
-    table = self.get(table);
-  }
-  if (typeof group === 'string') {
-    group = self.get('SysGroup').getByProperties({name: group});
-  }
-
-  self.checkGrantPermission(action, table, self.getGroup());
-  this.get('SysAuth').all().forEach(function (auth) {
-    if (auth.get('group').equals(group) &&
-        auth.get('tname').equals(table.name) &&
-        auth.get('grantopt').equals(grantopt)) {
-      auth.set(action, 'Y');
-      console.log('granted '+ action + ' to ' + group.get('name').get() + ' grantopt: ' + grantopt);
-    }
-  });
-
-  // Perform same grant on the proxy table of CSet properties of given table
-  table.forEachProperty(function (property) {
-    if (property.CType.prototype === CSetPrototype) {
-      console.log(property.CType.prototype);
-      self.grant(group, property.CType.entity, action, grantopt);
-    }
-  });
-  console.log('granted read to ' + group.get('name').get() + ' grantOpt: ' + grantopt);
-  return this;
-};
-
-State.prototype.checkPermission = function (action, index, group) {
-  if (!this.authedFor(action, index, group)) {
-    throw new Error("Not authorized to perform " + action + " on " + index.name);
-  }
-};
-
-State.prototype.checkGrantPermission = function (action, table, grantingGroup) {
-  if (!this.canGrant(action, table, grantingGroup)) {
-    throw new Error("You don't have " + action + " grant permissions for " + table.name);
-  }
-};
-
-State.prototype.getGroup = function () {
-  throw new Error("should be implemented by client/server");
-};
-
-State.prototype.canGrant = function (action, table, grantingGroup) {
-  var self = this;
-  var Auth = this.get('SysAuth');
-  var permission = Auth.where(function (auth) {
-    return (auth.get('group').equals(grantingGroup) &&
-            auth.get('tname').equals(table.name) &&
-            auth.get(action).equals('Y') &&
-            auth.get('grantopt').equals('Y'));
-  }).all().length > 0;
-  return permission;
 };
 
 State.prototype.print = function () {
