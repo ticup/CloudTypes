@@ -162,4 +162,12 @@ Property.prototype.fork = function (index) {
   return fProperty;
 };
 
+Property.prototype.restrictedFork = function (index, group) {
+  var self = this;
+  if (!self.index.state.authedForColumn('read', self.index, self.name, group)) {
+    return null;
+  }
+  return self.fork(index);
+};
+
 module.exports = Property;

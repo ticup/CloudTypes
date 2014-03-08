@@ -11,7 +11,8 @@ Properties.prototype.get = function (property) {
 };
 
 Properties.prototype.add = function (property) {
-  return this.properties[property.name] = property;
+  this.properties[property.name] = property;
+  return property;
 };
 
 Properties.prototype.forEach = function (callback) {
@@ -40,6 +41,17 @@ Properties.prototype.fork = function (index) {
   var fProperties = new Properties();
   this.forEach(function (property) {
     fProperties.add(property.fork(index));
+  });
+  return fProperties;
+};
+
+Properties.prototype.restrictedFork = function (index, group) {
+  var fProperties = new Properties();
+  this.forEach(function (property) {
+    var fork = property.restrictedFork(index, group);
+    if (fork) {
+      fProperties.add(fork);
+    }
   });
   return fProperties;
 };

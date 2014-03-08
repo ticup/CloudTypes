@@ -280,11 +280,21 @@ State.prototype._join = function (rev, target) {
     // -> install the complete new index (references to the new index are set in (2))
     if (target.get(array.name) instanceof Restricted) {
       // TODO: make actual copy of it for local usage (not important right now)
-      target.add(array); 
+      return target.add(array);
 
+    }
 
     // Otherwise do a property-key-wise join on each property of each entry
-    } else array.forEachProperty(function (property) {
+    array.forEachProperty(function (property) {
+        console.log('joining: ' + array.name + '.' + property.name);
+
+      // If target does not have the property, access was granted to the property, just add it.
+      if (typeof target.get(array.name).properties.get(property) === 'undefined') {
+        // TODO: make actual copy of it for local usage (not important right now)
+        target.get(array.name).addProperty(property); 
+        return;
+      }
+     
 
       // Joining Cloud Types (CInt/CString/CDate...) => semantics in the Cloud Type implementation
       if (CloudType.isCloudType(property.CType)) {
@@ -379,7 +389,7 @@ State.prototype.restrictedFork = function (group) {
       fIndex = new Restricted();
     } else {
        // console.log('authed for: ' + index.name);
-      fIndex = index.fork();
+      fIndex = index.restrictedFork(group);
     }
     fIndex.name = index.name;
     fIndex.state = forked;

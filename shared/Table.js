@@ -215,6 +215,17 @@ Table.prototype.fork = function () {
   table.keys = fKeys;
   table.properties = this.properties.fork(table);
   table.states     = this.states;
+  index.isProxy    = this.isProxy;
+  return table;
+};
+
+Table.prototype.restrictedFork = function (group) {
+  var fKeys = this.keys.fork();
+  var table = new Table();
+  table.keys = fKeys;
+  table.properties = this.properties.restrictedFork(table, group);
+  table.states     = this.states;
+  table.isProxy    = this.isProxy;
   return table;
 };
 

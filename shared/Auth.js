@@ -180,10 +180,10 @@ function addAuthentication(State) {
     }
 
     // Can we revoke action from column?
-    self.checkGrantColumnPermission(action, table, columnName, self.getGroup());
+    self.checkGrantColumnPermission(action, table, cname, self.getGroup());
 
     // Revoke action from columns
-    ColAuth.all().forEach(function (colAuth) {
+    self.get('SysColAuth').all().forEach(function (colAuth) {
       if (colAuth.get('group').equals(group) &&
           colAuth.get('tname').equals(tname) &&
           colAuth.get('cname').equals(cname)) {

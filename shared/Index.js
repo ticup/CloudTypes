@@ -82,6 +82,15 @@ Index.prototype.fork = function () {
   return index;
 };
 
+Index.prototype.restrictedFork = function (group) {
+  var fKeys = this.keys.fork();
+  var index = new Index();
+  index.keys = fKeys;
+  index.properties = this.properties.restrictedFork(index, group);
+  index.isProxy = this.isProxy;
+  return index;
+};
+
 Index.prototype.toJSON = function () {
   return {
     type        : 'Array',
