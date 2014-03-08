@@ -53,7 +53,9 @@ State.prototype.checkChanges = function (state, group) {
   ClientColAuth.forEachRow(function (clientColAuth) {
     // the grantopt/tname/group columns should never be changed
     var serverColAuth = ServerColAuth.getByKey(clientColAuth.uid);
+
     ['grantopt', 'tname', 'group'].forEach(function (column) {
+
       if (isChanged(serverColAuth.get(column), clientColAuth.get(column), ServerColAuth.getProperty(column))) {
         console.log(column + ' was changed!');
         valid = false;
@@ -73,6 +75,7 @@ State.prototype.checkChanges = function (state, group) {
       }
     });
   });
+
   // Check create/delete operations
   state.forEachEntity(function (clientEntity) {
     var serverEntity = self.get(clientEntity.name);

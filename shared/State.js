@@ -374,7 +374,7 @@ State.prototype.restrictedFork = function (group) {
 
   forker.forAllArray(function (index) {
     var fIndex;
-    if (forker.restrictedForTable(index, group)) {
+    if (!forker.authedForTable('read', index, group)) {
        // console.log('NOT authed for: ' + index.name);
       fIndex = new Restricted();
     } else {

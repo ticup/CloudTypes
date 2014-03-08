@@ -22,7 +22,7 @@ function createClient(callback) {
   });
 }
 
-describe('Access Control | ', function () {
+describe('Table Access Control | ', function () {
   var server, Thing1, Thing2, Thing3, Thing4, client, state;
 
   beforeEach(function (done) {
