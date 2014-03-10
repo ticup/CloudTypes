@@ -1,7 +1,7 @@
 var CloudTypeClient = require('./CloudTypeClient');
 var ClientState     = require('./ClientState');
 
-var CInt            = require('../shared/CInt');
+var CInt            = require('./CInt');
 var CString         = require('../shared/CString');
 var Index           = require('../shared/Index');
 var Restricted      = require('../shared/Restricted');

@@ -61,7 +61,7 @@ Property.prototype.getByKey = function (key) {
 
     // if it is a Cloud Type, make a new default.
     if (CloudType.isCloudType(this.CType)) {
-      ctype = this.CType.newFor(entry);
+      ctype = this.CType.newFor(entry, this);
 
       // do not add to values property for a CSet, because it is kept in dedicated Table
       if (this.CType.prototype === CSet.CSetPrototype) {
@@ -129,10 +129,12 @@ Property.fromJSON = function (json, index) {
   // If the property is a Cloud Type, rebuild all entries
   if (CloudType.isCloudType(json.type)) {
     var CType = CloudType.fromJSON(json.type);
+    var property = new Property(json.name, CType, index);
     Object.keys(json.values).forEach(function (key) {
-      values[key] = CType.fromJSON(json.values[key], index.getByKey(key));
+      values[key] = CType.fromJSON(json.values[key], index.getByKey(key), property);
     });
-    return new Property(json.name, CType, index, values);
+    property.values = values;
+    return property;
   }
 
   // Otherwise it's a reference that will be replaced by the real reference in the second scan

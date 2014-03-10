@@ -137,6 +137,22 @@ angular
       };
     })
 
+    .service('$Index', function () {
+      return CloudTypes.Index;
+    })
+
+    .service('$Table', function () {
+      return CloudTypes.Table;
+    })
+
+    .service('$CInt', function () {
+      return CloudTypes.CInt;
+    })
+
+    .service('$CString', function () {
+      return CloudType.CString;
+    });
+
     // .service('$cachedRows', function () {
     //   function CachedRows(getRows) {
     //     this.getRows = getRows;

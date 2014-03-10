@@ -9,6 +9,7 @@ testApp.controller('StateCtrl', function ($scope, $client, $state) {
   $state.then(function (state) {
 
     $scope.state = state;
+    $scope.editing = null;
 
     // cloud types state now available from server, initialize model
     // $scope.cachedTables = $cachedTables.create(function () {
@@ -21,6 +22,42 @@ testApp.controller('StateCtrl', function ($scope, $client, $state) {
       $scope.$apply('');
     });
   });
+
+  $scope.startEditing = function (cloudType) {
+    $scope.editing = cloudType;
+  };
+
+  $scope.stopEditing = function () {
+    $scope.editing = null;
+  };
+
+  // Starts/Stops editing depending on the current status
+  $scope.toggleEdit = function (cloudType, $event) {
+    console.log('toggling');
+    if (!cloudType || $scope.editing == cloudType)
+      return $scope.stopEditing();
+    $scope.startEditing(cloudType);
+    $event.stopPropagation();
+  };
+
+  $scope.typeToClass = function (type) {
+    if (CloudTypes.isCloudType(type)) {
+      return type.tag;
+    }
+    return 'table';
+  };
+
+  $scope.setProperty = function (cloudtype, value) {
+          console.log('setting value ' + value);
+
+    try {
+      cloudtype.set(value);
+    } catch(err) {
+      alert(err);
+    }
+  };
+
+
 
   // $scope.rows = function (table) {
   //   var rows = [];
@@ -36,4 +73,20 @@ testApp.controller('StateCtrl', function ($scope, $client, $state) {
   //   $scope.tables = $scope.cachedTables.update();
   // };
 
+});
+
+
+/**
+ * Directive that places focus on the element it is applied to when the expression it binds to evaluates to true
+ */
+testApp.directive('testFocus', function testFocus($timeout) {
+  return function (scope, elem, attrs) {
+    scope.$watch(attrs.testFocus, function (newVal) {
+      if (newVal) {
+        $timeout(function () {
+          elem[0].focus();
+        }, 0, false);
+      }
+    });
+  };
 });

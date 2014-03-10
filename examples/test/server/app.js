@@ -18,8 +18,13 @@ function declareThings(server) {
    var t2 = Thing2.create(t1);
    var t3 = Thing3.create(t2);
    var t4 = Thing4.create();
+   var t40 = Thing4.create();
    t1.set('column1', 10)
      .set('column2', t1);
+   t4.set('column1', t1);
+   t4.set('column2', t2);
+   t4.set('column3', t3);
+   t40.set('column1', t1);
    return server;
 }
 

@@ -95,7 +95,6 @@ State.prototype.joinIn = function (state) {
       try {
        var mProperty = mArray.getProperty(property);
       } catch(e) {
-        console.log('deleting property ');
         delete array.properties.properties[property.name];
       }
     });

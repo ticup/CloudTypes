@@ -40,15 +40,19 @@ CString.fork = function () {
 
 // Create a new instance of the declared CString for given entry
 CString.newFor = function (entry) {
-  return new CString();
+  var cstring = new CString();
+  cstring.entry = entry;
+  return cstring;
 };
 
 CString.toJSON = function () {
   return { tag: CStringDeclaration.tag };
 };
 
-CString.fromJSON = function (json) {
-  return new CString(json.value, json.written, json.cond);
+CString.fromJSON = function (json, entry) {
+  var cstring = new CString(json.value, json.written, json.cond);
+  cstring.entry = entry;
+  return cstring;
 };
 
 
@@ -144,7 +148,7 @@ CString.prototype.isDefault = function () {
 };
 
 CString.prototype.isChanged = function (cstring) {
-  return !!this.written;
+  return !!cstring.written;
 };
 
 CString.prototype.compare = function (cstring, reverse) {

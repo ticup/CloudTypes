@@ -30,6 +30,8 @@ function CInt(base, offset, isSet) {
   this.base = base || 0;
   this.offset = offset || 0;
   this.isSet = isSet || false;
+  // this.entry needs to be set by those that create CInt
+  // this.property
 }
 // put CloudType in prototype chain.
 CInt.prototype = Object.create(CloudType.prototype);
@@ -40,8 +42,11 @@ CInt.fork = function () {
 
 
 // Create a new instance of the declared CInt for given entry
-CInt.newFor = function (entry) {
-  return new CInt();
+CInt.newFor = function (entry, property) {
+  var cint = new CInt();
+  cint.entry = entry;
+  cint.property = property;
+  return cint;
 };
 
 // Puts the declared type CInt into json representation
@@ -52,8 +57,11 @@ CInt.toJSON = function () {
 
 // Retrieves an instance of a declared type CInt from json
 // Not the complement of CInt.toJSON, but complement of CInt.prototype._toJSON!!
-CInt.fromJSON = function (json) {
-  return new CInt(json.base, json.offset, json.isSet);
+CInt.fromJSON = function (json, entry, property) {
+  var cint = new CInt(json.base, json.offset, json.isSet);
+  cint.entry = entry;
+  cint.property = property;
+  return cint;
 };
 
 // Puts an instance of a declared type CInt to json
@@ -121,8 +129,8 @@ CInt.prototype.isDefault = function () {
   return (this.get() === 0);
 };
 
-CInt.prototype.isChanged = function () {
-  return (this.isSet || this.offset !== 0);
+CInt.prototype.isChanged = function (cint) {
+  return (cint.isSet || cint.offset !== 0);
 };
 
 CInt.prototype.compare = function (cint, reverse) {

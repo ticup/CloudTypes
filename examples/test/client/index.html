@@ -22,10 +22,10 @@
   <![endif]-->
 </head>
 
-<body ng-app="testApp" ng-controller="StateCtrl">
+<body ng-app="testApp" ng-controller="StateCtrl" ng-click="toggleBuy(null, $event)">
 
 <div id="wrap">
-  <div class="container">
+  <div class="fluid-container">
     <div avbuttons="true" connect="#connect-btn" disconnect="#disconnect-btn" class="network-actions">
       <button href="#" id='disconnect-btn' class="btn btn-default btn-sm pull-right active">Offline</button>
       <button href="#" id='connect-btn' class="btn btn-default btn-sm pull-right">Online</button>
@@ -38,9 +38,9 @@
 
 
           <div class="row text-left">
-            <div class="col-sm-6 table-container" ng-repeat="table in state.all()">
-              <h2><small>{{table.name}}</small></h2>
-              <table class="table test-table">
+            <div class="col-lg-6 table-container" ng-repeat="table in state.all()">
+              <h2><small>{{ table.name }}</small></h2>
+              <table class="table">
 
                 <thead>
                   <tr>
@@ -59,10 +59,24 @@
                   <tr ng-repeat="row in table.all()">
                     <td> {{ row.uid }} </td>
                     <td ng-repeat="key in table.getKeys()" ng-model="key">
-                      {{row.key(key).toString()}}
+                      {{ row.key(key).toString() }}
                     </td> 
-                    <td ng-repeat="prop in table.getProperties()" ng-model="prop">
-                      {{row.get(prop).toString()}}
+                    <td ng-repeat="prop in table.getProperties()" ng-model="cloudtype" ng-init="cloudtype = row.get(prop)" ng-class="{editing: cloudtype && cloudtype == editing, property: true}" ng-click="toggleEdit(cloudtype, $event)" >
+                      {{cloudtype.toString()}}
+
+
+                     <form role=form class='form-inline edit' ng-submit="setProperty(cloudtype, newValue)">
+                      <div class='form-group'>
+                        <div class=input-group>
+                          <input type='number' test-focus="editing == cloudtype" ng-model="newValue" ng-init="newValue = cloudtype.toString()" class='form-control' placeholder='Value'>
+                        </div>
+                      </div>
+                      <div class=form-group>
+                        <input type='submit' class='form-control btn' value='set' ng-click="setProperty(cloudtype, newValue)" >
+                      </div>
+                    </form>
+
+
                     </td>
                   </tr>
                 </tbody>

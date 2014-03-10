@@ -37,14 +37,17 @@ body {
 }
 
 
-.test-table {
-    margin-bottom: 100px;
-}
-
 .table-container {
     margin-bottom: 50px;
 }
 
+.property form {
+    display: none;
+}
+
+.property.editing form {
+    display: block;
+}
 
 /* Custom page CSS
 -------------------------------------------------- */

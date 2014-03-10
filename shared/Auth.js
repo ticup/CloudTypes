@@ -271,6 +271,7 @@ function addAuthentication(State) {
   State.prototype.authedForColumn = function (action, table, cname, group) {
     var self = this;
     var authed = false;
+    var property = table.getProperty(cname);
 
     // Only read and update actions can be column-wise
     if (action !== 'read' && action !== 'update') {
@@ -296,6 +297,11 @@ function addAuthentication(State) {
         authed = true;
       }
     });
+
+    // If the column is a reference to a table, one must have given access to that table
+    if (authed && (property.CType instanceof Index)) {
+      authed = self.authedForTable(action, property.CType, group);
+    }
 
     return authed;
   };

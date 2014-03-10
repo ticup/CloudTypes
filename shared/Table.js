@@ -244,11 +244,11 @@ Table.fromJSON = function (json) {
   var table = new Table();
   table.keys = Keys.fromJSON(json.keys);
   table.keyValues = json.keyValues;
-  table.properties = Properties.fromJSON(json.properties, table);
   table.states = {};
   Object.keys(json.states).forEach(function (key) {
     table.states[key] = json.states[key];
   });
+  table.properties = Properties.fromJSON(json.properties, table);
   return table;
 };
 
