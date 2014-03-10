@@ -30,6 +30,7 @@ function Table(keys, columns) {
   this.keyValues = {};
   this.states    = {};
   this.uid       = 0;
+  this.cached = {};
 }
 
 Table.prototype = Object.create(Index.prototype);
@@ -101,9 +102,17 @@ Table.prototype.get = function () {
 
 // Flattened key version (internal version)
 Table.prototype.getByKey = function (uid) {
+  var self = this;
   if (this.exists(uid)) {
     var keys = this.getKeyValues(uid);
-    return new TableEntry(this, uid, keys);
+    var cache = self.cached[uid];
+    if (typeof cache !== 'undefined') {
+      cache.keys = Keys.getKeys(keys, self);
+      return cache;
+    }
+    var entry = new TableEntry(this, uid, keys);
+    self.cached[uid] = entry;
+    return entry;
   }
   return null;
 };
@@ -215,6 +224,7 @@ Table.prototype.fork = function () {
   table.keys = fKeys;
   table.properties = this.properties.fork(table);
   table.states     = this.states;
+  table.keyValues  = this.keyValues;
   index.isProxy    = this.isProxy;
   return table;
 };
@@ -226,6 +236,7 @@ Table.prototype.restrictedFork = function (group) {
   table.properties = this.properties.restrictedFork(table, group);
   table.states     = this.states;
   table.isProxy    = this.isProxy;
+  table.keyValues  = this.keyValues;
   return table;
 };
 

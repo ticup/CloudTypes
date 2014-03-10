@@ -91,6 +91,14 @@ Index.prototype.restrictedFork = function (group) {
   return index;
 };
 
+Index.prototype.getKeys = function () {
+  return this.keys.names;
+};
+
+Index.prototype.getProperties = function () {
+  return Object.keys(this.properties.properties);
+};
+
 Index.prototype.toJSON = function () {
   return {
     type        : 'Array',

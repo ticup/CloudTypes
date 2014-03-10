@@ -1,10 +1,10 @@
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var State = require('../shared/State');
 var CSetPrototype  = require('../shared/CSet').CSetPrototype;
-module.exports = State;
+var Restricted = require('../shared/Restricted');
+var Index = require('../shared/Index');
 
-var Table = require('./Table');
-State.prototype.Table = Table;
+module.exports = State;
 
 State.prototype.init = function (cid, client) {
   this.pending  = false;
@@ -62,7 +62,7 @@ State.prototype.flush = function (callback, timeout) {
     // self.print();
     console.log('received flushpull on client');
 
-      console.log('received: ' + Object.keys(state.arrays).map(function (n) { return n + "(" + state.arrays[n].constructor.name+")";}));
+    // console.log('received: ' + Object.keys(state.arrays).map(function (n) { return n + "(" + state.arrays[n].constructor.name+")";}));
 
     state.joinIn(self);
 
@@ -73,81 +73,63 @@ State.prototype.flush = function (callback, timeout) {
   return this;
 };
 
-State.prototype.revoke = function (group, table, action) {
-  var self = this;
-  var Auth = this.get('SysAuth');
-  action = action || 'read';
-  self.checkGrantPermission(group, table, action);
-  if (typeof table === 'string') {
-    table = self.get(table);    
-  }
-  if (typeof group === 'string') {
-    group = self.get('SysGroup').getByProperties({name: group});
-  }
-  Auth.all().forEach(function (auth) {
-    if (auth.get('group').equals(group) &&
-        auth.get('tname').get() === table.name) {
-      auth.set(action, 'N');
-    }
-  });
-  console.log('revoked '+ action+ ' from ' + group.get('name').get());
-  return this;
+State.prototype.getGroup = function () {
+  return this.client.group;
 };
 
-State.prototype.grant = function (group, table, action, grantOpt) {
+var join = State.prototype.joinIn;
+State.prototype.joinIn = function (state) {
   var self = this;
-  var Auth = this.get('SysAuth');
-  grantOpt = grantOpt || 'N';
-  action   = action || 'read';
-  if (typeof table === 'string') {
-    table = self.get(table);
-  }
-  if (typeof group === 'string') {
-    group = self.get('SysGroup').getByProperties({name: group});
-  }
+  join.call(this, state);
 
-  self.checkGrantPermission(group, table, action);
-  Auth.all().forEach(function (auth) {
-    if (auth.get('group').equals(group) &&
-        auth.get('tname').equals(table.name) &&
-        auth.get('grantopt').equals(grantOpt)) {
-      auth.set(action, 'Y');
-      console.log('granted '+action + ' to ' + group.get('name').get() + ' grantOpt: ' + grantOpt);
+  var deleted = {};
+  
+  // Retract data to which the state has no access anymore
+  state.forEachArray(function (array) {
+    var mArray = self.get(array.name);
+    if (mArray instanceof Restricted) {
+      deleted[array.name] = state.arrays[array.name];
+      state.arrays[array.name] = mArray;
+      return;
     }
+    array.forEachProperty(function (property) {
+      try {
+       var mProperty = mArray.getProperty(property);
+      } catch(e) {
+        console.log('deleting property ');
+        delete array.properties.properties[property.name];
+      }
+    });
   });
 
-  // Perform same grant on the proxy table of CSet properties of given table
-  table.forEachProperty(function (property) {
-    if (property.CType.prototype === CSetPrototype) {
-      console.log(property.CType.prototype);
-      self.grant(group, property.CType.entity, action, grantOpt);
-    }
+  state.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+      if (property.CType instanceof Index) {
+        property.CType = state.get(property.CType.name);
+      }
+    });
+
+    index.keys.forEach(function (key, type, i) {
+      if (type instanceof Index) {
+        index.keys.types[i] = state.get(type.name);
+      }
+    });
   });
-  console.log('granted read to ' + group.get('name').get() + ' grantOpt: ' + grantOpt);
-  return this;
+  return state;
 };
 
-State.prototype.checkGrantPermission = function (group, table, action) {
-  var self = this;
-  var Auth = this.get('SysAuth');
-  var permission = Auth.where(function (auth) {
-    return (auth.get('group').equals(self.client.group) &&
-            auth.get('tname').equals(table.name) &&
-            auth.get(action).equals('Y') &&
-            auth.get('grantopt').equals('Y'));
-  }).all().length !== 0;
-  if (!permission) {
-    throw new Error("You don't have grant permissions for " + table.name);
-  }
-};
+// var checkTablePermission = State.prototype.checkTablePermission;
 
-State.prototype.getPrivileges = function () {
-  var Auth = this.get('SysAuth');
-  return Auth.where(function (auth) {
-    return (auth.get('group').equals(self.client.group));
-  }).all();
-};
-},{"../shared/CSet":11,"../shared/State":21,"./Table":3}],2:[function(require,module,exports){
+// State.prototype.checkTablePermission = function (action, table) {
+//   return checkTablePermission.call(this, action, table, this.client.group);
+// };
+
+// var checkColumnPermission = State.prototype.checkColumnPermission;
+
+// State.prototype.checkColumnPermission = function (action, table, cname) {
+//   return checkColumnPermission.call(this, action, table, cname, this.client.group);
+// };
+},{"../shared/CSet":13,"../shared/Index":16,"../shared/Restricted":22,"../shared/State":23}],2:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var State       = require('./ClientState');
 var io          = require('socket.io-client');
 
@@ -178,12 +160,11 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
 
   this.socket = io.connect(host, options);
   this.socket.on('connect', function () {
-
     if (typeof self.uid === 'undefined') {
       console.log('client connected for first time');
       self.socket.emit('init', function (json) {
         console.log(json.uid);
-        var state = State.fromJSON(json.state);
+        state = State.fromJSON(json.state);
         self.uid = json.uid;
         self.state = state;
         self.state.init(json.cid, self);
@@ -218,8 +199,8 @@ Client.prototype.close = function () {
 };
 
 Client.prototype.unrecognizedClient = function () {
-  alert("Sorry, his client is unrecognized by the server! The server probably restarted and your data is lost... Please refresh.");
   this.disconnect();
+  throw new Error("Sorry, his client is unrecognized by the server! The server probably restarted and your data is lost... Please refresh.");
 };
 
 Client.prototype.yieldPush = function (pushState) {
@@ -267,30 +248,47 @@ Client.prototype.login = function (username, password, finish) {
     finish(null, groupName);
   });
 };
-},{"./ClientState":1,"socket.io-client":9}],3:[function(require,module,exports){
+},{"./ClientState":1,"socket.io-client":10}],3:[function(require,module,exports){
 var Table = require('../shared/Table');
 module.exports = Table;
 
-
-function ClientTable() {
-  Table.apply(this, Array.prototype.slice(arguments));
-}
-ClientTable.prototype = Object.create(Table.prototype);
-
 var create = Table.prototype.create;
-ClientTable.prototype.create = function () {
+Table.prototype.create = function () {
   console.log('CREATING');
-  this.state.checkPermission(this, 'create');
-  return create(Array.prototype.slice(arguments));
+  this.state.checkTablePermission('create', this, this.state.getGroup());
+  return create.apply(this, Array.prototype.slice.apply(arguments));
 };
-},{"../shared/Table":22}],4:[function(require,module,exports){
+},{"../shared/Table":24}],4:[function(require,module,exports){
+var TableEntry = require('../shared/TableEntry');
+module.exports = TableEntry;
+
+var create = TableEntry.prototype.create;
+
+var update = TableEntry.prototype.set;
+TableEntry.prototype.set = function () {
+  var args = Array.prototype.slice.apply(arguments);
+  console.log('UPDATING ' + Array.prototype.slice.apply(arguments));
+  this.index.state.checkColumnPermission('update', this.index, args[0], this.index.state.getGroup());
+  return update.apply(this, args);
+};
+
+
+var remove = TableEntry.prototype.delete;
+TableEntry.prototype.delete = function () {
+  console.log('DELETING');
+  this.index.state.checkTablePermission('delete', this.index, this.index.state.getGroup());
+  return remove.apply(this, Array.prototype.slice.apply(arguments));
+};
+},{"../shared/TableEntry":25}],5:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var CloudTypeClient = require('./CloudTypeClient');
 var ClientState     = require('./ClientState');
 
 var CInt            = require('../shared/CInt');
 var CString         = require('../shared/CString');
 var Index           = require('../shared/Index');
+var Restricted      = require('../shared/Restricted');
 var Table           = require('./Table');
+var TableEntry      = require('./TableEntry');
 
 var View            = require('./views/View');
 var ListView        = require('./views/ListView');
@@ -307,13 +305,20 @@ var CloudTypes = {
   View: View,
   ListView: ListView,
   EntryView: EntryView,
-  EditableListView: EditableListView
+  EditableListView: EditableListView,
+
+  // Types
+  Table: Table,
+  Index: Index,
+  Restricted: Restricted,
+  CInt: CInt,
+  CString: CString
 
 };
 
 global.CloudTypes = CloudTypes;
 module.exports = CloudTypes;
-},{"../shared/CInt":10,"../shared/CString":12,"../shared/Index":14,"./ClientState":1,"./CloudTypeClient":2,"./Table":3,"./views/EditableListView":5,"./views/EntryView":6,"./views/ListView":7,"./views/View":8}],5:[function(require,module,exports){
+},{"../shared/CInt":12,"../shared/CString":14,"../shared/Index":16,"../shared/Restricted":22,"./ClientState":1,"./CloudTypeClient":2,"./Table":3,"./TableEntry":4,"./views/EditableListView":6,"./views/EntryView":7,"./views/ListView":8,"./views/View":9}],6:[function(require,module,exports){
 /**
  * Created by ticup on 06/11/13.
  */
@@ -335,7 +340,7 @@ var EditableListView = ListView.extend({
 });
 
 module.exports = EditableListView;
-},{"./ListView":7}],6:[function(require,module,exports){
+},{"./ListView":8}],7:[function(require,module,exports){
 /**
  * Created by ticup on 04/11/13.
  */
@@ -377,7 +382,7 @@ function defaults(entryView) {
 }
 
 module.exports = EntryView;
-},{"./View":8}],7:[function(require,module,exports){
+},{"./View":9}],8:[function(require,module,exports){
 /**
  * Created by ticup on 04/11/13.
  */
@@ -467,7 +472,7 @@ function insertAt(parent, key, html) {
 }
 
 module.exports = ListView;
-},{"./View":8}],8:[function(require,module,exports){
+},{"./View":9}],9:[function(require,module,exports){
 /**
  * Created by ticup on 04/11/13.
  */
@@ -532,7 +537,7 @@ View.prototype.initialize = function () {
 };
 
 module.exports = View;
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /*! Socket.IO.js build:0.9.16, development. Copyright(c) 2011 LearnBoost <dev@learnboost.com> MIT Licensed */
 
 var io = ('undefined' === typeof module ? {} : module.exports);
@@ -4406,7 +4411,400 @@ if (typeof define === "function" && define.amd) {
   define([], function () { return io; });
 }
 })();
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
+var Restricted = require('./Restricted');
+var Index      = require('./Index');
+var Table      = require('./Table');
+var CSetPrototype = require('./CSet').CSetPrototype;
+var Property = require('./Property');
+
+function addAuthentication(State) {
+
+
+  /* Granting */
+  /************/
+
+  State.prototype.grant = function (action, table, group, grantopt) {
+    if (typeof table === 'string' || table instanceof Index) {
+      return this.grantTable(action, table, group, grantopt);
+    } else if (table instanceof Property) {
+      return this.grantColumn(action, table.index, table.name, group, grantopt);
+    }
+    throw new Error("Incorrect input for grant");
+  };
+
+  // Table 
+  State.prototype.grantTable = function (action, table, group, grantopt) {
+    var self = this;
+    grantopt = grantopt || 'N';
+    if (typeof table === 'string') {
+      table = self.get(table);
+
+    }
+    if (typeof group === 'string') {
+      group = self.get('SysGroup').getByProperties({name: group});
+    }
+
+    // Can we grant action on table?
+    self.checkGrantTablePermission(action, table, self.getGroup());
+
+    // Do the granting
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('group').equals(group) &&
+          auth.get('tname').equals(table.name) &&
+          auth.get('grantopt').equals(grantopt)) {
+        auth.set(action, 'Y');
+      }
+    });
+
+
+    // read/update are column actions, update their column rows accordingly
+    if (action === 'read' || action === 'update') {
+      self.get('SysColAuth').all().forEach(function (colAuth) {
+        if (colAuth.get('group').equals(group) &&
+            colAuth.get('tname').equals(table.name) &&
+            colAuth.get('grantopt').equals(grantopt)) {
+          colAuth.set(action, 'Y');
+        }
+      });
+    }    
+
+    // Perform same grant on the proxy table of CSet properties of given table
+    table.forEachProperty(function (property) {
+      if (property.CType.prototype === CSetPrototype) {
+        console.log(property.CType.prototype);
+        self.grantTable(action, property.CType.entity, group, grantopt);
+      }
+    });
+    console.log('granted read to ' + group.get('name').get() + ' grantOpt: ' + grantopt);
+    return this;
+  };
+
+  // Column
+  State.prototype.grantColumn = function (action, table, columnName, group, grantopt) {
+    var col;
+    var self = this;
+    var granted = false;
+    grantopt = grantopt || 'N';
+
+    if (typeof table === 'string') {
+      table = self.get(table);
+    }
+    if (typeof group === 'string') {
+      group = self.get('SysGroup').getByProperties({name: group});
+    }
+
+    if (action !== 'read' && action !== 'update') {
+      throw new Error("Only read and update are column actions");
+    }
+
+    // If column is a CSet, perform grant on proxy table instead
+    var property = table.getProperty(columnName);
+    if (property.CType.prototype === CSetPrototype) {
+      return self.grantTable(action, property.CType.entity, group, grantopt);
+    }
+
+    // Can we grant action on given column?
+    self.checkGrantColumnPermission(action, table, columnName, self.getGroup());
+    
+    // Make the Table accessible
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('group').equals(group) &&
+          auth.get('tname').equals(table.name) &&
+          auth.get('grantopt').equals(grantopt)) {
+        auth.set(action, 'Y');
+        console.log('granted '+ action + ' to ' + group.get('name').get() + ' grantopt: ' + grantopt);
+      }
+    });
+
+    // Do the grant on the column
+    self.get('SysColAuth').all().forEach(function (colAuth) {
+      if (colAuth.get('group').equals(group) &&
+          colAuth.get('tname').equals(table.name) &&
+          colAuth.get('cname').equals(columnName) &&
+          colAuth.get('grantopt').equals(grantopt)) {
+        colAuth.set(action, 'Y');
+      }
+    });
+
+    return this;
+  };
+
+
+
+  /* Revoking */
+  /***********/
+
+  State.prototype.revoke = function (action, table, group) {
+    if (typeof table === 'string' || table instanceof Index) {
+      return this.revokeTable(action, table, group);
+    } else if (table instanceof Property) {
+      return this.revokeColumn(action, table.index, table.name, group);
+    }
+    throw new Error("Incorrect input for grant");
+  };
+
+
+  // Revoke Table
+  State.prototype.revokeTable = function (action, table, group) {
+    var self = this;
+
+    if (typeof table === 'string') {
+      table = self.get(table);    
+    }
+    if (typeof group === 'string') {
+      group = self.get('SysGroup').getByProperties({name: group});
+    }
+
+    // Can we revoke action from table?
+    self.checkGrantTablePermission(action, table, self.getGroup());
+
+    // Revoke action (both with and without grantopt) from the Table
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('group').equals(group) &&
+          auth.get('tname').equals(table.name)) {
+          auth.set(action, 'N');
+      }
+    });
+
+    // Revoke action (both with and without grantopt) from columns if action = column operation
+    if (action === 'read' || action === 'update') {
+      self.get('SysColAuth').all().forEach(function (colAuth) {
+        if (colAuth.get('group').equals(group) &&
+            colAuth.get('tname').equals(table.name)) {
+          colAuth.set(action, 'N');
+        }
+      });
+    }
+      
+    console.log('revoked '+ action+ ' from ' + group.get('name').get());
+    return this;
+  };
+
+  // Revoke Column
+  State.prototype.revokeColumn = function (action, table, cname, group) {
+    var self = this;
+    var tname = table.name;
+
+    if (typeof table === 'string') {
+      table = self.get(table);    
+    }
+    if (typeof group === 'string') {
+      group = self.get('SysGroup').getByProperties({name: group});
+    }
+
+    // Can we revoke action from column?
+    self.checkGrantColumnPermission(action, table, cname, self.getGroup());
+
+    // Revoke action from columns
+    self.get('SysColAuth').all().forEach(function (colAuth) {
+      if (colAuth.get('group').equals(group) &&
+          colAuth.get('tname').equals(tname) &&
+          colAuth.get('cname').equals(cname)) {
+        colAuth.set(action, 'N');
+      }
+    });
+
+    return this;
+  };
+
+
+  /* Permission Checks */
+  /*********************/
+
+  State.prototype.checkTablePermission = function (action, index, group) {
+    if (!this.authedForTable(action, index, group)) {
+      throw new Error("Not authorized to perform " + action + " on " + index.name);
+    }
+  };
+
+  State.prototype.checkColumnPermission = function (action, index, columnName, group) {
+    if (!this.authedForColumn(action, index, columnName, group)) {
+      throw new Error("Not authorized to perform " + action + " on " + index.name + "." + columnName);
+    }
+  };
+
+  State.prototype.checkGrantTablePermission = function (action, table, grantingGroup) {
+    if (!this.canGrantTable(action, table, grantingGroup)) {
+      throw new Error("You don't have " + action + " grant permissions for " + table.name);
+    }
+  };
+
+  State.prototype.checkGrantColumnPermission = function (action, table, columnName, grantingGroup) {
+    if (!this.canGrantColumn(action, table, columnName, grantingGroup)) {
+      throw new Error("You (" + grantingGroup.get('name').get() + ") don't have " + action + " grant permissions for " + table.name + "." + columnName);
+    }
+  };
+
+
+  /* Authed for action */
+  /*********************/
+
+  // is group authed to do action on table?
+  State.prototype.authedForTable = function (action, table, group) {
+    var self = this;
+    var authed = false;
+
+    // already restricted
+    if (table instanceof Restricted)
+      return false;
+
+    // Find full table authorization
+    this.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('tname').equals(table.name) &&
+          auth.get('group').equals(group) &&
+          auth.get(action).equals('Y')) {
+          authed = true;
+      }
+    });
+
+    if (!authed) {
+      console.log(group.get('name').get() + ' not authed for ' + table.name);
+      return false;
+    }
+
+    // Has to be authorized for all Tables of keys
+    table.keys.forEach(function (key, type) {
+      if (type instanceof Table && !self.authedForTable(action, type, group)) {
+        authed = false;
+      } 
+    });
+
+    // Has to be authorized for all tables of properties ( NOT!!)
+    // table.forEachProperty(function (property) {
+    //   if (property.CType instanceof Table && !authedFor(property.CType, auths)) {
+    //     authed = false;
+    //   }
+    // });
+
+    return authed;
+  };
+
+
+  // is group authed to do action on the column of table?
+  State.prototype.authedForColumn = function (action, table, cname, group) {
+    var self = this;
+    var authed = false;
+
+    // Only read and update actions can be column-wise
+    if (action !== 'read' && action !== 'update') {
+      throw new Error("Can not be authed for " + action + " on a column");
+    }
+
+    // Already restricted
+    if (table instanceof Restricted) {
+      return false;
+    }
+
+    // Needs to be authed for table and dependencies
+    if (!self.authedForTable(action, table, group)) {
+      return false;
+    }
+
+    // Find column authorization
+    self.get('SysColAuth').all().forEach(function (colAuth) {
+      if (colAuth.get('group').equals(group) &&
+          colAuth.get('tname').equals(table.name) &&
+          colAuth.get('cname').equals(cname) &&
+          colAuth.get(action).equals('Y')) {
+        authed = true;
+      }
+    });
+
+    return authed;
+  };
+
+
+  // State.prototype.restrictedForTable = function (index, group) {
+  //   var self = this;
+  //   var restricted = true;
+
+  //   // Already restricted
+  //   if (index instanceof Restricted) {
+  //     return true;
+  //   }
+
+  //   // Find full table authorization
+  //   this.get('SysAuth').all().forEach(function (auth) {
+  //     if (auth.get('tname').equals(index.name) &&
+  //         auth.get('group').equals(group) &&
+  //         (auth.get('read').equals('All') || auth.get('read').equals('Some'))) {
+  //       restricted = false;
+  //     }
+  //   });
+
+
+  //   if (restricted) {
+  //         console.log(index.name + ' is restricted for ' + group.get('name').get());
+    
+  //     return true;
+  //   }
+
+
+  //   // If restricted for any table, it is restricted itself
+  //   index.keys.forEach(function (key, type) {
+  //     if (type instanceof Table && self.restrictedForTable(type, group)) {
+  //       restricted = true;
+  //     } 
+  //   });
+
+  //   return restricted;
+  // };
+
+
+  State.prototype.getGroup = function () {
+    throw new Error("should be implemented by client/server");
+  };
+
+
+  /* Can Grant To Others? */
+  /************************/
+
+  // Table
+  State.prototype.canGrantTable = function (action, table, grantingGroup) {
+    var self = this;
+    var Auth = this.get('SysAuth');
+    var permission = Auth.where(function (auth) {
+      return (auth.get('group').equals(grantingGroup) &&
+              auth.get('tname').equals(table.name) &&
+              auth.get(action).equals('Y') &&
+              auth.get('grantopt').equals('Y'));
+    }).all().length > 0;
+
+    // If column action, also needs granting rights over all columns
+    if (permission && (action === 'read' || action === 'update')) {
+      table.forEachProperty(function (property) {
+        if (!self.canGrantColumn(action, table, property.name, grantingGroup)) {
+          console.log(property.name + " stopped access to grant " + action + " on " + table.name + " for " + grantingGroup.get('name').get());
+          permission = false;
+        }
+      });
+    }
+    return permission;
+  };
+
+  // Column
+  State.prototype.canGrantColumn = function (action, table, columnName, grantingGroup) {
+    var self = this;
+
+    // Only read and update can be granted column-wise
+    if (action !== 'read' && action !== 'update') {
+      return false;
+    }
+
+    // Find the authorizing row
+    var permission = self.get('SysColAuth').where(function (colAuth) {
+      return (colAuth.get('group').equals(grantingGroup) &&
+              colAuth.get('tname').equals(table.name) &&
+              colAuth.get(action).equals('Y') &&
+              colAuth.get('grantopt').equals('Y'));
+    }).all().length > 0;
+    return permission;
+  };
+}
+
+module.exports = addAuthentication;
+},{"./CSet":13,"./Index":16,"./Property":21,"./Restricted":22,"./Table":24}],12:[function(require,module,exports){
 /**
  * Created by ticup on 15/11/13.
  */
@@ -4530,11 +4928,14 @@ CInt.prototype.isDefault = function () {
   return (this.get() === 0);
 };
 
+CInt.prototype.isChanged = function () {
+  return (this.isSet || this.offset !== 0);
+};
 
 CInt.prototype.compare = function (cint, reverse) {
   return ((reverse ? -1 : 1) * (this.get() - cint.get()));
 };
-},{"./CloudType":13,"util":27}],11:[function(require,module,exports){
+},{"./CloudType":15,"util":29}],13:[function(require,module,exports){
 /**
  * Created by ticup on 08/11/13.
  */
@@ -4674,6 +5075,11 @@ CSetPrototype.isDefault = function () {
   return (this.get().length !== 0);
 };
 
+// Change detection is incorporated through the proxyTable
+CSetPrototype.isChanged = function () {
+  return false;
+};
+
 CSetPrototype.compare = function (cset, reverse) {
   return ((reverse ? -1 : 1) * (this.get().length - cset.get().length));
 };
@@ -4681,7 +5087,7 @@ CSetPrototype.compare = function (cset, reverse) {
 
 exports.Declaration = CSetDeclaration;
 exports.CSetPrototype = CSetPrototype;
-},{"./CloudType":13,"./Table":22}],12:[function(require,module,exports){
+},{"./CloudType":15,"./Table":24}],14:[function(require,module,exports){
 /**
  * Created by ticup on 15/11/13.
  */
@@ -4698,10 +5104,10 @@ function CStringDeclaration() { }
 
 CStringDeclaration.declare = function () {
   return CString;
-}
+};
 CStringDeclaration.fromJSON = function () {
   return CString;
-}
+};
 
 // register this declaration as usable (will also allow to create CString with CloudType.fromJSON())
 CStringDeclaration.tag = "CString";
@@ -4827,10 +5233,14 @@ CString.prototype.isDefault = function () {
   return (this.get() === '');
 };
 
+CString.prototype.isChanged = function (cstring) {
+  return !!this.written;
+};
+
 CString.prototype.compare = function (cstring, reverse) {
   return ((reverse ? -1 : 1) * (this.get().localeCompare(cstring.get())));
 };
-},{"./CloudType":13,"util":27}],13:[function(require,module,exports){
+},{"./CloudType":15,"util":29}],15:[function(require,module,exports){
 module.exports = CloudType;
 
 function CloudType() {}
@@ -4877,7 +5287,11 @@ CloudType.prototype.equals = function (val) {
       return this.get() === val.get();
   return this.get() === val;
 };
-},{}],14:[function(require,module,exports){
+
+CloudType.prototype.toString = function () {
+  return this.get();
+};
+},{}],16:[function(require,module,exports){
 var CloudType     = require('./CloudType');
 var Keys          = require('./Keys');
 var Property      = require('./Property');
@@ -4962,6 +5376,23 @@ Index.prototype.fork = function () {
   return index;
 };
 
+Index.prototype.restrictedFork = function (group) {
+  var fKeys = this.keys.fork();
+  var index = new Index();
+  index.keys = fKeys;
+  index.properties = this.properties.restrictedFork(index, group);
+  index.isProxy = this.isProxy;
+  return index;
+};
+
+Index.prototype.getKeys = function () {
+  return this.keys.names;
+};
+
+Index.prototype.getProperties = function () {
+  return Object.keys(this.properties.properties);
+};
+
 Index.prototype.toJSON = function () {
   return {
     type        : 'Array',
@@ -4978,7 +5409,7 @@ Index.fromJSON = function (json) {
   index.isProxy = json.isProxy;
   return index;
 };
-},{"./CloudType":13,"./IndexEntry":15,"./IndexQuery":16,"./Keys":17,"./Properties":18,"./Property":19,"./TypeChecker":25,"util":27}],15:[function(require,module,exports){
+},{"./CloudType":15,"./IndexEntry":17,"./IndexQuery":18,"./Keys":19,"./Properties":20,"./Property":21,"./TypeChecker":27,"util":29}],17:[function(require,module,exports){
 var Keys       = require('./Keys');
 var CloudType  = require('./CloudType');
 var TypeChecker = require('./TypeChecker');
@@ -5034,7 +5465,6 @@ IndexEntry.prototype.key = function (name) {
   var position = this.index.keys.getPositionOf(name);
   if (position === -1)
     throw Error("This Array does not have a key named " + name);
-
   var type = this.index.keys.getType(position);
   var value =  this.keys[position];
   if (type === 'int') {
@@ -5071,7 +5501,7 @@ IndexEntry.prototype.equals = function (entry) {
 IndexEntry.prototype.toString = function () {
   return Keys.createIndex(this.keys);
 };
-},{"./CloudType":13,"./Keys":17,"./TypeChecker":25}],16:[function(require,module,exports){
+},{"./CloudType":15,"./Keys":19,"./TypeChecker":27}],18:[function(require,module,exports){
 /**
  * Created by ticup on 07/11/13.
  */
@@ -5140,7 +5570,7 @@ IndexQuery.prototype.where = function (newFilter) {
   this.sumFilter = function (key) { return (sumFilter(key) && newFilter(key)); };
   return this;
 };
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /* Keys */
 /********/
 /* The names and types of the keys of an Index */
@@ -5295,7 +5725,7 @@ Keys.getKeys = function getKeys(key, index) {
 };
 
 
-},{"./Table":22}],18:[function(require,module,exports){
+},{"./Table":24}],20:[function(require,module,exports){
 var Property = require('./Property');
 
 function Properties(properties) {
@@ -5309,7 +5739,8 @@ Properties.prototype.get = function (property) {
 };
 
 Properties.prototype.add = function (property) {
-  return this.properties[property.name] = property;
+  this.properties[property.name] = property;
+  return property;
 };
 
 Properties.prototype.forEach = function (callback) {
@@ -5342,8 +5773,19 @@ Properties.prototype.fork = function (index) {
   return fProperties;
 };
 
+Properties.prototype.restrictedFork = function (index, group) {
+  var fProperties = new Properties();
+  this.forEach(function (property) {
+    var fork = property.restrictedFork(index, group);
+    if (fork) {
+      fProperties.add(fork);
+    }
+  });
+  return fProperties;
+};
+
 module.exports = Properties;
-},{"./Property":19}],19:[function(require,module,exports){
+},{"./Property":21}],21:[function(require,module,exports){
 /* 
  * Property
  * ---------
@@ -5508,8 +5950,16 @@ Property.prototype.fork = function (index) {
   return fProperty;
 };
 
+Property.prototype.restrictedFork = function (index, group) {
+  var self = this;
+  if (!self.index.state.authedForColumn('read', self.index, self.name, group)) {
+    return null;
+  }
+  return self.fork(index);
+};
+
 module.exports = Property;
-},{"./CSet":11,"./CloudType":13,"./Keys":17,"./TypeChecker":25}],20:[function(require,module,exports){
+},{"./CSet":13,"./CloudType":15,"./Keys":19,"./TypeChecker":27}],22:[function(require,module,exports){
 module.exports = Restricted;
 
 function Restricted(name) {
@@ -5557,18 +6007,23 @@ Restricted.prototype.toJSON = function () {
 Restricted.fromJSON = function (json) {
   return new Restricted();
 };
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var CloudType = require('./CloudType');
 var Index     = require('./Index');
+var Table     = require('./Table');
 var Restricted = require('./Restricted');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
 
+
 function State() {
   this.arrays = {};
   this.cid = 0;
 }
+
+// Adds Authorization methods
+require('./Auth')(State);
 
 /* User API */
 State.prototype.get = function (name) {
@@ -5582,6 +6037,17 @@ State.prototype.get = function (name) {
   return this.arrays[name];
 };
 
+State.prototype.all = function () {
+  var self = this;
+  var tables = [];
+  Object.keys(this.arrays).forEach(function (name) {
+    var index = self.arrays[name];
+    if (!(index instanceof Restricted) && (name.indexOf('Sys') === -1)) {
+      tables.push(index);
+    }
+  });
+  return tables;
+};
 
 State.prototype.declare = function (name, array, grant) {
   var self = this;
@@ -5676,7 +6142,7 @@ State.fromJSON = function (json) {
   Object.keys(json.arrays).forEach(function (name) {
     var arrayJson = json.arrays[name];
     if (arrayJson.type === 'Entity') {
-      array = state.Table.fromJSON(arrayJson);
+      array = Table.fromJSON(arrayJson);
     } else if (arrayJson.type === 'Array') {
       array = Index.fromJSON(arrayJson);
     } else if (arrayJson.type === 'Restricted') {
@@ -5713,8 +6179,9 @@ State.fromJSON = function (json) {
 
     // Resolve the key types to the real types
     array.keys.forEach(function (name, type, i) {
-      if (typeof type !== 'string')
-      array.keys.types[i] = state.resolveKeyType(type);
+      if (typeof type === 'string') {
+        array.keys.types[i] = state.resolveKeyType(type);
+      }
     });
   }); 
   return state;
@@ -5753,7 +6220,7 @@ State.prototype.forAllArray = function (callback) {
 State.prototype.forEachEntity = function (callback) {
   var self = this;
   Object.keys(this.arrays).forEach(function (name) {
-    if (self.arrays[name] instanceof self.Table)
+    if (self.arrays[name] instanceof Table)
       callback(self.arrays[name]);
   });
 };
@@ -5779,7 +6246,7 @@ State.prototype.deleted = function (key, entity) {
     var entry = entity.getByKey(key);
 
     // Table
-    if (entity instanceof self.Table) {
+    if (entity instanceof Table) {
       if (entry === null)
         return true;
 
@@ -5834,11 +6301,20 @@ State.prototype._join = function (rev, target) {
     // -> install the complete new index (references to the new index are set in (2))
     if (target.get(array.name) instanceof Restricted) {
       // TODO: make actual copy of it for local usage (not important right now)
-      target.add(array); 
+      return target.add(array);
 
+    }
 
     // Otherwise do a property-key-wise join on each property of each entry
-    } else array.forEachProperty(function (property) {
+    array.forEachProperty(function (property) {
+
+      // If target does not have the property, access was granted to the property, just add it.
+      if (typeof target.get(array.name).properties.get(property) === 'undefined') {
+        // TODO: make actual copy of it for local usage (not important right now)
+        target.get(array.name).addProperty(property); 
+        return;
+      }
+     
 
       // Joining Cloud Types (CInt/CString/CDate...) => semantics in the Cloud Type implementation
       if (CloudType.isCloudType(property.CType)) {
@@ -5886,6 +6362,7 @@ State.prototype._join = function (rev, target) {
     });
 
   });
+
   target.propagate();
 };
 
@@ -5922,20 +6399,18 @@ State.prototype.join = function (rev) {
 //   return forked;
 // };
 
-State.prototype.restrictedFork = function (auths) {
+State.prototype.restrictedFork = function (group) {
   var forked = new State();
   var forker = this;
 
-  forked.getPrivileges = function () { return auths; };
-
   forker.forAllArray(function (index) {
     var fIndex;
-    if (forked.authedFor(index, 'read')) {
-      // console.log('authed for: ' + index.name);
-      fIndex = index.fork();
-    } else {
-      // console.log('NOT authed for: ' + index.name);
+    if (!forker.authedForTable('read', index, group)) {
+       // console.log('NOT authed for: ' + index.name);
       fIndex = new Restricted();
+    } else {
+       // console.log('authed for: ' + index.name);
+      fIndex = index.restrictedFork(group);
     }
     fIndex.name = index.name;
     fIndex.state = forked;
@@ -5959,67 +6434,19 @@ State.prototype.restrictedFork = function (auths) {
       // if CSet property -> give reference to the proxy entity
       if (property.CType.prototype === CSetPrototype) {
         property.CType.entity      = forked.get(index.name + property.name);
-        if (property.CType.elementType instanceof forker.Table) {
+        if (property.CType.elementType instanceof Table) {
           property.CType.elementType = forked.get(property.CType.elementType.name);
         }
       }
     });
 
     index.keys.forEach(function (key, type, i) {
-      if (type instanceof forker.Table) {
+      if (type instanceof Table) {
         index.keys.types[i] = forked.get(type.name);
       }
     });
   });
   return forked;
-};
-
-State.prototype.getPrivileges = function () {
-  throw new Error("Has to be implemented by server/client State");
-};
-
-State.prototype.checkPermission = function (index, action) {
-  if (!this.authedFor(index, action)) {
-    throw new Error("Not authorized to do " + action + " on " + index.name);
-  }
-};
-
-State.prototype.authedFor = function (table, action) {
-  var self = this;
-  var authed = false;
-  auths = this.getPrivileges();
-
-  // already restricted
-  if (table instanceof Restricted)
-    return false;
-
-  // Find authorization for this table
-  auths.forEach(function (auth) {
-    if (auth.get('tname').equals(table.name) &&
-        auth.get(action).equals('Y')) {
-      authed = true;
-    }
-  });
-  if (!authed) {
-    return false;
-  }
-
-
-  // Has to be authorized for all tables of keys
-  table.keys.forEach(function (key, type) {
-    if (type instanceof self.Table && !self.authedFor(type, action)) {
-      authed = false;
-    }
-  });
-
-  // Has to be authrozied for all tables of properties ( NOT!!)
-  // table.forEachProperty(function (property) {
-  //   if (property.CType instanceof Table && !authedFor(property.CType, auths)) {
-  //     authed = false;
-  //   }
-  // });
-
-  return authed;
 };
 
 State.prototype.applyFork = function () {
@@ -6072,7 +6499,7 @@ State.prototype.resolvePropertyType = function (type) {
 
 // Try to resolve to a real key type from a string
 State.prototype.resolveKeyType = function (type) {
-  if (type instanceof this.Table) {
+  if (type instanceof Table) {
     return type;
   }
   if (typeof type === 'string') {
@@ -6080,7 +6507,7 @@ State.prototype.resolveKeyType = function (type) {
       return type;
     }
     var rType = this.get(type);
-    if (typeof rType !== 'undefined' && rType instanceof this.Table) {
+    if (typeof rType !== 'undefined' && rType instanceof Table) {
       return rType;
     }
   }
@@ -6090,7 +6517,7 @@ State.prototype.resolveKeyType = function (type) {
 State.prototype.print = function () {
   console.log(require('util').inspect(this, {depth: null}));
 };
-},{"./CSet":11,"./CloudType":13,"./Index":14,"./Restricted":20,"util":27}],22:[function(require,module,exports){
+},{"./Auth":11,"./CSet":13,"./CloudType":15,"./Index":16,"./Restricted":22,"./Table":24,"util":29}],24:[function(require,module,exports){
 var Index      = require('./Index');
 var Keys       = require('./Keys');
 var Properties = require('./Properties');
@@ -6123,6 +6550,7 @@ function Table(keys, columns) {
   this.keyValues = {};
   this.states    = {};
   this.uid       = 0;
+  this.cached = {};
 }
 
 Table.prototype = Object.create(Index.prototype);
@@ -6194,15 +6622,26 @@ Table.prototype.get = function () {
 
 // Flattened key version (internal version)
 Table.prototype.getByKey = function (uid) {
+  var self = this;
   if (this.exists(uid)) {
     var keys = this.getKeyValues(uid);
-    return new TableEntry(this, uid, keys);
+    var cache = self.cached[uid];
+    if (typeof cache !== 'undefined') {
+      cache.keys = Keys.getKeys(keys, self);
+      return cache;
+    }
+    var entry = new TableEntry(this, uid, keys);
+    self.cached[uid] = entry;
+    return entry;
   }
   return null;
 };
 
 Table.prototype.forEachState = function (callback) {
-  return Object.keys(this.states).forEach(callback);
+  var self = this;
+  return Object.keys(this.states).forEach(function (key) {
+    callback(key, self.states[key]);
+  });
 };
 
 Table.prototype.setMax = function (entity1, entity2, key) {
@@ -6233,6 +6672,14 @@ Table.prototype.all = function () {
   return entities;
 };
 
+Table.prototype.forEachRow = function (callback) {
+  var self = this;
+  Object.keys(this.states).forEach(function (uid) {
+    if (!self.state.deleted(uid, self))
+      callback(self.getByKey(uid));
+  });
+};
+
 Table.prototype.setDeleted = function (key) {
   this.states[key] = DELETED;
 };
@@ -6248,6 +6695,29 @@ Table.prototype.getByProperties = function (properties) {
     Object.keys(properties).forEach(function (name) {
       if (!row.get(name).equals(properties[name])) {
         toReturn = false;
+      }
+    });
+    return toReturn;
+  }).all();
+  if (results.length > 0) {
+    return results[0];
+  }
+  return null;
+};
+
+Table.prototype.getByKeys = function (keys) {
+  var results = this.where(function (row) {
+    var toReturn = true;
+    Object.keys(keys).forEach(function (name) {
+      var val = row.key(name);
+      if (val instanceof TableEntry) {
+        if (!(val.equals(keys[name]))) {
+          toReturn = false;
+        }
+      } else {
+        if (val !== keys[name]) {
+          toReturn = false;
+        }
       }
     });
     return toReturn;
@@ -6274,6 +6744,19 @@ Table.prototype.fork = function () {
   table.keys = fKeys;
   table.properties = this.properties.fork(table);
   table.states     = this.states;
+  table.keyValues  = this.keyValues;
+  index.isProxy    = this.isProxy;
+  return table;
+};
+
+Table.prototype.restrictedFork = function (group) {
+  var fKeys = this.keys.fork();
+  var table = new Table();
+  table.keys = fKeys;
+  table.properties = this.properties.restrictedFork(table, group);
+  table.states     = this.states;
+  table.isProxy    = this.isProxy;
+  table.keyValues  = this.keyValues;
   return table;
 };
 
@@ -6299,7 +6782,7 @@ Table.prototype.toJSON = function () {
   };
 };
 
-},{"./Index":14,"./Keys":17,"./Properties":18,"./Property":19,"./TableEntry":23,"./TableQuery":24,"./TypeChecker":25}],23:[function(require,module,exports){
+},{"./Index":16,"./Keys":19,"./Properties":20,"./Property":21,"./TableEntry":25,"./TableQuery":26,"./TypeChecker":27}],25:[function(require,module,exports){
 var Keys        = require('./Keys');
 var IndexEntry  = require('./IndexEntry');
 var CloudType   = require('./CloudType');
@@ -6338,7 +6821,7 @@ TableEntry.prototype.serialKey = function () {
 TableEntry.prototype.toString = function () {
   return this.uid;
 };
-},{"./CloudType":13,"./IndexEntry":15,"./Keys":17,"./TypeChecker":25}],24:[function(require,module,exports){
+},{"./CloudType":15,"./IndexEntry":17,"./Keys":19,"./TypeChecker":27}],26:[function(require,module,exports){
 /**
  * Created by ticup on 07/11/13.
  */
@@ -6370,7 +6853,7 @@ TableQuery.prototype.all = function () {
   }
   return entities;
 };
-},{"./IndexQuery":16}],25:[function(require,module,exports){
+},{"./IndexQuery":18}],27:[function(require,module,exports){
 var CloudType = require('./CloudType');
 
 
@@ -6418,7 +6901,7 @@ var TypeChecker = {
         }
       } else {
         if (typeof value.index === 'undefined' || value.index !== type) {
-          throw new Error("uncompatible key for declared type " + value);
+          throw new Error("uncompatible key for declared type " + typeof type + " " + value.index);
         }
       }
     }
@@ -6426,7 +6909,7 @@ var TypeChecker = {
 };
 
 module.exports = TypeChecker;
-},{"./CloudType":13}],26:[function(require,module,exports){
+},{"./CloudType":15}],28:[function(require,module,exports){
 
 
 //
@@ -6644,7 +7127,7 @@ if (typeof Object.getOwnPropertyDescriptor === 'function') {
   exports.getOwnPropertyDescriptor = valueObject;
 }
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7189,5 +7672,5 @@ function hasOwnProperty(obj, prop) {
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
-},{"_shims":26}]},{},[4])
+},{"_shims":28}]},{},[5])
 ;

@@ -27,6 +27,17 @@ State.prototype.get = function (name) {
   return this.arrays[name];
 };
 
+State.prototype.all = function () {
+  var self = this;
+  var tables = [];
+  Object.keys(this.arrays).forEach(function (name) {
+    var index = self.arrays[name];
+    if (!(index instanceof Restricted) && (name.indexOf('Sys') === -1)) {
+      tables.push(index);
+    }
+  });
+  return tables;
+};
 
 State.prototype.declare = function (name, array, grant) {
   var self = this;
@@ -286,7 +297,6 @@ State.prototype._join = function (rev, target) {
 
     // Otherwise do a property-key-wise join on each property of each entry
     array.forEachProperty(function (property) {
-        console.log('joining: ' + array.name + '.' + property.name);
 
       // If target does not have the property, access was granted to the property, just add it.
       if (typeof target.get(array.name).properties.get(property) === 'undefined') {
@@ -342,6 +352,7 @@ State.prototype._join = function (rev, target) {
     });
 
   });
+
   target.propagate();
 };
 

@@ -1,29 +1,39 @@
-angular
-    .module('testApp', ['cloudtypes'])
+var testApp = angular.module('testApp', ['cloudtypes', 'avbuttons']);
 
-    // make a controller and inject the $client and $state service of the cloudtypes module
-    .controller('TestCtrl', function ($scope, $client, $state) {
+// make a controller and inject the $client and $state service of the cloudtypes module
+testApp.controller('StateCtrl', function ($scope, $client, $state) {
 
-      // the $state service automatically sets up a connection to the cloud types server
-      // and returns a promise for the state.
-      $state.then(function (state) {
-        // cloud types state now available from server, initialize model
-        $scope.counter = state.get('counter');
+  // the $state service automatically sets up a connection to the cloud types server
+  // and returns a promise for the state.
+  client = $client;
+  $state.then(function (state) {
 
-        // notify angular that the model might have been changed
-        $client.onYield(function () { $scope.$apply('') });
-      });
+    $scope.state = state;
 
-      // model methods
-      $scope.increaseCounter = function () {
-        $scope.counter.add(1);
-      };
+    // cloud types state now available from server, initialize model
+    // $scope.cachedTables = $cachedTables.create(function () {
+    // $scope.state.all();
+    // });
 
-      $scope.decreaseCounter = function () {
-        $scope.counter.add(-1);
-      };
-
-      $scope.setCounter = function (amount) {
-        $scope.counter.set(amount);
-      };
+     // initial update of the array + set up periodic updates after yielding
+    // $scope.update();
+    $client.onYield(function () {
+      $scope.$apply('');
     });
+  });
+
+  // $scope.rows = function (table) {
+  //   var rows = [];
+  //   return Object.keys(table.states).forEach(function (row) {
+  //     if (row.indexOf('Sys') !== -1)
+  //       rows.push(row);
+  //   });
+  //   return rows;
+  // };
+
+  // update the cached array
+  // $scope.update = function () {
+  //   $scope.tables = $scope.cachedTables.update();
+  // };
+
+});

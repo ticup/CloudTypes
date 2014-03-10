@@ -36,8 +36,54 @@
     <h1>CloudTypes Example: Test</h1>
     <p class="lead">Add new groceries using the form at the bottom <br> and mark the amount you bought of an item by clicking it in the list. Track/Adjust connectivity using the online/offline buttons.</p>
 
-        <div class="center-block">
 
+          <div class="row text-left">
+            <div class="col-sm-6 table-container" ng-repeat="table in state.all()">
+              <h2><small>{{table.name}}</small></h2>
+              <table class="table test-table">
+
+                <thead>
+                  <tr>
+                    <th>
+                      #uid
+                    </th>
+                    <th ng-repeat="key in table.getKeys()" >
+                      {{key}}
+                    </th>
+                    <th ng-repeat="prop in table.getProperties()">
+                      {{prop}}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="row in table.all()">
+                    <td> {{ row.uid }} </td>
+                    <td ng-repeat="key in table.getKeys()" ng-model="key">
+                      {{row.key(key).toString()}}
+                    </td> 
+                    <td ng-repeat="prop in table.getProperties()" ng-model="prop">
+                      {{row.get(prop).toString()}}
+                    </td>
+                  </tr>
+                </tbody>
+                
+              </table>
+
+            </div>
+              <!-- <span class='key-name'>{{grocery.key('name')}}</span>
+              <span class='badge property-toBuy'>{{grocery.get('toBuy').get()}}</span>
+              <form role=form class='form-inline buy' ng-submit="boughtGrocery(grocery, count)">
+                <div class='form-group'>
+                  <div class=input-group>
+                    <input type='number' grocery-focus="grocery == buying" grocery-blur="stopBuying(grocery)" ng-model="count" class='form-control' placeholder='Amount Bought'>
+                  </div>
+                </div>
+                <div class=form-group>
+                  <input type='submit' class='form-control btn' id='boughtgrocerysubmit' value='OK' >
+                </div>
+              </form> -->
+            </li>
+          </ul>
         </div>
 
 

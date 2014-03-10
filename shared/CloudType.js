@@ -44,3 +44,7 @@ CloudType.prototype.equals = function (val) {
       return this.get() === val.get();
   return this.get() === val;
 };
+
+CloudType.prototype.toString = function () {
+  return this.get();
+};

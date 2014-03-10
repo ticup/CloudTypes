@@ -3,7 +3,7 @@
  */
 angular
     .module('cloudtypes', [])
-    .service('$client', function () {
+    .service('$client', function ($window) {
       var status = 'disconnected';
 
       // Callbacks
@@ -83,6 +83,7 @@ angular
         }
       };
 
+      $window.client = API.client;
       return API;
     })
 
@@ -92,7 +93,7 @@ angular
 
       $client.connect($window.location.hostname, 1000)
              .onConnect(function (state) {
-        $window.State = state; // debug
+        $window.state = state; // debug
         deferred.resolve(state);
       });
 
@@ -121,7 +122,8 @@ angular
           var entry = entries[idx];
           if (entry)
             item = entry;
-          return newEntries[idx] = item;
+          newEntries[idx] = item;
+          return item;
         });
 
         this.entries = newEntries;
@@ -133,4 +135,86 @@ angular
           return new CachedArray(getArray);
         }
       };
-    });
+    })
+
+    // .service('$cachedRows', function () {
+    //   function CachedRows(getRows) {
+    //     this.getRows = getRows;
+    //     this.entries = {};
+    //     this.tables = [];
+    //     this.update();
+    //   }
+
+    //   // updates the cached tables by getting the new array of tables, reusing exisiting entries and returning the new tables to be used on the model.
+    //   CachedTables.prototype.update = function () {
+    //     var entries = this.entries;
+    //     var newEntries = {};
+
+    //     this.tables = this.getTables().map(function (table) {
+    //       var idx = table.name;
+    //       var entry = entries[idx];
+    //       if (entry)
+    //         table = entry;
+    //       newEntries[idx] = table;
+    //       return table;
+    //     });
+
+    //     this.entries = newEntries;
+    //     return this.tables;
+    //   };
+
+    //   return {
+    //     create: function (getTables) {
+    //       return new CachedTables(getTables);
+    //     }
+    //   };
+    // })
+
+
+    // .service('$cachedTables', function () {
+    //   function CachedTables(getTables) {
+    //     this.getTables = getTables;
+    //     this.entries = {};
+    //     this.tables = [];
+    //     this.rows = {};
+    //     this.update();
+    //   }
+
+    //   // updates the cached tables by getting the new array of tables, reusing exisiting entries and returning the new tables to be used on the model.
+    //   CachedTables.prototype.update = function () {
+    //     var entries = this.entries;
+    //     var rows = this.rows;
+    //     var newEntries = {};
+
+    //     this.tables = this.getTables().map(function (table) {
+    //       var idx = table.name;
+    //       var entry = entries[idx];
+    //       if (entry)
+    //         table = entry;
+    //       newEntries[idx] = table;
+
+    //       if (typeof rows === 'undefined') {
+
+    //       }
+
+    //       table.all().forEach(function (row) {
+    //         var key = row.serialKey();
+    //         var entry = rows[idx];
+    //         if (entry)
+    //           row = entry;
+
+    //       });
+
+    //       return table;
+    //     });
+
+    //     this.entries = newEntries;
+    //     return this.tables;
+    //   };
+
+    //   return {
+    //     create: function (getTables) {
+    //       return new CachedTables(getTables);
+    //     }
+    //   };
+    // });

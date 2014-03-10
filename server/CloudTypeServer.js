@@ -24,8 +24,7 @@ CServer.prototype.close = function () {
 };
 
 CServer.prototype.declare = function (name, array) {
-  this.state.declare(name, array);
-  return this;
+  return this.state.declare(name, array);
 };
 
 CServer.prototype.get = function (name) {

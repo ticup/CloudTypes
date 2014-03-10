@@ -1,5 +1,8 @@
 var State = require('../shared/State');
 var CSetPrototype  = require('../shared/CSet').CSetPrototype;
+var Restricted = require('../shared/Restricted');
+var Index = require('../shared/Index');
+
 module.exports = State;
 
 State.prototype.init = function (cid, client) {
@@ -71,6 +74,47 @@ State.prototype.flush = function (callback, timeout) {
 
 State.prototype.getGroup = function () {
   return this.client.group;
+};
+
+var join = State.prototype.joinIn;
+State.prototype.joinIn = function (state) {
+  var self = this;
+  join.call(this, state);
+
+  var deleted = {};
+  
+  // Retract data to which the state has no access anymore
+  state.forEachArray(function (array) {
+    var mArray = self.get(array.name);
+    if (mArray instanceof Restricted) {
+      deleted[array.name] = state.arrays[array.name];
+      state.arrays[array.name] = mArray;
+      return;
+    }
+    array.forEachProperty(function (property) {
+      try {
+       var mProperty = mArray.getProperty(property);
+      } catch(e) {
+        console.log('deleting property ');
+        delete array.properties.properties[property.name];
+      }
+    });
+  });
+
+  state.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+      if (property.CType instanceof Index) {
+        property.CType = state.get(property.CType.name);
+      }
+    });
+
+    index.keys.forEach(function (key, type, i) {
+      if (type instanceof Index) {
+        index.keys.types[i] = state.get(type.name);
+      }
+    });
+  });
+  return state;
 };
 
 // var checkTablePermission = State.prototype.checkTablePermission;

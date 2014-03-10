@@ -30,11 +30,19 @@ body {
 
 .container {
     width: auto;
-    max-width: 620px;
     padding: 0 15px;
 }
 .container .credit {
     margin: 20px 0;
+}
+
+
+.test-table {
+    margin-bottom: 100px;
+}
+
+.table-container {
+    margin-bottom: 50px;
 }
 
 
