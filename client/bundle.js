@@ -6475,6 +6475,18 @@ State.prototype.propagate = function () {
       }
     });
   });
+  this.forEachArray(function (array) {
+    array.forEachProperty(function (property) {
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.forEachKey(function (key) {
+          var ref = property.getByKey(key);
+          if (self.deleted(ref.uid, ref.table)) {
+            ref.uid = null;
+          }
+        });
+      }
+    });
+  });
 };
 
 State.prototype.deleted = function (key, entity) {
