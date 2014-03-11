@@ -14,5 +14,3 @@ console.log("#### CloudTypes Test Example server running on " + port + " ####");
 
 
 server.state.print();
-server.state.restrictedFork(server.state.auth.guest).toJSON();
-// server.state.toJSON();

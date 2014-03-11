@@ -480,66 +480,66 @@ State.prototype.restrict = function (group) {
   return self;
 };
 
-State.prototype.restrictedFork = function (group) {
-  var forked = new State();
-  var forker = this;
+// State.prototype.restrictedFork = function (group) {
+//   var forked = new State();
+//   var forker = this;
 
-  forker.forAllArray(function (index) {
-    var fIndex;
+//   forker.forAllArray(function (index) {
+//     var fIndex;
 
-    if (!forker.authedForTable('read', index, group)) {
-       // console.log('NOT authed for: ' + index.name);
-      fIndex = new Restricted();
-    } else {
-       // console.log('authed for: ' + index.name);
-      fIndex = index.restrictedFork(group);
-    }
-    fIndex.name = index.name;
-    fIndex.state = forked;
-    forked.add(fIndex);
-  });
+//     if (!forker.authedForTable('read', index, group)) {
+//        // console.log('NOT authed for: ' + index.name);
+//       fIndex = new Restricted();
+//     } else {
+//        // console.log('authed for: ' + index.name);
+//       fIndex = index.restrictedFork(group);
+//     }
+//     fIndex.name = index.name;
+//     fIndex.state = forked;
+//     forked.add(fIndex);
+//   });
 
-  // Fix Type references
-  forked.forEachArray(function (index) {
-    index.forEachProperty(function (property) {
+//   // Fix Type references
+//   forked.forEachArray(function (index) {
+//     index.forEachProperty(function (property) {
 
-      // Table Reference Type: replace by the new Table
-      // if (!CloudType.isCloudType(property.CType)) {
-      //   var fIndex = forked.get(property.CType.name);
-      //   property.CType = fIndex;
-        // property.forEachKey(function (key, val) {
-        //   var ref = fIndex.getByKey(val);
-        //   property.values[key] = .apply(fIndex, val.keys);
-        // });
-      // }
+//       // Table Reference Type: replace by the new Table
+//       // if (!CloudType.isCloudType(property.CType)) {
+//       //   var fIndex = forked.get(property.CType.name);
+//       //   property.CType = fIndex;
+//         // property.forEachKey(function (key, val) {
+//         //   var ref = fIndex.getByKey(val);
+//         //   property.values[key] = .apply(fIndex, val.keys);
+//         // });
+//       // }
 
-      // if CSet property -> give reference to the proxy entity
-      if (property.CType.prototype === CSetPrototype) {
-        property.CType.entity      = forked.get(index.name + property.name);
-        if (property.CType.elementType instanceof Table) {
-          property.CType.elementType = forked.get(property.CType.elementType.name);
-        }
-      }
+//       // if CSet property -> give reference to the proxy entity
+//       if (property.CType.prototype === CSetPrototype) {
+//         property.CType.entity      = forked.get(index.name + property.name);
+//         if (property.CType.elementType instanceof Table) {
+//           property.CType.elementType = forked.get(property.CType.elementType.name);
+//         }
+//       }
 
-      if (Reference.isReferenceDeclaration(property.CType)) {
-        property.CType.prototype.table = forked.get(property.CType.prototype.table.name);
-      }
-    });
+//       if (Reference.isReferenceDeclaration(property.CType)) {
+//         property.CType.prototype.table = forked.get(property.CType.prototype.table.name);
+//       }
+//     });
 
-    index.keys.forEach(function (key, type, i) {
-      if (type instanceof Table) {
-        index.keys.types[i] = forked.get(type.name);
-      }
-      // console.log('key: ' + key);
-      // if (Reference.isReferenceDeclaration(type)) {
-      //   console.log(type);
-      //   type.resolveTable(forked);
-      //   console.log(type.prototype.table.name);
-      // }
-    });
-  });
-  return forked;
-};
+//     index.keys.forEach(function (key, type, i) {
+//       if (type instanceof Table) {
+//         index.keys.types[i] = forked.get(type.name);
+//       }
+//       // console.log('key: ' + key);
+//       // if (Reference.isReferenceDeclaration(type)) {
+//       //   console.log(type);
+//       //   type.resolveTable(forked);
+//       //   console.log(type.prototype.table.name);
+//       // }
+//     });
+//   });
+//   return forked;
+// };
 
 State.prototype.applyFork = function () {
   var self = this;
