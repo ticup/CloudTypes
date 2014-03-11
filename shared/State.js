@@ -1,7 +1,8 @@
-var CloudType = require('./CloudType');
-var Index     = require('./Index');
-var Table     = require('./Table');
+var CloudType  = require('./CloudType');
+var Index      = require('./Index');
+var Table      = require('./Table');
 var Restricted = require('./Restricted');
+var Reference  = require('./Reference');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
@@ -154,6 +155,18 @@ State.fromJSON = function (json) {
       if (property.CType.prototype === CSetPrototype) {
         property.CType.entity      = state.get(array.name + property.name);
         property.CType.elementType = state.resolveKeyType(property.CType.elementType);
+        if (Reference.isReferenceDeclaration(property.CType.elementType)) {
+          property.CType.elementType.resolveTable(state);
+        }
+      }
+
+      // console.log('checking property ' + property.name + ' : ' + property.CType.table);
+      // Reference that needs reference replacement
+      // console.log(property.CType.prototype);
+      // console.log(ReferencePrototype);
+      // console.log(property.CType.prototype == ReferencePrototype);
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.CType.resolveTable(state);
       }
 
       // If property is a reference, find all the references for all keys of that property
@@ -172,6 +185,11 @@ State.fromJSON = function (json) {
       if (typeof type === 'string') {
         array.keys.types[i] = state.resolveKeyType(type);
       }
+      // // console.log(array.keys.types[i]);
+      // if (Reference.isReferenceDeclaration(array.keys.types[i])) {
+      //   console.log('solving reference key: ' + array.keys.types[i]);
+      //   array.keys.types[i].resolveTable(state);
+      // }
     });
   }); 
   return state;
@@ -307,7 +325,7 @@ State.prototype._join = function (rev, target) {
      
 
       // Joining Cloud Types (CInt/CString/CDate...) => semantics in the Cloud Type implementation
-      if (CloudType.isCloudType(property.CType)) {
+      // if (CloudType.isCloudType(property.CType)) {
         property.forEachKey(function (key) {
           var joiner = rev.getProperty(property).getByKey(key);
           var joinee = self.getProperty(property).getByKey(key);
@@ -316,14 +334,14 @@ State.prototype._join = function (rev, target) {
         });
 
       // Joining Table references => last writer semantics
-      } else {
+      // } else {
         // fix types for typechecker
-        rev.getProperty(property).CType = target.getProperty(property).CType;
-        property.forEachKey(function (key) {
-          var joiner = rev.getProperty(property).getByKey(key);
-          target.getProperty(property).set(key, joiner);
-        });
-      }
+        // rev.getProperty(property).CType = target.getProperty(property).CType;
+        // property.forEachKey(function (key) {
+        //   var joiner = rev.getProperty(property).getByKey(key);
+        //   target.getProperty(property).set(key, joiner);
+        // });
+      // }
     });
   });
 
@@ -395,6 +413,7 @@ State.prototype.restrictedFork = function (group) {
 
   forker.forAllArray(function (index) {
     var fIndex;
+
     if (!forker.authedForTable('read', index, group)) {
        // console.log('NOT authed for: ' + index.name);
       fIndex = new Restricted();
@@ -412,14 +431,14 @@ State.prototype.restrictedFork = function (group) {
     index.forEachProperty(function (property) {
 
       // Table Reference Type: replace by the new Table
-      if (!CloudType.isCloudType(property.CType)) {
-        var fIndex = forked.get(property.CType.name);
-        property.CType = fIndex;
+      // if (!CloudType.isCloudType(property.CType)) {
+      //   var fIndex = forked.get(property.CType.name);
+      //   property.CType = fIndex;
         // property.forEachKey(function (key, val) {
         //   var ref = fIndex.getByKey(val);
         //   property.values[key] = .apply(fIndex, val.keys);
         // });
-      }
+      // }
 
       // if CSet property -> give reference to the proxy entity
       if (property.CType.prototype === CSetPrototype) {
@@ -428,12 +447,22 @@ State.prototype.restrictedFork = function (group) {
           property.CType.elementType = forked.get(property.CType.elementType.name);
         }
       }
+
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.CType.prototype.table = forked.get(property.CType.prototype.table.name);
+      }
     });
 
     index.keys.forEach(function (key, type, i) {
       if (type instanceof Table) {
         index.keys.types[i] = forked.get(type.name);
       }
+      // console.log('key: ' + key);
+      // if (Reference.isReferenceDeclaration(type)) {
+      //   console.log(type);
+      //   type.resolveTable(forked);
+      //   console.log(type.prototype.table.name);
+      // }
     });
   });
   return forked;
@@ -442,25 +471,25 @@ State.prototype.restrictedFork = function (group) {
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
-    if (CloudType.isCloudType(property.CType)) {
+    // if (CloudType.isCloudType(property.CType)) {
       property.forEachKey(function (key) {
         var type = property.getByKey(key);
         type.applyFork();
       });
-    }
+    // }
   });
 };
 
 State.prototype.replaceBy = function (state) {
   var self = this;
   state.forEachProperty(function (property) {
-    if (CloudType.isCloudType(property.CType)) {
+    // if (CloudType.isCloudType(property.CType)) {
       property.forEachKey(function (key) {
         var type1 = property.getByKey(key);
         var type2 = self.getProperty(property).getByKey(key);
         type2.replaceBy(type1);
       });
-    }
+    // }
   });
   state.forEachEntity(function (entity) {
     self.get(entity.name).states = entity.states;
@@ -477,21 +506,25 @@ State.prototype.resolvePropertyType = function (type) {
 
     // 2) try to declare as reference to an Index
     if (typeof rType === 'undefined') {
-      rType = this.get(type);
+      rType = Reference.Declaration.declare(this.get(type));
     }
   }
-
+  if (type instanceof Table) {
+    return Reference.Declaration.declare(type);
+  }
+  if (Reference.isReferenceDeclaration(type)) {
+    return type;
+  }
   if (typeof rType === 'undefined') {
     throw new Error("Undefined Property Type: " + type);
   }
+
   return rType;
 };
 
 // Try to resolve to a real key type from a string
 State.prototype.resolveKeyType = function (type) {
-  if (type instanceof Table) {
-    return type;
-  }
+  // console.log('resvolving ' + type);
   if (typeof type === 'string') {
     if (type === 'string' || type === 'int') {
       return type;
@@ -501,9 +534,24 @@ State.prototype.resolveKeyType = function (type) {
       return rType;
     }
   }
+  if (type instanceof Table) {
+    return type;
+  }
+  // if (Reference.isReferenceDeclaration(type)) {
+  //   return type;
+  // }
   throw new Error("Only int, string or Table identifiers are allowed as keys, given " + type);
 };
 
 State.prototype.print = function () {
-  console.log(require('util').inspect(this, {depth: null}));
+  this.forEachArray(function (array) {
+    console.log(array.name);
+    array.keys.forEach(function (key, type, i) {
+      console.log("\t" + key + " : " + type.toString());
+    });
+    array.forEachProperty(function (property) {
+      console.log("\t\t" + property.name + " : " + property.CType.toString());
+    });
+  });
+  // console.log(require('util').inspect(this, {depth: null}));
 };

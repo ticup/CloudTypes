@@ -17,14 +17,9 @@ function CSetDeclaration(elementType) {
     return new CSet(entry);
   };
 
-  // Puts the declared (parametrized) CSet into json
+    // Puts the declared (parametrized) CSet into json
   CSet.toJSON = function () {
-    if (typeof elementType === 'string') {
-      type = elementType;
-    } else {
-      type = elementType.name;
-    }
-    return { tag: CSetDeclaration.tag, elementType: type };
+    return { tag: CSetDeclaration.tag, elementType: elementType };
   };
 
   // Retrieves an instance of a declared (parametrized) CSet from json
@@ -32,8 +27,8 @@ function CSetDeclaration(elementType) {
     return new CSet(entry);
   };
 
-  CSet.fork = function () {
-    return new CSetDeclaration(this.elementType);
+  CSet.toString = function () {
+    return "CSet<" + CSet.elementType.toString() + ">";
   };
 
   CSet.declareProxyTable = function (state, index, property, grant) {

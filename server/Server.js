@@ -16,7 +16,7 @@ Server.prototype.getGroup = function (user) {
   if (typeof user === 'undefined') {
     return this.auth.guest;
   }
-  return user.get('group');
+  return user.get('group').get();
 };
 
 // target: port or http server (default = port 8090)
@@ -53,7 +53,10 @@ Server.prototype.open = function (target, staticPath) {
     socket.on('init', function (initClient) {
       uid = self.generateUID();
       var group = self.getGroup(cuser);
-      initClient({ uid: uid, cid: ++cid, state: self.state.restrictedFork(group) });
+      var forked = self.state.restrictedFork(group);
+      console.log('TEST');
+      console.log(group.index == forked.get('SysGroup'));
+      initClient({ uid: uid, cid: ++cid, state: forked});
     });
 
     socket.on('YieldPush', function (json, yieldPull) {
@@ -97,7 +100,7 @@ Server.prototype.open = function (target, staticPath) {
         if (err)
           return finish(err);
         cuser = user;
-        finish(null, user.get('group').get('name').get());
+        finish(null, user.get('group').get().get('name').get());
       });
     });
 

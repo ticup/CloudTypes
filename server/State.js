@@ -86,7 +86,7 @@ State.prototype.checkChanges = function (state, group) {
           valid = false;
         }
       }
-      if (clientEntity.exists(key) && !serverEntity.exists(key)) {
+      if (clientEntity.exists(key) && !serverEntity.defined(key)) {
         if (!self.authedForTable('create', clientEntity, group)) {
           console.log(group.get('name').get() + ' not authed for create of ' + clientEntity.name);
           valid = false;
@@ -120,15 +120,15 @@ function isChanged(joineeValue, joiningValue, property) {
     return joineeValue.isChanged(joiningValue);
   }
 
-  // // If Table Reference
-  // // 1) both are null, nothing changed
-  // if (joineeValue === null && joiningValue === null) {
-  //   return false;
-  // }
-  // // 2) one of the values is null, the client changed the value
-  // if (joineeValue === null || joiningValue === null) {
-  //   return true;
-  // }
+  // If Table Reference
+  // 1) both are null, nothing changed
+  if (joineeValue === null && joiningValue === null) {
+    return false;
+  }
+  // 2) one of the values is null, the client changed the value
+  if (joineeValue === null || joiningValue === null) {
+    return true;
+  }
   // 3) both are a reference, see if it is changed
   return (joineeValue.key() !== joiningValue.key());
 }

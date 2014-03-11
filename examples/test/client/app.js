@@ -57,6 +57,14 @@ testApp.controller('StateCtrl', function ($scope, $client, $state) {
     }
   };
 
+  $scope.deleteRow = function (row) {
+    try {
+      row.delete();
+    } catch(err) {
+      alert(err);
+    }
+  };
+
 
 
   // $scope.rows = function (table) {

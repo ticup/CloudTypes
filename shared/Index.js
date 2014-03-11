@@ -99,6 +99,10 @@ Index.prototype.getProperties = function () {
   return Object.keys(this.properties.properties);
 };
 
+Index.prototype.toString = function () {
+  return this.name;
+};
+
 Index.prototype.toJSON = function () {
   return {
     type        : 'Array',

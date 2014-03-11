@@ -58,7 +58,7 @@ function addAuthentication(State) {
     // Perform same grant on the proxy table of CSet properties of given table
     table.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
-        console.log(property.CType.prototype);
+        // console.log(property.CType.prototype);
         self.grantTable(action, property.CType.entity, group, grantopt);
       }
     });
@@ -237,6 +237,8 @@ function addAuthentication(State) {
 
     // Find full table authorization
     this.get('SysAuth').all().forEach(function (auth) {
+      // console.log(auth.get('group').toString() + '?=' + group.toString());
+      // console.log(auth.get('group').equals(group));
       if (auth.get('tname').equals(table.name) &&
           auth.get('group').equals(group) &&
           auth.get(action).equals('Y')) {
@@ -290,6 +292,7 @@ function addAuthentication(State) {
 
     // Find column authorization
     self.get('SysColAuth').all().forEach(function (colAuth) {
+
       if (colAuth.get('group').equals(group) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&

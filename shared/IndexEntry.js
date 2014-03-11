@@ -22,13 +22,13 @@ IndexEntry.prototype.set = function (propertyName, value) {
   TypeChecker.property(value, property.CType);
 
   // If it is a Cloud Type column, retrieve it and call set(value) on it
-  if (CloudType.isCloudType(property.CType)) {
+  // if (CloudType.isCloudType(property.CType)) {
     property.getByKey(key).set(value);
-    return this;
-  }
+    // return this;
+  // }
   
   // Otherwise replace the reference
-  property.set(key, value);
+  // property.set(key, value);
   return this;
 };
 
@@ -76,7 +76,7 @@ IndexEntry.prototype.equals = function (entry) {
   if (!(entry instanceof IndexEntry))
     return false;
   
-  if (this.index !== entry.index)
+  if (this.index.name !== entry.index.name)
     return false;
 
   for (var i = 0; i<this.keys.length; i++) {

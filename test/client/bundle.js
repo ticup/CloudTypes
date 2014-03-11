@@ -125,6 +125,7 @@ State.prototype.joinIn = function (state) {
       }
     });
   });
+  self.propagate();
   return state;
 };
 
@@ -139,7 +140,7 @@ State.prototype.joinIn = function (state) {
 // State.prototype.checkColumnPermission = function (action, table, cname) {
 //   return checkColumnPermission.call(this, action, table, cname, this.client.group);
 // };
-},{"../shared/CSet":16,"../shared/Index":19,"../shared/Restricted":25,"../shared/State":26}],3:[function(require,module,exports){
+},{"../shared/CSet":16,"../shared/Index":19,"../shared/Restricted":26,"../shared/State":27}],3:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var State       = require('./ClientState');
 var io          = require('socket.io-client');
 
@@ -175,6 +176,7 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
       self.socket.emit('init', function (json) {
         console.log(json.uid);
         state = State.fromJSON(json.state);
+        state.print();
         self.uid = json.uid;
         self.state = state;
         self.state.init(json.cid, self);
@@ -268,7 +270,7 @@ Table.prototype.create = function () {
   this.state.checkTablePermission('create', this, this.state.getGroup());
   return create.apply(this, Array.prototype.slice.apply(arguments));
 };
-},{"../shared/Table":27}],5:[function(require,module,exports){
+},{"../shared/Table":28}],5:[function(require,module,exports){
 var TableEntry = require('../shared/TableEntry');
 module.exports = TableEntry;
 
@@ -289,7 +291,7 @@ TableEntry.prototype.delete = function () {
   this.index.state.checkTablePermission('delete', this.index, this.index.state.getGroup());
   return remove.apply(this, Array.prototype.slice.apply(arguments));
 };
-},{"../shared/TableEntry":28}],6:[function(require,module,exports){
+},{"../shared/TableEntry":29}],6:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var CloudTypeClient = require('./CloudTypeClient');
 var ClientState     = require('./ClientState');
 
@@ -328,7 +330,7 @@ var CloudTypes = {
 
 global.CloudTypes = CloudTypes;
 module.exports = CloudTypes;
-},{"../shared/CString":17,"../shared/Index":19,"../shared/Restricted":25,"./CInt":1,"./ClientState":2,"./CloudTypeClient":3,"./Table":4,"./TableEntry":5,"./views/EditableListView":7,"./views/EntryView":8,"./views/ListView":9,"./views/View":10}],7:[function(require,module,exports){
+},{"../shared/CString":17,"../shared/Index":19,"../shared/Restricted":26,"./CInt":1,"./ClientState":2,"./CloudTypeClient":3,"./Table":4,"./TableEntry":5,"./views/EditableListView":7,"./views/EntryView":8,"./views/ListView":9,"./views/View":10}],7:[function(require,module,exports){
 /**
  * Created by ticup on 06/11/13.
  */
@@ -642,7 +644,7 @@ function objEquiv (a, b) {
   return true;
 }
 
-},{"__browserify_Buffer":68}],12:[function(require,module,exports){
+},{"__browserify_Buffer":69}],12:[function(require,module,exports){
 /*!
  * Should
  * Copyright(c) 2010-2012 TJ Holowaychuk <tj@vision-media.ca>
@@ -1374,7 +1376,7 @@ Assertion.prototype = {
 ('below', 'lessThan');
 
 
-},{"./eql":11,"assert":41,"http":50,"util":46}],13:[function(require,module,exports){
+},{"./eql":11,"assert":42,"http":51,"util":47}],13:[function(require,module,exports){
 /*! Socket.IO.js build:0.9.16, development. Copyright(c) 2011 LearnBoost <dev@learnboost.com> MIT Licensed */
 
 var io = ('undefined' === typeof module ? {} : module.exports);
@@ -5309,7 +5311,7 @@ function addAuthentication(State) {
     // Perform same grant on the proxy table of CSet properties of given table
     table.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
-        console.log(property.CType.prototype);
+        // console.log(property.CType.prototype);
         self.grantTable(action, property.CType.entity, group, grantopt);
       }
     });
@@ -5488,6 +5490,8 @@ function addAuthentication(State) {
 
     // Find full table authorization
     this.get('SysAuth').all().forEach(function (auth) {
+      // console.log(auth.get('group').toString() + '?=' + group.toString());
+      // console.log(auth.get('group').equals(group));
       if (auth.get('tname').equals(table.name) &&
           auth.get('group').equals(group) &&
           auth.get(action).equals('Y')) {
@@ -5541,6 +5545,7 @@ function addAuthentication(State) {
 
     // Find column authorization
     self.get('SysColAuth').all().forEach(function (colAuth) {
+
       if (colAuth.get('group').equals(group) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
@@ -5647,7 +5652,7 @@ function addAuthentication(State) {
 }
 
 module.exports = addAuthentication;
-},{"./CSet":16,"./Index":19,"./Property":24,"./Restricted":25,"./Table":27}],15:[function(require,module,exports){
+},{"./CSet":16,"./Index":19,"./Property":24,"./Restricted":26,"./Table":28}],15:[function(require,module,exports){
 /**
  * Created by ticup on 15/11/13.
  */
@@ -5690,6 +5695,9 @@ CInt.fork = function () {
   return CInt;
 };
 
+CInt.toString = function () {
+  return "CInt";
+};
 
 // Create a new instance of the declared CInt for given entry
 CInt.newFor = function (entry, property) {
@@ -5786,7 +5794,7 @@ CInt.prototype.isChanged = function (cint) {
 CInt.prototype.compare = function (cint, reverse) {
   return ((reverse ? -1 : 1) * (this.get() - cint.get()));
 };
-},{"./CloudType":18,"util":46}],16:[function(require,module,exports){
+},{"./CloudType":18,"util":47}],16:[function(require,module,exports){
 /**
  * Created by ticup on 08/11/13.
  */
@@ -5806,14 +5814,9 @@ function CSetDeclaration(elementType) {
     return new CSet(entry);
   };
 
-  // Puts the declared (parametrized) CSet into json
+    // Puts the declared (parametrized) CSet into json
   CSet.toJSON = function () {
-    if (typeof elementType === 'string') {
-      type = elementType;
-    } else {
-      type = elementType.name;
-    }
-    return { tag: CSetDeclaration.tag, elementType: type };
+    return { tag: CSetDeclaration.tag, elementType: elementType };
   };
 
   // Retrieves an instance of a declared (parametrized) CSet from json
@@ -5821,8 +5824,8 @@ function CSetDeclaration(elementType) {
     return new CSet(entry);
   };
 
-  CSet.fork = function () {
-    return new CSetDeclaration(this.elementType);
+  CSet.toString = function () {
+    return "CSet<" + CSet.elementType.toString() + ">";
   };
 
   CSet.declareProxyTable = function (state, index, property, grant) {
@@ -5938,7 +5941,7 @@ CSetPrototype.compare = function (cset, reverse) {
 
 exports.Declaration = CSetDeclaration;
 exports.CSetPrototype = CSetPrototype;
-},{"./CloudType":18,"./Table":27}],17:[function(require,module,exports){
+},{"./CloudType":18,"./Table":28}],17:[function(require,module,exports){
 /**
  * Created by ticup on 15/11/13.
  */
@@ -5977,6 +5980,10 @@ CString.prototype = Object.create(CloudType.prototype);
 
 CString.fork = function () {
   return CString;
+};
+
+CString.toString = function () {
+  return "CString";
 };
 
 // Create a new instance of the declared CString for given entry
@@ -6095,7 +6102,7 @@ CString.prototype.isChanged = function (cstring) {
 CString.prototype.compare = function (cstring, reverse) {
   return ((reverse ? -1 : 1) * (this.get().localeCompare(cstring.get())));
 };
-},{"./CloudType":18,"util":46}],18:[function(require,module,exports){
+},{"./CloudType":18,"util":47}],18:[function(require,module,exports){
 module.exports = CloudType;
 
 function CloudType() {}
@@ -6248,6 +6255,10 @@ Index.prototype.getProperties = function () {
   return Object.keys(this.properties.properties);
 };
 
+Index.prototype.toString = function () {
+  return this.name;
+};
+
 Index.prototype.toJSON = function () {
   return {
     type        : 'Array',
@@ -6264,7 +6275,7 @@ Index.fromJSON = function (json) {
   index.isProxy = json.isProxy;
   return index;
 };
-},{"./CloudType":18,"./IndexEntry":20,"./IndexQuery":21,"./Keys":22,"./Properties":23,"./Property":24,"./TypeChecker":30,"util":46}],20:[function(require,module,exports){
+},{"./CloudType":18,"./IndexEntry":20,"./IndexQuery":21,"./Keys":22,"./Properties":23,"./Property":24,"./TypeChecker":31,"util":47}],20:[function(require,module,exports){
 var Keys       = require('./Keys');
 var CloudType  = require('./CloudType');
 var TypeChecker = require('./TypeChecker');
@@ -6289,13 +6300,13 @@ IndexEntry.prototype.set = function (propertyName, value) {
   TypeChecker.property(value, property.CType);
 
   // If it is a Cloud Type column, retrieve it and call set(value) on it
-  if (CloudType.isCloudType(property.CType)) {
+  // if (CloudType.isCloudType(property.CType)) {
     property.getByKey(key).set(value);
-    return this;
-  }
+    // return this;
+  // }
   
   // Otherwise replace the reference
-  property.set(key, value);
+  // property.set(key, value);
   return this;
 };
 
@@ -6343,7 +6354,7 @@ IndexEntry.prototype.equals = function (entry) {
   if (!(entry instanceof IndexEntry))
     return false;
   
-  if (this.index !== entry.index)
+  if (this.index.name !== entry.index.name)
     return false;
 
   for (var i = 0; i<this.keys.length; i++) {
@@ -6356,7 +6367,7 @@ IndexEntry.prototype.equals = function (entry) {
 IndexEntry.prototype.toString = function () {
   return Keys.createIndex(this.keys);
 };
-},{"./CloudType":18,"./Keys":22,"./TypeChecker":30}],21:[function(require,module,exports){
+},{"./CloudType":18,"./Keys":22,"./TypeChecker":31}],21:[function(require,module,exports){
 /**
  * Created by ticup on 07/11/13.
  */
@@ -6430,6 +6441,8 @@ IndexQuery.prototype.where = function (newFilter) {
 /********/
 /* The names and types of the keys of an Index */
 
+var CloudType = require('./CloudType');
+
 module.exports = Keys;
 
 function Keys(keys, state) {
@@ -6481,21 +6494,18 @@ Keys.prototype.getPositionOf = function (name) {
 
 
 Keys.prototype.toJSON = function () {
-  var types = this.types.map(function (type) {
-    // 'int' or 'string'
-    if (typeof type === 'string')
-      return type;
-    // a Table reference, store the name
-    return type.name;
-  });
   return {
     names: this.names,
-    types: types
+    types: this.types.map(function (type) {
+      if (typeof type === 'string') {
+        return type;
+      }
+      return type.name;
+    })
   };
 };
 
 
-// The state replaces Table references by the real Table reference in a second scan
 Keys.fromJSON = function (json) {
   var keys = new Keys();
   keys.names = json.names;
@@ -6580,7 +6590,7 @@ Keys.getKeys = function getKeys(key, index) {
 };
 
 
-},{"./Table":27}],23:[function(require,module,exports){
+},{"./CloudType":18,"./Table":28}],23:[function(require,module,exports){
 var Property = require('./Property');
 
 function Properties(properties) {
@@ -6653,6 +6663,7 @@ var CloudType   = require('./CloudType');
 var CSet        = require('./CSet');
 var TypeChecker = require('./TypeChecker');
 var Keys        = require('./Keys');
+var Reference   = require('./Reference');
 
 function Property(name, CType, index, values) {
   this.name   = name;
@@ -6679,11 +6690,11 @@ Property.prototype.set = function (key, val) {
   TypeChecker.property(val, this.CType);
   
   // If it's a reference, simply store its uid
-  if (!CloudType.isCloudType(this.CType)) {
-    if (val !== null) {
-      val = val.serialKey();
-    }
-  }
+  // if (this.CType.prototype === Reference.Prototype) {
+  //   if (val !== null) {
+  //     val = val.serialKey();
+  //   }
+  // }
   this.values[key] = val;
 };
 
@@ -6703,31 +6714,34 @@ Property.prototype.getByKey = function (key) {
     var entry = this.index.getByKey(key);
 
     // if it is a Cloud Type, make a new default.
-    if (CloudType.isCloudType(this.CType)) {
+    // if (CloudType.isCloudType(this.CType)) { 
       ctype = this.CType.newFor(entry, this);
 
       // do not add to values property for a CSet, because it is kept in dedicated Table
       if (this.CType.prototype === CSet.CSetPrototype) {
         return ctype;
       }
+    // } else {
+      // ctype = Reference.newFor(entry, this);
+    // }
       
-      // otherwise add the new cloudtype to the values property for this key
+      // add the new cloudtype to the values property for this key
       this.values[key] = ctype;
       return ctype;
 
     // if it is a reference and the key does not exist yet, return null
-    } else {
-      return null;
-    }
+    // } else {
+      // return null;
+    // }
   }
 
   // 2) The key exists
   // if it is a Cloud Type, simply return the value
-  if (CloudType.isCloudType(this.CType)) {
-    return ctype;
-  }
+  // if (CloudType.isCloudType(this.CType)) {
+  return ctype;
+  // }
   // if it's a reference, retrieve the entry for that key from the referred Table.
-  return this.CType.getByKey(ctype);
+  // return this.CType.getByKey(ctype);
 };
 
 
@@ -6752,58 +6766,63 @@ Property.prototype.toJSON = function () {
   var self = this;
   var values = {};
   
-  if (CloudType.isCloudType(this.CType)) {
+  // if (CloudType.isCloudType(this.CType)) {
     type = this.CType.toJSON();
-    self.forEachKey(function (key, val) {
-      values[key] = val.toJSON();
-    });
-  } else {
-    type = this.CType.name;
-    self.forEachKey(function (key, val) {
-      values[key] = val;
-    });
-  }
+  // } else {
+    // type = this.CType.name;
+  // }
+  self.forEachKey(function (key, val) {
+    values[key] = val.toJSON();
+  });
   return { name: this.name, type: type, values: values };
 };
 
 Property.fromJSON = function (json, index) {
   var values = {};
+  var CType;
   
   // If the property is a Cloud Type, rebuild all entries
-  if (CloudType.isCloudType(json.type)) {
-    var CType = CloudType.fromJSON(json.type);
+  // if (CloudType.isCloudType(json.type)) {
+    CType = CloudType.fromJSON(json.type);
     var property = new Property(json.name, CType, index);
     Object.keys(json.values).forEach(function (key) {
       values[key] = CType.fromJSON(json.values[key], index.getByKey(key), property);
     });
-    property.values = values;
-    return property;
-  }
-
-  // Otherwise it's a reference that will be replaced by the real reference in the second scan
-  Object.keys(json.values).forEach(function (key) {
-    values[key] = json.values[key];
-  });
-  return new Property(json.name, json.type, index, values);
-  
+  // } else {
+    // Otherwise it's a reference that will be replaced by the real reference in the second scan
+    // CType = json.type;
+    // Object.keys(json.values).forEach(function (key) {
+      // values[key] = Reference.fromJSON(json.values[key], index.getByKey(key), property);
+    // });
+  // }
+    
+  // Object.keys(json.values).forEach(function (key) {
+  //   values[key] = CType.fromJSON(json.values[key], index.getByKey(key), property);
+  // });
+  property.values = values;
+  return property;  
 };
 
 Property.prototype.fork = function (index) {
   var self = this;
-  var fProperty;
+  var fProperty, fType;
   // Cloud Types need to be forked
-  if (CloudType.isCloudType(this.CType)) {
-    fProperty = new Property(this.name, this.CType.fork(), index);
+  // if (CloudType.isCloudType(this.CType)) {
+  //   fType = this.CType.fork();
+  // } else {
+    fType = this.CType;
+  // }
+    fProperty = new Property(this.name, fType, index);
     self.forEachKey(function (key, val) {
       fProperty.values[key] = val.fork();
     });
   // References are just copied
-  } else {
-    fProperty = new Property(this.name, this.CType, index);
-    self.forEachKey(function (key, val) {
-      fProperty.values[key] = val;
-    });
-  }
+  // } else {
+  //   fProperty = new Property(this.name, this.CType, index);
+  //   self.forEachKey(function (key, val) {
+  //     fProperty.values[key] = val;
+  //   });
+  // }
   return fProperty;
 };
 
@@ -6816,7 +6835,179 @@ Property.prototype.restrictedFork = function (index, group) {
 };
 
 module.exports = Property;
-},{"./CSet":16,"./CloudType":18,"./Keys":22,"./TypeChecker":30}],25:[function(require,module,exports){
+},{"./CSet":16,"./CloudType":18,"./Keys":22,"./Reference":25,"./TypeChecker":31}],25:[function(require,module,exports){
+/**
+ * Created by ticup on 10/03/14.
+ */
+var CloudType = require('./CloudType');
+
+
+function ReferenceDeclaration(table) { 
+  function Reference(uid, isSet, entry) {
+    this.uid = uid;
+    this.isSet = isSet || false;
+    this.type = Reference;
+    this.entry = entry;
+  }
+
+
+  Reference.resolveTable = function (state) {
+    table = state.get(table);
+    Reference.prototype.table = table;
+  };
+
+  // Reference.table = function () {
+  //   return table;
+  // };
+
+  Reference.isTypeOf = function (entry) {
+    return entry.index == Reference.prototype.table;
+  };
+
+  Reference.newFor = function (entry, property) {
+    var ref = new Reference(null);
+    ref.entry = entry;
+    ref.property = property;
+    return ref;
+  };
+
+  Reference.getByKey = function (key) {
+    return Reference.prototype.table.getByKey(key);
+  };
+
+  Reference.fork = function () {
+    return new ReferenceDeclaration(Reference.prototype.table.name);
+  };
+
+  Reference.toJSON = function () {
+    return { tag: ReferenceDeclaration.tag, table: Reference.prototype.table.name };
+  };
+
+  // Retrieves an instance of a declared type CInt from json
+  // Not the complement of CInt.toJSON, but complement of CInt.prototype._toJSON!!
+  Reference.fromJSON = function (json, entry, property) {
+    var ref = new Reference(json.uid, json.isSet);
+    ref.entry = entry;
+    ref.property = property;
+    return ref;
+  };
+
+  Reference.isReference = function () {
+    return true;
+  };
+
+  Reference.toString = function () {
+    return "Reference<" + Reference.prototype.table.name + ">";
+  };
+
+  Reference.tag = "Reference";
+  Reference.prototype = Object.create(ReferencePrototype);
+
+  Reference.prototype.fork = function () {
+    var ref = new Reference(this.uid, false);
+    this.applyFork();
+    return ref;
+  };
+
+  Reference.prototype.get = function () {
+    if (Array.prototype.slice.call(arguments).length > 0) {
+      throw new Error("cannot call get on reference with arguments");
+    }
+    return this.table.getByKey(this.uid);
+  };
+
+  Reference.prototype.table = table;
+
+  return Reference;
+}
+
+ReferenceDeclaration.declare = function (table) {
+  return new ReferenceDeclaration(table);
+};
+
+ReferenceDeclaration.fromJSON = function (json) {
+  return new ReferenceDeclaration(json.table);
+};
+
+// register this declaration as usable (will also allow to create CSet with CloudType.fromJSON())
+ReferenceDeclaration.tag = "Reference";
+CloudType.register(ReferenceDeclaration);
+
+
+var ReferencePrototype = Object.create(CloudType.prototype);
+
+
+// Puts an instance of a declared type CInt to json
+ReferencePrototype.toJSON = function () {
+  return {
+    uid: this.uid,
+    isSet: this.isSet
+  };
+};
+
+// semantic operations
+ReferencePrototype.set = function (row) {
+  this.uid = row.serialKey()  ;
+  this.isSet = true;
+};
+
+
+
+// Defining _join(cint, target) provides the join and joinIn methods
+// by the CloudType prototype.
+ReferencePrototype._join = function (ref, target) {
+  if (ref.isSet) {
+    target.isSet  = true;
+    target.uid    = ref.uid;
+  } else {
+    target.isSet  = this.isSet;
+    target.uid    = this.uid;
+  }
+};
+
+ReferencePrototype.applyFork = function () {
+  this.isSet = false;
+  return this;
+};
+
+ReferencePrototype.replaceBy = function (ref) {
+  this.uid    = ref.uid;
+  this.isSet  = ref.isSet;
+};
+
+ReferencePrototype.equals = function (row) {
+  var val = this.get();
+  if (val === null && row === null) {
+    return true;
+  }
+  if (val === null || row === null) {
+    return false;
+  }
+  if (row.prototype == ReferencePrototype) {
+    return this.uid === row.uid;
+  }
+  return val.equals(row);
+};
+
+ReferencePrototype.isDefault = function () {
+  return (this.get() === null);
+};
+
+ReferencePrototype.isChanged = function (ref) {
+  return ref.isSet;
+};
+
+ReferencePrototype.toString = function () {
+  return "Reference<" + this.uid + ">";
+};
+
+exports.isReferenceDeclaration = function (type) {
+  return (typeof type.isReference === 'function' && type.isReference());
+};
+
+exports.Declaration = ReferenceDeclaration;
+exports.Prototype = ReferencePrototype;
+},{"./CloudType":18}],26:[function(require,module,exports){
 module.exports = Restricted;
 
 function Restricted(name) {
@@ -6864,11 +7055,12 @@ Restricted.prototype.toJSON = function () {
 Restricted.fromJSON = function (json) {
   return new Restricted();
 };
-},{}],26:[function(require,module,exports){
-var CloudType = require('./CloudType');
-var Index     = require('./Index');
-var Table     = require('./Table');
+},{}],27:[function(require,module,exports){
+var CloudType  = require('./CloudType');
+var Index      = require('./Index');
+var Table      = require('./Table');
 var Restricted = require('./Restricted');
+var Reference  = require('./Reference');
 var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = State;
@@ -7021,6 +7213,18 @@ State.fromJSON = function (json) {
       if (property.CType.prototype === CSetPrototype) {
         property.CType.entity      = state.get(array.name + property.name);
         property.CType.elementType = state.resolveKeyType(property.CType.elementType);
+        if (Reference.isReferenceDeclaration(property.CType.elementType)) {
+          property.CType.elementType.resolveTable(state);
+        }
+      }
+
+      // console.log('checking property ' + property.name + ' : ' + property.CType.table);
+      // Reference that needs reference replacement
+      // console.log(property.CType.prototype);
+      // console.log(ReferencePrototype);
+      // console.log(property.CType.prototype == ReferencePrototype);
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.CType.resolveTable(state);
       }
 
       // If property is a reference, find all the references for all keys of that property
@@ -7039,6 +7243,11 @@ State.fromJSON = function (json) {
       if (typeof type === 'string') {
         array.keys.types[i] = state.resolveKeyType(type);
       }
+      // // console.log(array.keys.types[i]);
+      // if (Reference.isReferenceDeclaration(array.keys.types[i])) {
+      //   console.log('solving reference key: ' + array.keys.types[i]);
+      //   array.keys.types[i].resolveTable(state);
+      // }
     });
   }); 
   return state;
@@ -7174,7 +7383,7 @@ State.prototype._join = function (rev, target) {
      
 
       // Joining Cloud Types (CInt/CString/CDate...) => semantics in the Cloud Type implementation
-      if (CloudType.isCloudType(property.CType)) {
+      // if (CloudType.isCloudType(property.CType)) {
         property.forEachKey(function (key) {
           var joiner = rev.getProperty(property).getByKey(key);
           var joinee = self.getProperty(property).getByKey(key);
@@ -7183,14 +7392,14 @@ State.prototype._join = function (rev, target) {
         });
 
       // Joining Table references => last writer semantics
-      } else {
+      // } else {
         // fix types for typechecker
-        rev.getProperty(property).CType = target.getProperty(property).CType;
-        property.forEachKey(function (key) {
-          var joiner = rev.getProperty(property).getByKey(key);
-          target.getProperty(property).set(key, joiner);
-        });
-      }
+        // rev.getProperty(property).CType = target.getProperty(property).CType;
+        // property.forEachKey(function (key) {
+        //   var joiner = rev.getProperty(property).getByKey(key);
+        //   target.getProperty(property).set(key, joiner);
+        // });
+      // }
     });
   });
 
@@ -7262,6 +7471,7 @@ State.prototype.restrictedFork = function (group) {
 
   forker.forAllArray(function (index) {
     var fIndex;
+
     if (!forker.authedForTable('read', index, group)) {
        // console.log('NOT authed for: ' + index.name);
       fIndex = new Restricted();
@@ -7279,14 +7489,14 @@ State.prototype.restrictedFork = function (group) {
     index.forEachProperty(function (property) {
 
       // Table Reference Type: replace by the new Table
-      if (!CloudType.isCloudType(property.CType)) {
-        var fIndex = forked.get(property.CType.name);
-        property.CType = fIndex;
+      // if (!CloudType.isCloudType(property.CType)) {
+      //   var fIndex = forked.get(property.CType.name);
+      //   property.CType = fIndex;
         // property.forEachKey(function (key, val) {
         //   var ref = fIndex.getByKey(val);
         //   property.values[key] = .apply(fIndex, val.keys);
         // });
-      }
+      // }
 
       // if CSet property -> give reference to the proxy entity
       if (property.CType.prototype === CSetPrototype) {
@@ -7295,12 +7505,22 @@ State.prototype.restrictedFork = function (group) {
           property.CType.elementType = forked.get(property.CType.elementType.name);
         }
       }
+
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.CType.prototype.table = forked.get(property.CType.prototype.table.name);
+      }
     });
 
     index.keys.forEach(function (key, type, i) {
       if (type instanceof Table) {
         index.keys.types[i] = forked.get(type.name);
       }
+      // console.log('key: ' + key);
+      // if (Reference.isReferenceDeclaration(type)) {
+      //   console.log(type);
+      //   type.resolveTable(forked);
+      //   console.log(type.prototype.table.name);
+      // }
     });
   });
   return forked;
@@ -7309,25 +7529,25 @@ State.prototype.restrictedFork = function (group) {
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
-    if (CloudType.isCloudType(property.CType)) {
+    // if (CloudType.isCloudType(property.CType)) {
       property.forEachKey(function (key) {
         var type = property.getByKey(key);
         type.applyFork();
       });
-    }
+    // }
   });
 };
 
 State.prototype.replaceBy = function (state) {
   var self = this;
   state.forEachProperty(function (property) {
-    if (CloudType.isCloudType(property.CType)) {
+    // if (CloudType.isCloudType(property.CType)) {
       property.forEachKey(function (key) {
         var type1 = property.getByKey(key);
         var type2 = self.getProperty(property).getByKey(key);
         type2.replaceBy(type1);
       });
-    }
+    // }
   });
   state.forEachEntity(function (entity) {
     self.get(entity.name).states = entity.states;
@@ -7344,21 +7564,25 @@ State.prototype.resolvePropertyType = function (type) {
 
     // 2) try to declare as reference to an Index
     if (typeof rType === 'undefined') {
-      rType = this.get(type);
+      rType = Reference.Declaration.declare(this.get(type));
     }
   }
-
+  if (type instanceof Table) {
+    return Reference.Declaration.declare(type);
+  }
+  if (Reference.isReferenceDeclaration(type)) {
+    return type;
+  }
   if (typeof rType === 'undefined') {
     throw new Error("Undefined Property Type: " + type);
   }
+
   return rType;
 };
 
 // Try to resolve to a real key type from a string
 State.prototype.resolveKeyType = function (type) {
-  if (type instanceof Table) {
-    return type;
-  }
+  // console.log('resvolving ' + type);
   if (typeof type === 'string') {
     if (type === 'string' || type === 'int') {
       return type;
@@ -7368,13 +7592,28 @@ State.prototype.resolveKeyType = function (type) {
       return rType;
     }
   }
+  if (type instanceof Table) {
+    return type;
+  }
+  // if (Reference.isReferenceDeclaration(type)) {
+  //   return type;
+  // }
   throw new Error("Only int, string or Table identifiers are allowed as keys, given " + type);
 };
 
 State.prototype.print = function () {
-  console.log(require('util').inspect(this, {depth: null}));
+  this.forEachArray(function (array) {
+    console.log(array.name);
+    array.keys.forEach(function (key, type, i) {
+      console.log("\t" + key + " : " + type.toString());
+    });
+    array.forEachProperty(function (property) {
+      console.log("\t\t" + property.name + " : " + property.CType.toString());
+    });
+  });
+  // console.log(require('util').inspect(this, {depth: null}));
 };
-},{"./Auth":14,"./CSet":16,"./CloudType":18,"./Index":19,"./Restricted":25,"./Table":27,"util":46}],27:[function(require,module,exports){
+},{"./Auth":14,"./CSet":16,"./CloudType":18,"./Index":19,"./Reference":25,"./Restricted":26,"./Table":28}],28:[function(require,module,exports){
 var Index      = require('./Index');
 var Keys       = require('./Keys');
 var Properties = require('./Properties');
@@ -7588,7 +7827,15 @@ Table.prototype.getByKeys = function (keys) {
 
 
 Table.prototype.exists = function (idx) {
-  return (typeof this.states[idx] !== 'undefined' && this.states[idx] === OK);
+  return (this.defined(idx) && this.created(idx));
+};
+
+Table.prototype.created = function (idx) {
+  return (this.states[idx] === OK);
+};
+
+Table.prototype.defined = function (idx) {
+  return (typeof this.states[idx] !== 'undefined');
 };
 
 Table.prototype.deleted = function (idx) {
@@ -7602,7 +7849,7 @@ Table.prototype.fork = function () {
   table.properties = this.properties.fork(table);
   table.states     = this.states;
   table.keyValues  = this.keyValues;
-  index.isProxy    = this.isProxy;
+  table.isProxy    = this.isProxy;
   return table;
 };
 
@@ -7639,7 +7886,7 @@ Table.prototype.toJSON = function () {
   };
 };
 
-},{"./Index":19,"./Keys":22,"./Properties":23,"./Property":24,"./TableEntry":28,"./TableQuery":29,"./TypeChecker":30}],28:[function(require,module,exports){
+},{"./Index":19,"./Keys":22,"./Properties":23,"./Property":24,"./TableEntry":29,"./TableQuery":30,"./TypeChecker":31}],29:[function(require,module,exports){
 var Keys        = require('./Keys');
 var IndexEntry  = require('./IndexEntry');
 var CloudType   = require('./CloudType');
@@ -7662,11 +7909,13 @@ TableEntry.prototype.delete = function () {
 };    
 
 TableEntry.prototype.equals = function (entry) {
-  if (!(entry instanceof TableEntry))
+  if (!(entry instanceof TableEntry)) {
     return false;
+  }
 
-  if (this.index !== entry.index)
+  if (this.index.name !== entry.index.name) {
     return false;
+  }
 
   return this.uid === entry.uid;
 };
@@ -7678,7 +7927,7 @@ TableEntry.prototype.serialKey = function () {
 TableEntry.prototype.toString = function () {
   return this.uid;
 };
-},{"./CloudType":18,"./IndexEntry":20,"./Keys":22,"./TypeChecker":30}],29:[function(require,module,exports){
+},{"./CloudType":18,"./IndexEntry":20,"./Keys":22,"./TypeChecker":31}],30:[function(require,module,exports){
 /**
  * Created by ticup on 07/11/13.
  */
@@ -7710,7 +7959,7 @@ TableQuery.prototype.all = function () {
   }
   return entities;
 };
-},{"./IndexQuery":21}],30:[function(require,module,exports){
+},{"./IndexQuery":21}],31:[function(require,module,exports){
 var CloudType = require('./CloudType');
 
 
@@ -7725,7 +7974,7 @@ var TypeChecker = {
         throw new Error("uncompatible key for declared type string: " + val);
       }
     } else {
-      if (typeof val.index === 'undefined' || val.index !== type) {
+      if (typeof val.index === 'undefined' || !type.isTypeOf(value)) {
         throw new Error("uncompatible key for declared type " + type.index.name + " : " + val);
       }
     }
@@ -7737,7 +7986,7 @@ var TypeChecker = {
         throw new Error("uncompatible property for declared property " + type.tag + " : " + val);
       }
     // Reference property: value has to be an entry of declared Table or null.
-    } else if (val !== null && (val.index === 'undefined' || val.index !== type)) {
+    } else if (val !== null && (val.index === 'undefined' || !type.isTypeOf(value))) {
         throw new Error("uncompatible property for declared property " + type + " : " + val);
     }
   },
@@ -7758,15 +8007,16 @@ var TypeChecker = {
         }
       } else {
         if (typeof value.index === 'undefined' || value.index !== type) {
-          throw new Error("uncompatible key for declared type " + typeof type + " " + value.index);
+          throw new Error("uncompatible key for declared type " + value);
         }
       }
     }
   }
 };
 
+
 module.exports = TypeChecker;
-},{"./CloudType":18}],31:[function(require,module,exports){
+},{"./CloudType":18}],32:[function(require,module,exports){
 
 // load normal client file
 var main = require('../../client/main');
@@ -7775,7 +8025,7 @@ var main = require('../../client/main');
 exports.CInt     = require('../extensions/CInt');
 exports.CString  = require('../extensions/CString');
 exports.State    = require('../extensions/State');
-},{"../../client/main":6,"../extensions/CInt":32,"../extensions/CString":33,"../extensions/State":34}],32:[function(require,module,exports){
+},{"../../client/main":6,"../extensions/CInt":33,"../extensions/CString":34,"../extensions/State":35}],33:[function(require,module,exports){
 // test/extensions/CInt.js
 //
 // Extends the CInt CloudType with the necessary test
@@ -7814,7 +8064,7 @@ CInt.prototype.isEqual = function (cint) {
 CInt.prototype.isConsistent = function (cint) {
   this.get().should.equal(cint.get());
 };
-},{"../../shared/CInt":15,"should":12}],33:[function(require,module,exports){
+},{"../../shared/CInt":15,"should":12}],34:[function(require,module,exports){
 // test/extensions/CString.js
 //
 // Extends the CString CloudType with the necessary test
@@ -7872,7 +8122,7 @@ CString.prototype.isConsistent = function (cstring) {
 //  console.log(this.get() + " =? " + cint.get());
   this.get().should.equal(cstring.get());
 };
-},{"../../shared/CString":17,"should":12,"util":46}],34:[function(require,module,exports){
+},{"../../shared/CString":17,"should":12,"util":47}],35:[function(require,module,exports){
 var State = require('../../shared/State');
 var CloudType = require('../../shared/CloudType');
 var should = require('should');
@@ -7990,7 +8240,7 @@ State.prototype.isConsistent = function (state) {
     });
   });
 };
-},{"../../shared/CloudType":18,"../../shared/State":26,"should":12}],35:[function(require,module,exports){
+},{"../../shared/CloudType":18,"../../shared/State":27,"should":12}],36:[function(require,module,exports){
 
 
 //
@@ -8208,7 +8458,7 @@ if (typeof Object.getOwnPropertyDescriptor === 'function') {
   exports.getOwnPropertyDescriptor = valueObject;
 }
 
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8281,7 +8531,7 @@ function onend() {
   timers.setImmediate(shims.bind(this.end, this));
 }
 
-},{"_shims":35,"_stream_readable":38,"_stream_writable":40,"timers":45,"util":46}],37:[function(require,module,exports){
+},{"_shims":36,"_stream_readable":39,"_stream_writable":41,"timers":46,"util":47}],38:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8324,7 +8574,7 @@ PassThrough.prototype._transform = function(chunk, encoding, cb) {
   cb(null, chunk);
 };
 
-},{"_stream_transform":39,"util":46}],38:[function(require,module,exports){
+},{"_stream_transform":40,"util":47}],39:[function(require,module,exports){
 var process=require("__browserify_process");// Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -9245,7 +9495,7 @@ function endReadable(stream) {
   }
 }
 
-},{"__browserify_process":69,"_shims":35,"buffer":48,"events":42,"stream":43,"string_decoder":44,"timers":45,"util":46}],39:[function(require,module,exports){
+},{"__browserify_process":70,"_shims":36,"buffer":49,"events":43,"stream":44,"string_decoder":45,"timers":46,"util":47}],40:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -9451,7 +9701,7 @@ function done(stream, er) {
   return stream.push(null);
 }
 
-},{"_stream_duplex":36,"util":46}],40:[function(require,module,exports){
+},{"_stream_duplex":37,"util":47}],41:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -9821,7 +10071,7 @@ function endWritable(stream, state, cb) {
   state.ended = true;
 }
 
-},{"buffer":48,"stream":43,"timers":45,"util":46}],41:[function(require,module,exports){
+},{"buffer":49,"stream":44,"timers":46,"util":47}],42:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -10138,7 +10388,7 @@ assert.doesNotThrow = function(block, /*optional*/message) {
 };
 
 assert.ifError = function(err) { if (err) {throw err;}};
-},{"_shims":35,"util":46}],42:[function(require,module,exports){
+},{"_shims":36,"util":47}],43:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -10419,7 +10669,7 @@ EventEmitter.listenerCount = function(emitter, type) {
     ret = emitter._events[type].length;
   return ret;
 };
-},{"util":46}],43:[function(require,module,exports){
+},{"util":47}],44:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -10548,7 +10798,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"_stream_duplex":36,"_stream_passthrough":37,"_stream_readable":38,"_stream_transform":39,"_stream_writable":40,"events":42,"util":46}],44:[function(require,module,exports){
+},{"_stream_duplex":37,"_stream_passthrough":38,"_stream_readable":39,"_stream_transform":40,"_stream_writable":41,"events":43,"util":47}],45:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -10741,7 +10991,7 @@ function base64DetectIncompleteChar(buffer) {
   return incomplete;
 }
 
-},{"buffer":48}],45:[function(require,module,exports){
+},{"buffer":49}],46:[function(require,module,exports){
 try {
     // Old IE browsers that do not curry arguments
     if (!setTimeout.call) {
@@ -10860,7 +11110,7 @@ if (!exports.setImmediate) {
   };
 }
 
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -11405,7 +11655,7 @@ function hasOwnProperty(obj, prop) {
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
-},{"_shims":35}],47:[function(require,module,exports){
+},{"_shims":36}],48:[function(require,module,exports){
 exports.readIEEE754 = function(buffer, offset, isBE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -11491,7 +11741,7 @@ exports.writeIEEE754 = function(buffer, value, offset, isBE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 var assert;
 exports.Buffer = Buffer;
 exports.SlowBuffer = Buffer;
@@ -12617,7 +12867,7 @@ Buffer.prototype.writeDoubleBE = function(value, offset, noAssert) {
   writeDouble(this, value, offset, true, noAssert);
 };
 
-},{"./buffer_ieee754":47,"assert":41,"base64-js":49}],49:[function(require,module,exports){
+},{"./buffer_ieee754":48,"assert":42,"base64-js":50}],50:[function(require,module,exports){
 (function (exports) {
 	'use strict';
 
@@ -12703,7 +12953,7 @@ Buffer.prototype.writeDoubleBE = function(value, offset, noAssert) {
 	module.exports.fromByteArray = uint8ToBase64;
 }());
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 var http = module.exports;
 var EventEmitter = require('events').EventEmitter;
 var Request = require('./lib/request');
@@ -12765,7 +13015,7 @@ var xhrHttp = (function () {
     }
 })();
 
-},{"./lib/request":51,"events":42}],51:[function(require,module,exports){
+},{"./lib/request":52,"events":43}],52:[function(require,module,exports){
 var Stream = require('stream');
 var Response = require('./response');
 var concatStream = require('concat-stream');
@@ -12899,7 +13149,7 @@ var indexOf = function (xs, x) {
     return -1;
 };
 
-},{"./response":52,"Base64":53,"concat-stream":54,"stream":43,"util":46}],52:[function(require,module,exports){
+},{"./response":53,"Base64":54,"concat-stream":55,"stream":44,"util":47}],53:[function(require,module,exports){
 var Stream = require('stream');
 var util = require('util');
 
@@ -13021,7 +13271,7 @@ var isArray = Array.isArray || function (xs) {
     return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{"stream":43,"util":46}],53:[function(require,module,exports){
+},{"stream":44,"util":47}],54:[function(require,module,exports){
 ;(function () {
 
   var
@@ -13078,7 +13328,7 @@ var isArray = Array.isArray || function (xs) {
 
 }());
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 var stream = require('stream')
 var bops = require('bops')
 var util = require('util')
@@ -13129,7 +13379,7 @@ module.exports = function(cb) {
 
 module.exports.ConcatStream = ConcatStream
 
-},{"bops":55,"stream":43,"util":46}],55:[function(require,module,exports){
+},{"bops":56,"stream":44,"util":47}],56:[function(require,module,exports){
 var proto = {}
 module.exports = proto
 
@@ -13150,9 +13400,9 @@ function mix(from, into) {
   }
 }
 
-},{"./copy.js":58,"./create.js":59,"./from.js":60,"./is.js":61,"./join.js":62,"./read.js":64,"./subarray.js":65,"./to.js":66,"./write.js":67}],56:[function(require,module,exports){
-module.exports=require(49)
-},{}],57:[function(require,module,exports){
+},{"./copy.js":59,"./create.js":60,"./from.js":61,"./is.js":62,"./join.js":63,"./read.js":65,"./subarray.js":66,"./to.js":67,"./write.js":68}],57:[function(require,module,exports){
+module.exports=require(50)
+},{}],58:[function(require,module,exports){
 module.exports = to_utf8
 
 var out = []
@@ -13227,7 +13477,7 @@ function reduced(list) {
   return out
 }
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 module.exports = copy
 
 var slice = [].slice
@@ -13281,12 +13531,12 @@ function slow_copy(from, to, j, i, jend) {
   }
 }
 
-},{}],59:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 module.exports = function(size) {
   return new Uint8Array(size)
 }
 
-},{}],60:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 module.exports = from
 
 var base64 = require('base64-js')
@@ -13346,13 +13596,13 @@ function from_base64(str) {
   return new Uint8Array(base64.toByteArray(str)) 
 }
 
-},{"base64-js":56}],61:[function(require,module,exports){
+},{"base64-js":57}],62:[function(require,module,exports){
 
 module.exports = function(buffer) {
   return buffer instanceof Uint8Array;
 }
 
-},{}],62:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 module.exports = join
 
 function join(targets, hint) {
@@ -13390,7 +13640,7 @@ function get_length(targets) {
   return size
 }
 
-},{}],63:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 var proto
   , map
 
@@ -13412,7 +13662,7 @@ function get(target) {
   return out
 }
 
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 module.exports = {
     readUInt8:      read_uint8
   , readInt8:       read_int8
@@ -13501,14 +13751,14 @@ function read_double_be(target, at) {
   return dv.getFloat64(at + target.byteOffset, false)
 }
 
-},{"./mapped.js":63}],65:[function(require,module,exports){
+},{"./mapped.js":64}],66:[function(require,module,exports){
 module.exports = subarray
 
 function subarray(buf, from, to) {
   return buf.subarray(from || 0, to || buf.length)
 }
 
-},{}],66:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 module.exports = to
 
 var base64 = require('base64-js')
@@ -13546,7 +13796,7 @@ function to_base64(buf) {
 }
 
 
-},{"base64-js":56,"to-utf8":57}],67:[function(require,module,exports){
+},{"base64-js":57,"to-utf8":58}],68:[function(require,module,exports){
 module.exports = {
     writeUInt8:      write_uint8
   , writeInt8:       write_int8
@@ -13634,7 +13884,7 @@ function write_double_be(target, value, at) {
   return dv.setFloat64(at + target.byteOffset, value, false)
 }
 
-},{"./mapped.js":63}],68:[function(require,module,exports){
+},{"./mapped.js":64}],69:[function(require,module,exports){
 require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 exports.readIEEE754 = function(buffer, offset, isBE, mLen, nBytes) {
   var e, m,
@@ -16014,7 +16264,7 @@ function hasOwnProperty(obj, prop) {
 },{"_shims":5}]},{},[])
 ;;module.exports=require("buffer-browserify")
 
-},{}],69:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -16068,5 +16318,5 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}]},{},[31])
+},{}]},{},[32])
 ;

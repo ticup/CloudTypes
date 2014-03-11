@@ -10,6 +10,7 @@ var CloudType   = require('./CloudType');
 var CSet        = require('./CSet');
 var TypeChecker = require('./TypeChecker');
 var Keys        = require('./Keys');
+var Reference   = require('./Reference');
 
 function Property(name, CType, index, values) {
   this.name   = name;
@@ -36,11 +37,11 @@ Property.prototype.set = function (key, val) {
   TypeChecker.property(val, this.CType);
   
   // If it's a reference, simply store its uid
-  if (!CloudType.isCloudType(this.CType)) {
-    if (val !== null) {
-      val = val.serialKey();
-    }
-  }
+  // if (this.CType.prototype === Reference.Prototype) {
+  //   if (val !== null) {
+  //     val = val.serialKey();
+  //   }
+  // }
   this.values[key] = val;
 };
 
@@ -60,31 +61,34 @@ Property.prototype.getByKey = function (key) {
     var entry = this.index.getByKey(key);
 
     // if it is a Cloud Type, make a new default.
-    if (CloudType.isCloudType(this.CType)) {
+    // if (CloudType.isCloudType(this.CType)) { 
       ctype = this.CType.newFor(entry, this);
 
       // do not add to values property for a CSet, because it is kept in dedicated Table
       if (this.CType.prototype === CSet.CSetPrototype) {
         return ctype;
       }
+    // } else {
+      // ctype = Reference.newFor(entry, this);
+    // }
       
-      // otherwise add the new cloudtype to the values property for this key
+      // add the new cloudtype to the values property for this key
       this.values[key] = ctype;
       return ctype;
 
     // if it is a reference and the key does not exist yet, return null
-    } else {
-      return null;
-    }
+    // } else {
+      // return null;
+    // }
   }
 
   // 2) The key exists
   // if it is a Cloud Type, simply return the value
-  if (CloudType.isCloudType(this.CType)) {
-    return ctype;
-  }
+  // if (CloudType.isCloudType(this.CType)) {
+  return ctype;
+  // }
   // if it's a reference, retrieve the entry for that key from the referred Table.
-  return this.CType.getByKey(ctype);
+  // return this.CType.getByKey(ctype);
 };
 
 
@@ -109,58 +113,63 @@ Property.prototype.toJSON = function () {
   var self = this;
   var values = {};
   
-  if (CloudType.isCloudType(this.CType)) {
+  // if (CloudType.isCloudType(this.CType)) {
     type = this.CType.toJSON();
-    self.forEachKey(function (key, val) {
-      values[key] = val.toJSON();
-    });
-  } else {
-    type = this.CType.name;
-    self.forEachKey(function (key, val) {
-      values[key] = val;
-    });
-  }
+  // } else {
+    // type = this.CType.name;
+  // }
+  self.forEachKey(function (key, val) {
+    values[key] = val.toJSON();
+  });
   return { name: this.name, type: type, values: values };
 };
 
 Property.fromJSON = function (json, index) {
   var values = {};
+  var CType;
   
   // If the property is a Cloud Type, rebuild all entries
-  if (CloudType.isCloudType(json.type)) {
-    var CType = CloudType.fromJSON(json.type);
+  // if (CloudType.isCloudType(json.type)) {
+    CType = CloudType.fromJSON(json.type);
     var property = new Property(json.name, CType, index);
     Object.keys(json.values).forEach(function (key) {
       values[key] = CType.fromJSON(json.values[key], index.getByKey(key), property);
     });
-    property.values = values;
-    return property;
-  }
-
-  // Otherwise it's a reference that will be replaced by the real reference in the second scan
-  Object.keys(json.values).forEach(function (key) {
-    values[key] = json.values[key];
-  });
-  return new Property(json.name, json.type, index, values);
-  
+  // } else {
+    // Otherwise it's a reference that will be replaced by the real reference in the second scan
+    // CType = json.type;
+    // Object.keys(json.values).forEach(function (key) {
+      // values[key] = Reference.fromJSON(json.values[key], index.getByKey(key), property);
+    // });
+  // }
+    
+  // Object.keys(json.values).forEach(function (key) {
+  //   values[key] = CType.fromJSON(json.values[key], index.getByKey(key), property);
+  // });
+  property.values = values;
+  return property;  
 };
 
 Property.prototype.fork = function (index) {
   var self = this;
-  var fProperty;
+  var fProperty, fType;
   // Cloud Types need to be forked
-  if (CloudType.isCloudType(this.CType)) {
-    fProperty = new Property(this.name, this.CType.fork(), index);
+  // if (CloudType.isCloudType(this.CType)) {
+  //   fType = this.CType.fork();
+  // } else {
+    fType = this.CType;
+  // }
+    fProperty = new Property(this.name, fType, index);
     self.forEachKey(function (key, val) {
       fProperty.values[key] = val.fork();
     });
   // References are just copied
-  } else {
-    fProperty = new Property(this.name, this.CType, index);
-    self.forEachKey(function (key, val) {
-      fProperty.values[key] = val;
-    });
-  }
+  // } else {
+  //   fProperty = new Property(this.name, this.CType, index);
+  //   self.forEachKey(function (key, val) {
+  //     fProperty.values[key] = val;
+  //   });
+  // }
   return fProperty;
 };
 

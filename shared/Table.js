@@ -211,7 +211,15 @@ Table.prototype.getByKeys = function (keys) {
 
 
 Table.prototype.exists = function (idx) {
-  return (typeof this.states[idx] !== 'undefined' && this.states[idx] === OK);
+  return (this.defined(idx) && this.created(idx));
+};
+
+Table.prototype.created = function (idx) {
+  return (this.states[idx] === OK);
+};
+
+Table.prototype.defined = function (idx) {
+  return (typeof this.states[idx] !== 'undefined');
 };
 
 Table.prototype.deleted = function (idx) {
@@ -225,7 +233,7 @@ Table.prototype.fork = function () {
   table.properties = this.properties.fork(table);
   table.states     = this.states;
   table.keyValues  = this.keyValues;
-  index.isProxy    = this.isProxy;
+  table.isProxy    = this.isProxy;
   return table;
 };
 

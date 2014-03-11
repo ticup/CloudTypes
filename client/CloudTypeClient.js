@@ -33,6 +33,7 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
       self.socket.emit('init', function (json) {
         console.log(json.uid);
         state = State.fromJSON(json.state);
+        state.print();
         self.uid = json.uid;
         self.state = state;
         self.state.init(json.cid, self);

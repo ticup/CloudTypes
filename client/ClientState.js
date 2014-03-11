@@ -113,6 +113,7 @@ State.prototype.joinIn = function (state) {
       }
     });
   });
+  self.propagate();
   return state;
 };
 

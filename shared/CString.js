@@ -38,6 +38,10 @@ CString.fork = function () {
   return CString;
 };
 
+CString.toString = function () {
+  return "CString";
+};
+
 // Create a new instance of the declared CString for given entry
 CString.newFor = function (entry) {
   var cstring = new CString();

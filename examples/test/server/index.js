@@ -11,3 +11,8 @@ var port = process.env.PORT || 8080;
 makeThings(server).publish(port, __dirname + '/../../../');
 
 console.log("#### CloudTypes Test Example server running on " + port + " ####");
+
+
+server.state.print();
+server.state.restrictedFork(server.state.auth.guest).toJSON();
+// server.state.toJSON();

@@ -40,6 +40,9 @@ CInt.fork = function () {
   return CInt;
 };
 
+CInt.toString = function () {
+  return "CInt";
+};
 
 // Create a new instance of the declared CInt for given entry
 CInt.newFor = function (entry, property) {
