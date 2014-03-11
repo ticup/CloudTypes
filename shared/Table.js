@@ -237,16 +237,16 @@ Table.prototype.fork = function () {
   return table;
 };
 
-Table.prototype.restrictedFork = function (group) {
-  var fKeys = this.keys.fork();
-  var table = new Table();
-  table.keys = fKeys;
-  table.properties = this.properties.restrictedFork(table, group);
-  table.states     = this.states;
-  table.isProxy    = this.isProxy;
-  table.keyValues  = this.keyValues;
-  return table;
-};
+// Table.prototype.restrictedFork = function (group) {
+//   var fKeys = this.keys.fork();
+//   var table = new Table();
+//   table.keys = fKeys;
+//   table.properties = this.properties.restrictedFork(table, group);
+//   table.states     = this.states;
+//   table.isProxy    = this.isProxy;
+//   table.keyValues  = this.keyValues;
+//   return table;
+// };
 
 Table.fromJSON = function (json) {
   var table = new Table();

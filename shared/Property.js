@@ -173,20 +173,20 @@ Property.prototype.fork = function (index) {
   return fProperty;
 };
 
-Property.prototype.restrictedFork = function (index, group) {
-  var self = this;
+// Property.prototype.restrictedFork = function (index, group) {
+//   var self = this;
 
-  // Need to be authed to read this column
-  if (!self.index.state.authedForColumn('read', self.index, self.name, group)) {
-    return null;
-  }
+//   // Need to be authed to read this column
+//   if (!self.index.state.authedForColumn('read', self.index, self.name, group)) {
+//     return null;
+//   }
 
-  // If its a reference, it needs to be authed to read the reference table
-  if (Reference.isReferenceDeclaration(self.CType) && !self.index.state.authedForTable('read', self.CType.prototype.table, group)) {
-    return null;
-  }
+//   // If its a reference, it needs to be authed to read the reference table
+//   if (Reference.isReferenceDeclaration(self.CType) && !self.index.state.authedForTable('read', self.CType.prototype.table, group)) {
+//     return null;
+//   }
   
-  return self.fork(index);
-};
+//   return self.fork(index);
+// };
 
 module.exports = Property;

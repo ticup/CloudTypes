@@ -6001,9 +6001,17 @@ Property.prototype.fork = function (index) {
 
 Property.prototype.restrictedFork = function (index, group) {
   var self = this;
+
+  // Need to be authed to read this column
   if (!self.index.state.authedForColumn('read', self.index, self.name, group)) {
     return null;
   }
+
+  // If its a reference, it needs to be authed to read the reference table
+  if (Reference.isReferenceDeclaration(self.CType) && !self.index.state.authedForTable('read', self.CType.prototype.table, group)) {
+    return null;
+  }
+  
   return self.fork(index);
 };
 
@@ -6625,30 +6633,90 @@ State.prototype.join = function (rev) {
   return this._join(rev, this);
 };
 
-// State.prototype.fork = function () {
-//   var forked = new State();
-//   var forker = this;
-  
-//   forker.forEachArray(function (index) {
-//     var fIndex = index.fork();
-//     forked.declare(index.name, fIndex);
-//   });
+State.prototype.fork = function () {
+  var forked = new State();
+  var forker = this;
 
-//   // set new references
-//   forked.forEachArray(function (index) {
-//     index.forEachProperty(function (property) {
-//       if (!CloudType.isCloudType(property.CType)) {
-//         var fIndex = forked.get(property.CType.name);
-//         property.CType = fIndex;
-//         // property.forEachKey(function (key, val) {
-//         //   var ref = fIndex.getByKey(val);
-//         //   property.values[key] = .apply(fIndex, val.keys);
-//         // });
-//       }
-//     });
-//   });
-//   return forked;
-// };
+  forker.forAllArray(function (index) {
+    var fIndex = index.fork();
+    fIndex.name = index.name;
+    fIndex.state = forked;
+    forked.add(fIndex);
+  });
+
+  // Fix Type references
+  forked.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+
+      // Table Reference Type: replace by the new Table
+      // if (!CloudType.isCloudType(property.CType)) {
+      //   var fIndex = forked.get(property.CType.name);
+      //   property.CType = fIndex;
+        // property.forEachKey(function (key, val) {
+        //   var ref = fIndex.getByKey(val);
+        //   property.values[key] = .apply(fIndex, val.keys);
+        // });
+      // }
+
+      // if CSet property -> give reference to the proxy entity
+      if (property.CType.prototype === CSetPrototype) {
+        property.CType.entity      = forked.get(index.name + property.name);
+        if (property.CType.elementType instanceof Table) {
+          property.CType.elementType = forked.get(property.CType.elementType.name);
+        }
+      }
+
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.CType.prototype.table = forked.get(property.CType.prototype.table.name);
+      }
+    });
+
+    index.keys.forEach(function (key, type, i) {
+      if (type instanceof Table) {
+        index.keys.types[i] = forked.get(type.name);
+      }
+      // console.log('key: ' + key);
+      // if (Reference.isReferenceDeclaration(type)) {
+      //   console.log(type);
+      //   type.resolveTable(forked);
+      //   console.log(type.prototype.table.name);
+      // }
+    });
+  });
+  return forked;
+};
+
+State.prototype.restrict = function (group) {
+  var self = this;
+
+  self.forAllArray(function (index) {
+
+    // If not authed to read table, replace by Restricted object
+    if (!self.authedForTable('read', index, group)) {
+      var restricted = new Restricted(index.name);
+      restricted.state = self;
+      self.add(restricted);
+      return;
+    }
+
+    index.forEachProperty(function (property) {
+
+      // If not authed to read property, remove the property
+      if (!self.authedForColumn('read', index, property.name, group)) {
+        delete index.properties.properties[property.name];
+      }
+
+      // If its a reference, it needs to be authed to read the reference table
+      if (Reference.isReferenceDeclaration(property.CType) && !self.authedForTable('read', property.CType.prototype.table, group)) {
+        delete index.properties.properties[property.name];
+      }
+    });
+
+    // property.forEachKey(function (key) {
+
+    // });
+  });
+};
 
 State.prototype.restrictedFork = function (group) {
   var forked = new State();

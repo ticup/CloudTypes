@@ -53,10 +53,8 @@ Server.prototype.open = function (target, staticPath) {
     socket.on('init', function (initClient) {
       uid = self.generateUID();
       var group = self.getGroup(cuser);
-      var forked = self.state.restrictedFork(group);
-      console.log('TEST');
-      console.log(group.index == forked.get('SysGroup'));
-      initClient({ uid: uid, cid: ++cid, state: forked});
+      var fork = self.state.fork().restrict(group);
+      initClient({ uid: uid, cid: ++cid, state: fork});
     });
 
     socket.on('YieldPush', function (json, yieldPull) {
@@ -70,7 +68,7 @@ Server.prototype.open = function (target, staticPath) {
         return yieldPull("Unauthorized Access!");
       }
       self.state.join(state);
-      var fork = self.state.restrictedFork(group);
+      var fork = self.state.fork().restrict(group);
       yieldPull(null, fork);
     });
 
@@ -88,7 +86,7 @@ Server.prototype.open = function (target, staticPath) {
       console.log('authorized');
       self.state.join(state);
       console.log('joined');
-      var fork = self.state.restrictedFork(group);
+      var fork = self.state.fork().restrict(group);
       console.log('forked');
       flushPull(null, fork);
     });

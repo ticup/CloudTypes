@@ -45,15 +45,15 @@ Properties.prototype.fork = function (index) {
   return fProperties;
 };
 
-Properties.prototype.restrictedFork = function (index, group) {
-  var fProperties = new Properties();
-  this.forEach(function (property) {
-    var fork = property.restrictedFork(index, group);
-    if (fork) {
-      fProperties.add(fork);
-    }
-  });
-  return fProperties;
-};
+// Properties.prototype.restrictedFork = function (index, group) {
+//   var fProperties = new Properties();
+//   this.forEach(function (property) {
+//     var fork = property.restrictedFork(index, group);
+//     if (fork) {
+//       fProperties.add(fork);
+//     }
+//   });
+//   return fProperties;
+// };
 
 module.exports = Properties;
