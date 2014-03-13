@@ -82,7 +82,7 @@ State.prototype.checkChanges = function (state, user) {
     var serverEntity = self.get(clientEntity.name);
     clientEntity.forEachState(function (key, val) {
       if (clientEntity.deleted(key) && !serverEntity.deleted(key)) {
-        var entry = clientEntity.getByKey(key);
+        var entry = serverEntity.getByKey(key);
         if (!self.authedForRow('delete', entry, user)) {
           console.log(group.get('name').get() + ' not authed for delete of ' + clientEntity.name);
           valid = false;
@@ -105,6 +105,7 @@ State.prototype.checkChanges = function (state, user) {
         var joinee = self.getProperty(property).getByKey(key);
         if (isChanged(joinee, joiner, property)) {
           var entry = array.getByKey(key);
+          console.log(key + ' changed ');
           if (!self.authedForEntry('update', entry, property, user)) {
             console.log(group.get('name').get() + ' not authed for update of ' + array.name);
             valid = false;

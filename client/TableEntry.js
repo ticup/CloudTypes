@@ -15,6 +15,6 @@ TableEntry.prototype.set = function () {
 var remove = TableEntry.prototype.delete;
 TableEntry.prototype.delete = function () {
   console.log('DELETING');
-  // this.index.state.checkTablePermission('delete', this.index, this.index.state.getGroup());
+  this.index.state.checkTablePermission('delete', this.index, this.index.state.getUser());
   return remove.apply(this, Array.prototype.slice.apply(arguments));
 };

@@ -128,7 +128,6 @@ Auth.prototype.grantAll = function (tableName, type, sys) {
   var self = this;
   var auth = self.Auth.create();
   var table = this.state.get(tableName);
-  sys = sys || 'N';
 
   // Guest group
   // 1) with grantopt: no access

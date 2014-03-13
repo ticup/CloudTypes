@@ -6,7 +6,7 @@ module.exports = CIntModule;
 
 var update = CInt.prototype.set;
 CInt.prototype.set = function (val) {
-  this.entry.index.state.checkColumnPermission('update', this.entry.index, this.property.name, this.entry.index.state.getGroup());
+  // this.entry.index.state.checkColumnPermission('update', this.entry.index, this.property.name, this.entry.index.state.getUser());
   update.call(this, val);
 };
 },{"../shared/CInt":15}],2:[function(require,module,exports){
@@ -5554,7 +5554,7 @@ function addAuthentication(State) {
     var authed = false;
     var property = table.getProperty(cname);
     var group = user.get('group').get();
-    
+
     // Already restricted
     if (table instanceof Restricted) {
       return false;
@@ -5622,6 +5622,9 @@ function addAuthentication(State) {
     var group = user.get('group').get();
     var table = entry.index;
 
+
+    console.log(user.get('name').get() + ' authed for row ' + entry.uid + '?');
+
     // already restricted
     if (table instanceof Restricted)
       return false;
@@ -5637,7 +5640,7 @@ function addAuthentication(State) {
 
         // Authed for view
         } else {
-          var view = self.getView(colAuth.get('vname').get());
+          var view = self.getView(auth.get('vname').get());
           if (view.includes(entry)) {
             authed = true;
           }
@@ -5646,22 +5649,41 @@ function addAuthentication(State) {
     });
 
     if (!authed) {
-      console.log(group.get('name').get() + ' not authed for ' + table.name);
-      return false;
+      console.log(group.get('name').get() + ' not explicitly authed for ' + table.name);
+
+      // Implicit authorization for delete
+      if (action === 'delete') {
+        console.log('looking for implicit delete authorization');
+        table.keys.forEachKey(function (key, type, i) {
+        // TODO: change to Index, when indexes are taken into account
+          if (type instanceof Table) {
+            var keyEntry = entry.key(key);
+            if (self.authedForRow(action, keyEntry, user)) {
+              authed = true;
+            }
+          }
+        });
+      } else {
+        console.log(group.get('name').get() + ' not authed for ' + table.name);
+        return false;
+      } 
     }
 
-    // Needs to have access to the key entries
+
+    
+
+    // Needs to have read access to the key entries
     table.keys.forEach(function (key, type, i) {
       if (type instanceof Table) {
         var keyEntry = entry.key(key);
         if (!self.authedForRow('read', keyEntry, user)) {
+          console.log(group.get('name').get() + ' not authed for ' + table.name + ' because no read access for keys');
           authed = false;
         }
       }
     });
 
     return authed;
-
   };
 
 
@@ -5707,6 +5729,7 @@ function addAuthentication(State) {
 
         // 2.1) Full column access (Table)
         if (colAuth.get('type').equals('T')) {
+          console.log(group.get('name').get() + ' has full ' + action + ' access to ' + entry.index.name + '.'+property.name);
           authed = true;
 
         // 2.2) Column row access (View)
@@ -5872,6 +5895,7 @@ function addAuthentication(State) {
         }
       });
     }
+
     return permission;
   };
 
@@ -7615,6 +7639,19 @@ State.prototype.deleted = function (key, entity) {
   return false;
 };
 
+
+State.prototype.dependendOn = function (child, parent) {
+  var self = this;
+  var dependend = false;
+  child.keys.forEach(function (name, type, i) {
+    if (type instanceof Index) {
+      if (parent == type || self.dependendOn(type, parent)) {
+        dependend = true;
+      }
+    }
+  });
+  return dependend;
+};
 
 
 State.prototype._join = function (rev, target) {

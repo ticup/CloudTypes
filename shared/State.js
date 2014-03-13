@@ -305,6 +305,19 @@ State.prototype.deleted = function (key, entity) {
 };
 
 
+State.prototype.dependendOn = function (child, parent) {
+  var self = this;
+  var dependend = false;
+  child.keys.forEach(function (name, type, i) {
+    if (type instanceof Index) {
+      if (parent == type || self.dependendOn(type, parent)) {
+        dependend = true;
+      }
+    }
+  });
+  return dependend;
+};
+
 
 State.prototype._join = function (rev, target) {
   var master = (this === target) ? rev : this;

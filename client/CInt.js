@@ -5,6 +5,6 @@ module.exports = CIntModule;
 
 var update = CInt.prototype.set;
 CInt.prototype.set = function (val) {
-  this.entry.index.state.checkColumnPermission('update', this.entry.index, this.property.name, this.entry.index.state.getGroup());
+  // this.entry.index.state.checkColumnPermission('update', this.entry.index, this.property.name, this.entry.index.state.getUser());
   update.call(this, val);
 };
