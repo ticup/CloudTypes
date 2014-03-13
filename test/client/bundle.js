@@ -278,7 +278,7 @@ module.exports = Table;
 var create = Table.prototype.create;
 Table.prototype.create = function () {
   console.log('CREATING');
-  // this.state.checkTablePermission('create', this, this.state.getUser());
+  this.state.checkCreateOnTablePermission(this, this.state.getUser());
   return create.apply(this, Array.prototype.slice.apply(arguments));
 };
 },{"../shared/Table":29}],6:[function(require,module,exports){
@@ -291,7 +291,7 @@ var update = TableEntry.prototype.set;
 TableEntry.prototype.set = function () {
   var args = Array.prototype.slice.apply(arguments);
   console.log('UPDATING ' + Array.prototype.slice.apply(arguments));
-  // this.index.state.checkColumnPermission('update', this.index, args[0], this.index.state.getGroup());
+  this.index.state.checkEntryPropertyPermission('update', this, args[0], this.index.state.getUser());
   return update.apply(this, args);
 };
 
