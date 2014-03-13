@@ -53,9 +53,10 @@ CString.toJSON = function () {
   return { tag: CStringDeclaration.tag };
 };
 
-CString.fromJSON = function (json, entry) {
+CString.fromJSON = function (json, entry, property) {
   var cstring = new CString(json.value, json.written, json.cond);
   cstring.entry = entry;
+  cstring.property = property;
   return cstring;
 };
 

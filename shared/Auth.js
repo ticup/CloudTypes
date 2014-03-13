@@ -204,9 +204,15 @@ function addAuthentication(State) {
     }
   };
 
-  State.prototype.checkColumnPermission = function (action, index, columnName, group) {
-    if (!this.authedForColumn(action, index, columnName, group)) {
-      throw new Error("Not authorized to perform " + action + " on " + index.name + "." + columnName);
+  // State.prototype.checkColumnPermission = function (action, index, columnName, group) {
+  //   if (!this.authedForColumn(action, index, columnName, group)) {
+  //     throw new Error("Not authorized to perform " + action + " on " + index.name + "." + columnName);
+  //   }
+  // };
+
+  State.prototype.checkEntryPropertyPermission = function (action, entry, property, user) {
+    if (!this.authedForEntryProperty(action, entry, property, user)) {
+      throw new Error("Not authorized to perform " + action + " on " + property.index.name + "." + property.name);
     }
   };
 
@@ -436,7 +442,7 @@ function addAuthentication(State) {
   };
 
 
-  State.prototype.authedForEntry = function (action, entry, property, user) {
+  State.prototype.authedForEntryProperty = function (action, entry, property, user) {
     var self = this;
     var authed = true;
     var group = user.get('group').get();

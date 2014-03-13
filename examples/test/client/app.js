@@ -1,7 +1,7 @@
 var testApp = angular.module('testApp', ['cloudtypes', 'avbuttons']);
 
 // make a controller and inject the $client and $state service of the cloudtypes module
-testApp.controller('StateCtrl', function ($scope, $client, $state) {
+testApp.controller('StateCtrl', function ($scope, $CInt, $CString, $client, $state) {
 
   // the $state service automatically sets up a connection to the cloud types server
   // and returns a promise for the state.
@@ -63,6 +63,13 @@ testApp.controller('StateCtrl', function ($scope, $client, $state) {
     } catch(err) {
       alert(err);
     }
+  };
+
+  $scope.typeToInput = function (cloudtype) {
+    if (cloudtype instanceof $CInt) {
+      return 'number';
+    }
+    return 'string';
   };
 
 

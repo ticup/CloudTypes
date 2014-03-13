@@ -6,10 +6,23 @@ module.exports = CIntModule;
 
 var update = CInt.prototype.set;
 CInt.prototype.set = function (val) {
-  // this.entry.index.state.checkColumnPermission('update', this.entry.index, this.property.name, this.entry.index.state.getUser());
+  this.entry.index.state.checkEntryPropertyPermission('update', this.entry, this.property, this.entry.index.state.getUser());
   update.call(this, val);
 };
-},{"../shared/CInt":13}],2:[function(require,module,exports){
+},{"../shared/CInt":14}],2:[function(require,module,exports){
+var CStringModule = require('../shared/CString');
+var CString = CStringModule.CString;
+
+module.exports = CStringModule;
+
+var update = CString.prototype.set;
+CString.prototype.set = function (val) {
+  console.log(this.entry);
+  console.log(this.property);
+  this.entry.index.state.checkEntryPropertyPermission('update', this.entry, this.property, this.entry.index.state.getUser());
+  update.call(this, val);
+};
+},{"../shared/CString":16}],3:[function(require,module,exports){
 var State = require('../shared/State');
 var CSetPrototype  = require('../shared/CSet').CSetPrototype;
 var Restricted = require('../shared/Restricted');
@@ -140,7 +153,7 @@ State.prototype.joinIn = function (state) {
 // State.prototype.checkColumnPermission = function (action, table, cname) {
 //   return checkColumnPermission.call(this, action, table, cname, this.client.group);
 // };
-},{"../shared/CSet":14,"../shared/Index":17,"../shared/Restricted":24,"../shared/State":25}],3:[function(require,module,exports){
+},{"../shared/CSet":15,"../shared/Index":18,"../shared/Restricted":25,"../shared/State":26}],4:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var State       = require('./ClientState');
 var io          = require('socket.io-client');
 
@@ -258,7 +271,7 @@ Client.prototype.login = function (username, password, finish) {
     finish(null, true);
   });
 };
-},{"./ClientState":2,"socket.io-client":11}],4:[function(require,module,exports){
+},{"./ClientState":3,"socket.io-client":12}],5:[function(require,module,exports){
 var Table = require('../shared/Table');
 module.exports = Table;
 
@@ -268,7 +281,7 @@ Table.prototype.create = function () {
   // this.state.checkTablePermission('create', this, this.state.getGroup());
   return create.apply(this, Array.prototype.slice.apply(arguments));
 };
-},{"../shared/Table":26}],5:[function(require,module,exports){
+},{"../shared/Table":27}],6:[function(require,module,exports){
 var TableEntry = require('../shared/TableEntry');
 module.exports = TableEntry;
 
@@ -286,15 +299,15 @@ TableEntry.prototype.set = function () {
 var remove = TableEntry.prototype.delete;
 TableEntry.prototype.delete = function () {
   console.log('DELETING');
-  // this.index.state.checkTablePermission('delete', this.index, this.index.state.getGroup());
+  this.index.state.checkTablePermission('delete', this.index, this.index.state.getUser());
   return remove.apply(this, Array.prototype.slice.apply(arguments));
 };
-},{"../shared/TableEntry":27}],6:[function(require,module,exports){
+},{"../shared/TableEntry":28}],7:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var CloudTypeClient = require('./CloudTypeClient');
 var ClientState     = require('./ClientState');
 
 var CInt            = require('./CInt');
-var CString         = require('../shared/CString');
+var CString         = require('./CString');
 var Index           = require('../shared/Index');
 var Restricted      = require('../shared/Restricted');
 var Table           = require('./Table');
@@ -328,7 +341,7 @@ var CloudTypes = {
 
 global.CloudTypes = CloudTypes;
 module.exports = CloudTypes;
-},{"../shared/CString":15,"../shared/Index":17,"../shared/Restricted":24,"./CInt":1,"./ClientState":2,"./CloudTypeClient":3,"./Table":4,"./TableEntry":5,"./views/EditableListView":7,"./views/EntryView":8,"./views/ListView":9,"./views/View":10}],7:[function(require,module,exports){
+},{"../shared/Index":18,"../shared/Restricted":25,"./CInt":1,"./CString":2,"./ClientState":3,"./CloudTypeClient":4,"./Table":5,"./TableEntry":6,"./views/EditableListView":8,"./views/EntryView":9,"./views/ListView":10,"./views/View":11}],8:[function(require,module,exports){
 /**
  * Created by ticup on 06/11/13.
  */
@@ -350,7 +363,7 @@ var EditableListView = ListView.extend({
 });
 
 module.exports = EditableListView;
-},{"./ListView":9}],8:[function(require,module,exports){
+},{"./ListView":10}],9:[function(require,module,exports){
 /**
  * Created by ticup on 04/11/13.
  */
@@ -392,7 +405,7 @@ function defaults(entryView) {
 }
 
 module.exports = EntryView;
-},{"./View":10}],9:[function(require,module,exports){
+},{"./View":11}],10:[function(require,module,exports){
 /**
  * Created by ticup on 04/11/13.
  */
@@ -482,7 +495,7 @@ function insertAt(parent, key, html) {
 }
 
 module.exports = ListView;
-},{"./View":10}],10:[function(require,module,exports){
+},{"./View":11}],11:[function(require,module,exports){
 /**
  * Created by ticup on 04/11/13.
  */
@@ -547,7 +560,7 @@ View.prototype.initialize = function () {
 };
 
 module.exports = View;
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /*! Socket.IO.js build:0.9.16, development. Copyright(c) 2011 LearnBoost <dev@learnboost.com> MIT Licensed */
 
 var io = ('undefined' === typeof module ? {} : module.exports);
@@ -4421,7 +4434,7 @@ if (typeof define === "function" && define.amd) {
   define([], function () { return io; });
 }
 })();
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var Restricted = require('./Restricted');
 var Index      = require('./Index');
 var Table      = require('./Table');
@@ -4628,9 +4641,15 @@ function addAuthentication(State) {
     }
   };
 
-  State.prototype.checkColumnPermission = function (action, index, columnName, group) {
-    if (!this.authedForColumn(action, index, columnName, group)) {
-      throw new Error("Not authorized to perform " + action + " on " + index.name + "." + columnName);
+  // State.prototype.checkColumnPermission = function (action, index, columnName, group) {
+  //   if (!this.authedForColumn(action, index, columnName, group)) {
+  //     throw new Error("Not authorized to perform " + action + " on " + index.name + "." + columnName);
+  //   }
+  // };
+
+  State.prototype.checkEntryPropertyPermission = function (action, entry, property, user) {
+    if (!this.authedForEntryProperty(action, entry, property, user)) {
+      throw new Error("Not authorized to perform " + action + " on " + property.index.name + "." + property.name);
     }
   };
 
@@ -4827,7 +4846,7 @@ function addAuthentication(State) {
       // Implicit authorization for delete
       if (action === 'delete') {
         console.log('looking for implicit delete authorization');
-        table.keys.forEachKey(function (key, type, i) {
+        table.keys.forEach(function (key, type, i) {
         // TODO: change to Index, when indexes are taken into account
           if (type instanceof Table) {
             var keyEntry = entry.key(key);
@@ -4860,7 +4879,7 @@ function addAuthentication(State) {
   };
 
 
-  State.prototype.authedForEntry = function (action, entry, property, user) {
+  State.prototype.authedForEntryProperty = function (action, entry, property, user) {
     var self = this;
     var authed = true;
     var group = user.get('group').get();
@@ -5094,7 +5113,7 @@ function addAuthentication(State) {
 }
 
 module.exports = addAuthentication;
-},{"./CSet":14,"./Index":17,"./Property":22,"./Restricted":24,"./Table":26}],13:[function(require,module,exports){
+},{"./CSet":15,"./Index":18,"./Property":23,"./Restricted":25,"./Table":27}],14:[function(require,module,exports){
 /**
  * Created by ticup on 15/11/13.
  */
@@ -5236,7 +5255,7 @@ CInt.prototype.isChanged = function (cint) {
 CInt.prototype.compare = function (cint, reverse) {
   return ((reverse ? -1 : 1) * (this.get() - cint.get()));
 };
-},{"./CloudType":16,"util":31}],14:[function(require,module,exports){
+},{"./CloudType":17,"util":32}],15:[function(require,module,exports){
 /**
  * Created by ticup on 08/11/13.
  */
@@ -5383,7 +5402,7 @@ CSetPrototype.compare = function (cset, reverse) {
 
 exports.Declaration = CSetDeclaration;
 exports.CSetPrototype = CSetPrototype;
-},{"./CloudType":16,"./Table":26}],15:[function(require,module,exports){
+},{"./CloudType":17,"./Table":27}],16:[function(require,module,exports){
 /**
  * Created by ticup on 15/11/13.
  */
@@ -5439,9 +5458,10 @@ CString.toJSON = function () {
   return { tag: CStringDeclaration.tag };
 };
 
-CString.fromJSON = function (json, entry) {
+CString.fromJSON = function (json, entry, property) {
   var cstring = new CString(json.value, json.written, json.cond);
   cstring.entry = entry;
+  cstring.property = property;
   return cstring;
 };
 
@@ -5544,7 +5564,7 @@ CString.prototype.isChanged = function (cstring) {
 CString.prototype.compare = function (cstring, reverse) {
   return ((reverse ? -1 : 1) * (this.get().localeCompare(cstring.get())));
 };
-},{"./CloudType":16,"util":31}],16:[function(require,module,exports){
+},{"./CloudType":17,"util":32}],17:[function(require,module,exports){
 module.exports = CloudType;
 
 function CloudType() {}
@@ -5595,7 +5615,7 @@ CloudType.prototype.equals = function (val) {
 CloudType.prototype.toString = function () {
   return this.get();
 };
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var CloudType     = require('./CloudType');
 var Keys          = require('./Keys');
 var Property      = require('./Property');
@@ -5717,7 +5737,7 @@ Index.fromJSON = function (json) {
   index.isProxy = json.isProxy;
   return index;
 };
-},{"./CloudType":16,"./IndexEntry":18,"./IndexQuery":19,"./Keys":20,"./Properties":21,"./Property":22,"./TypeChecker":29,"util":31}],18:[function(require,module,exports){
+},{"./CloudType":17,"./IndexEntry":19,"./IndexQuery":20,"./Keys":21,"./Properties":22,"./Property":23,"./TypeChecker":30,"util":32}],19:[function(require,module,exports){
 var Keys       = require('./Keys');
 var CloudType  = require('./CloudType');
 var TypeChecker = require('./TypeChecker');
@@ -5809,7 +5829,7 @@ IndexEntry.prototype.equals = function (entry) {
 IndexEntry.prototype.toString = function () {
   return Keys.createIndex(this.keys);
 };
-},{"./CloudType":16,"./Keys":20,"./TypeChecker":29}],19:[function(require,module,exports){
+},{"./CloudType":17,"./Keys":21,"./TypeChecker":30}],20:[function(require,module,exports){
 /**
  * Created by ticup on 07/11/13.
  */
@@ -5878,7 +5898,7 @@ IndexQuery.prototype.where = function (newFilter) {
   this.sumFilter = function (key) { return (sumFilter(key) && newFilter(key)); };
   return this;
 };
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 /* Keys */
 /********/
 /* The names and types of the keys of an Index */
@@ -6032,7 +6052,7 @@ Keys.getKeys = function getKeys(key, index) {
 };
 
 
-},{"./CloudType":16,"./Table":26}],21:[function(require,module,exports){
+},{"./CloudType":17,"./Table":27}],22:[function(require,module,exports){
 var Property = require('./Property');
 
 function Properties(properties) {
@@ -6092,7 +6112,7 @@ Properties.prototype.fork = function (index) {
 // };
 
 module.exports = Properties;
-},{"./Property":22}],22:[function(require,module,exports){
+},{"./Property":23}],23:[function(require,module,exports){
 /* 
  * Property
  * ---------
@@ -6285,7 +6305,7 @@ Property.prototype.fork = function (index) {
 // };
 
 module.exports = Property;
-},{"./CSet":14,"./CloudType":16,"./Keys":20,"./Reference":23,"./TypeChecker":29}],23:[function(require,module,exports){
+},{"./CSet":15,"./CloudType":17,"./Keys":21,"./Reference":24,"./TypeChecker":30}],24:[function(require,module,exports){
 /**
  * Created by ticup on 10/03/14.
  */
@@ -6457,7 +6477,7 @@ exports.isReferenceDeclaration = function (type) {
 
 exports.Declaration = ReferenceDeclaration;
 exports.Prototype = ReferencePrototype;
-},{"./CloudType":16}],24:[function(require,module,exports){
+},{"./CloudType":17}],25:[function(require,module,exports){
 module.exports = Restricted;
 
 function Restricted(name) {
@@ -6505,7 +6525,7 @@ Restricted.prototype.toJSON = function () {
 Restricted.fromJSON = function (json) {
   return new Restricted();
 };
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var CloudType  = require('./CloudType');
 var Index      = require('./Index');
 var Table      = require('./Table');
@@ -7089,7 +7109,7 @@ State.prototype.print = function () {
   });
   // console.log(require('util').inspect(this, {depth: null}));
 };
-},{"./Auth":12,"./CSet":14,"./CloudType":16,"./Index":17,"./Reference":23,"./Restricted":24,"./Table":26}],26:[function(require,module,exports){
+},{"./Auth":13,"./CSet":15,"./CloudType":17,"./Index":18,"./Reference":24,"./Restricted":25,"./Table":27}],27:[function(require,module,exports){
 var Index      = require('./Index');
 var Keys       = require('./Keys');
 var Properties = require('./Properties');
@@ -7362,7 +7382,7 @@ Table.prototype.toJSON = function () {
   };
 };
 
-},{"./Index":17,"./Keys":20,"./Properties":21,"./Property":22,"./TableEntry":27,"./TableQuery":28,"./TypeChecker":29}],27:[function(require,module,exports){
+},{"./Index":18,"./Keys":21,"./Properties":22,"./Property":23,"./TableEntry":28,"./TableQuery":29,"./TypeChecker":30}],28:[function(require,module,exports){
 var Keys        = require('./Keys');
 var IndexEntry  = require('./IndexEntry');
 var CloudType   = require('./CloudType');
@@ -7403,7 +7423,7 @@ TableEntry.prototype.serialKey = function () {
 TableEntry.prototype.toString = function () {
   return this.uid;
 };
-},{"./CloudType":16,"./IndexEntry":18,"./Keys":20,"./TypeChecker":29}],28:[function(require,module,exports){
+},{"./CloudType":17,"./IndexEntry":19,"./Keys":21,"./TypeChecker":30}],29:[function(require,module,exports){
 /**
  * Created by ticup on 07/11/13.
  */
@@ -7435,7 +7455,7 @@ TableQuery.prototype.all = function () {
   }
   return entities;
 };
-},{"./IndexQuery":19}],29:[function(require,module,exports){
+},{"./IndexQuery":20}],30:[function(require,module,exports){
 var CloudType = require('./CloudType');
 
 
@@ -7492,7 +7512,7 @@ var TypeChecker = {
 
 
 module.exports = TypeChecker;
-},{"./CloudType":16}],30:[function(require,module,exports){
+},{"./CloudType":17}],31:[function(require,module,exports){
 
 
 //
@@ -7710,7 +7730,7 @@ if (typeof Object.getOwnPropertyDescriptor === 'function') {
   exports.getOwnPropertyDescriptor = valueObject;
 }
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8255,5 +8275,5 @@ function hasOwnProperty(obj, prop) {
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
-},{"_shims":30}]},{},[6])
+},{"_shims":31}]},{},[7])
 ;

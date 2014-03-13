@@ -106,7 +106,7 @@ State.prototype.checkChanges = function (state, user) {
         if (isChanged(joinee, joiner, property)) {
           var entry = array.getByKey(key);
           console.log(key + ' changed ');
-          if (!self.authedForEntry('update', entry, property, user)) {
+          if (!self.authedForEntryProperty('update', entry, property, user)) {
             console.log(group.get('name').get() + ' not authed for update of ' + array.name);
             valid = false;
           }

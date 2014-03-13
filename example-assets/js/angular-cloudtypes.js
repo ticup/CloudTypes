@@ -150,7 +150,7 @@ angular
     })
 
     .service('$CString', function () {
-      return CloudType.CString;
+      return CloudTypes.CString;
     });
 
     // .service('$cachedRows', function () {
