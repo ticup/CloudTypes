@@ -72,8 +72,8 @@ State.prototype.flush = function (callback, timeout) {
   return this;
 };
 
-State.prototype.getGroup = function () {
-  return this.client.group;
+State.prototype.getUser = function () {
+  return this.client.user;
 };
 
 var join = State.prototype.joinIn;

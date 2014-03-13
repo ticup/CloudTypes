@@ -37,7 +37,7 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
         self.uid = json.uid;
         self.state = state;
         self.state.init(json.cid, self);
-        self.group = state.get('SysGroup').getByProperties({name: 'Guest'});
+        self.user = state.get('SysUser').getByProperties({name: 'guest'});
         connected(self.state);
       });
     } else {
@@ -111,9 +111,7 @@ Client.prototype.login = function (username, password, finish) {
   this.socket.emit('Login', {username: username, password: password}, function (err, groupName) {
     if (err)
       throw err;
-    self.group = self.state.get('SysGroup').where(function (group) {
-      return group.get('name').get() === groupName;
-    }).all()[0];
-    finish(null, groupName);
+    self.user = self.state.get('SysUser').getByProperties({name: username});
+    finish(null, true);
   });
 };

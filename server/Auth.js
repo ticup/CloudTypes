@@ -24,39 +24,46 @@ function Auth(state) {
                                                         read:     'CString',
                                                         update:   'CString',
                                                         cname:    'CString',
+                                                        type:     'CString',
+                                                        vname:    'CString',
                                                         grantopt: 'CString' }), 'N');
 
   // init groups
-  this.guest = this.Group.create().set('name', 'Guest');
-  this.root = this.Group.create().set('name', 'Root');
-  this.root.get('children').add(this.guest);
+  this.guestGroup = this.Group.create().set('name', 'Guest');
+  this.rootGroup = this.Group.create().set('name', 'Root');
+  // root.get('children').add(this.guest);
 
   // init root user
-  var root = this.User.create();
-  root.set('name', 'root')
-      .set('password','root')
-      .set('group', this.root);
+  this.root = this.User.create();
+  this.root.set('name', 'root')
+           .set('password','root')
+           .set('group', this.rootGroup);
+
+  this.guest = this.User.create();
+  this.guest.set('name', 'guest')
+            .set('password', 'guest')
+            .set('group', this.guestGroup);
 
   // grant privileges for the system tables
-  this.grantAll('SysGroup', true);
-  this.grantAll('SysUser', true);
-  this.grantAll('SysAuth', true);
-  this.grantAll('SysColAuth', true);
+  this.grantAll('SysGroup', 'T', true);
+  this.grantAll('SysUser', 'T', true);
+  this.grantAll('SysAuth', 'T', true);
+  this.grantAll('SysColAuth', 'T', true);
 }
 
-Auth.prototype.privileges = function (user) {
-  var group;
-  var self = this;
-  if (user) {
-    group = user.get('group');
-  } else {
-    group = this.guest;
-  }
-  var auths = this.Auth.where(function (auth) {
-    return auth.get('group').equals(group);
-  }).all();
-  return auths;
-};
+// Auth.prototype.privileges = function (user) {
+//   var group;
+//   var self = this;
+//   if (user) {
+//     group = user.get('group');
+//   } else {
+//     group = this.guest;
+//   }
+//   var auths = this.Auth.where(function (auth) {
+//     return auth.get('group').equals(group);
+//   }).all();
+//   return auths;
+// };
 
 Auth.prototype.createUser = function (name, password, group) {
   var user = this.User.create();
@@ -117,80 +124,86 @@ Auth.prototype.login = function (username, password, finish) {
   return finish("incorrect password");
 };
 
-Auth.prototype.grantAll = function (tableName, sys) {
+Auth.prototype.grantAll = function (tableName, type, sys) {
   var self = this;
   var auth = self.Auth.create();
   var table = this.state.get(tableName);
+  sys = sys || 'N';
 
   // Guest group
   // 1) with grantopt: no access
-  auth.set('group', self.guest)
+  auth.set('group', self.guestGroup)
       .set('tname', tableName)
       .set('read', 'N')
       .set('create', 'N')
       .set('update', 'N')
       .set('delete', 'N')
+      .set('type', type)
       .set('grantopt', 'Y');
-  self.createColAuths('N', 'N', tableName, self.guest, 'Y');
+  self.createColAuths('N', 'N', tableName, self.guestGroup, type, 'Y');
 
   // 2) without grantopt:
   auth = self.Auth.create();
   if (sys) {
     // all access when system table
-    auth.set('group', self.guest)
+    auth.set('group', self.guestGroup)
       .set('tname', tableName)
       .set('read', 'Y')
       .set('create', 'Y')
       .set('update', 'Y')
       .set('delete', 'Y')
+      .set('type', type)
       .set('grantopt', 'N');
-  self.createColAuths('Y', 'Y', tableName, self.guest, 'N');
+  self.createColAuths('Y', 'Y', tableName, self.guestGroup, type, 'N');
 
   } else {
     // only read access otherwise
-    auth.set('group', self.guest)
+    auth.set('group', self.guestGroup)
       .set('tname', tableName)
       .set('read', 'Y')
       .set('create', 'N')
       .set('update', 'N')
       .set('delete', 'N')
+      .set('type', type)
       .set('grantopt', 'N');
-  self.createColAuths('Y', 'N', tableName, self.guest, 'N');
+  self.createColAuths('Y', 'N', tableName, self.guestGroup, type, 'N');
 
   }
 
   // Root Group
   // 1) with grantopt: all access
   auth = self.Auth.create();
-  auth.set('group', self.root)
+  auth.set('group', self.rootGroup)
       .set('tname', tableName)
       .set('read', 'Y')
       .set('create', 'Y')
       .set('update', 'Y')
       .set('delete', 'Y')
+      .set('type', type)
       .set('grantopt', 'Y');
-  self.createColAuths('Y', 'Y', tableName, self.root, 'Y');
+  self.createColAuths('Y', 'Y', tableName, self.rootGroup, type, 'Y');
 
   // 2) without grantopt: all access
   auth = self.Auth.create();
-  auth.set('group', self.root)
+  auth.set('group', self.rootGroup)
       .set('tname', tableName)
       .set('read', 'Y')
       .set('create', 'Y')
       .set('update', 'Y')
       .set('delete', 'Y')
+      .set('type', type)
       .set('grantopt', 'N');
-  self.createColAuths('Y', 'Y', tableName, self.root, 'N');
+  self.createColAuths('Y', 'Y', tableName, self.rootGroup, type, 'N');
 
 
   table.forEachProperty(function (property) {
     if (property.CType.prototype === CSetPrototype) {
-      self.grantAll(property.CType.entity.name);
+      self.grantAll(property.CType.entity.name, type, sys);
     }
   });
 };
 
-Auth.prototype.createColAuths = function (read, update, tableName, group, grantopt) {
+Auth.prototype.createColAuths = function (read, update, tableName, group, type, grantopt) {
   var self = this;
   var table = self.state.get(tableName);
   table.forEachProperty(function (property) {
@@ -201,6 +214,7 @@ Auth.prototype.createColAuths = function (read, update, tableName, group, granto
            .set('cname', property.name)
            .set('read', read)
            .set('update', update)
+           .set('type', type)
            .set('grantopt', grantopt);
   });
 };

@@ -12,11 +12,11 @@ function Server(state, auth, views) {
   this.clients = {};
 }
 
-Server.prototype.getGroup = function (user) {
+Server.prototype.getUser = function (user) {
   if (typeof user === 'undefined') {
     return this.auth.guest;
   }
-  return user.get('group').get();
+  return user;
 };
 
 // target: port or http server (default = port 8090)
@@ -52,41 +52,41 @@ Server.prototype.open = function (target, staticPath) {
     // Initial connect: initialize client with a uid, cid and a fork of current state
     socket.on('init', function (initClient) {
       uid = self.generateUID();
-      var group = self.getGroup(cuser);
-      var fork = self.state.fork().restrict(group);
+      var user = self.getUser(cuser);
+      var fork = self.state.fork().restrict(user);
       initClient({ uid: uid, cid: ++cid, state: fork});
     });
 
     socket.on('YieldPush', function (json, yieldPull) {
-      var group = self.getGroup(cuser);
+      var user = self.getUser(cuser);
       if (!self.exists(json.uid)) {
         return yieldPull("unrecognized client");
       }
       var state = State.fromJSON(json.state);
-      if (!self.state.checkChanges(state, group)) {
+      if (!self.state.checkChanges(state, user)) {
         console.log('UNAUTHORIZED ACCESS');
         return yieldPull("Unauthorized Access!");
       }
       self.state.join(state);
-      var fork = self.state.fork().restrict(group);
+      var fork = self.state.fork().restrict(user);
       yieldPull(null, fork);
     });
 
     socket.on('FlushPush', function (json, flushPull) {
-      var group = self.getGroup(cuser);
+      var user = self.getUser(cuser);
       if (!self.exists(json.uid)) {
         return flushPull("unrecognized client");
       }
       console.log('recognized');
       var state = State.fromJSON(json.state);
-      if (!self.state.checkChanges(state, group)) {
+      if (!self.state.checkChanges(state, user)) {
         console.log('UNAUTHORIZED ACCESS');
         return flushPull("Unauthorized Access!");
       }
       console.log('authorized');
       self.state.join(state);
       console.log('joined');
-      var fork = self.state.fork().restrict(group);
+      var fork = self.state.fork().restrict(user);
       console.log('forked');
       flushPull(null, fork);
     });

@@ -12,5 +12,6 @@ makeThings(server).publish(port, __dirname + '/../../../');
 
 console.log("#### CloudTypes Test Example server running on " + port + " ####");
 
-
-server.state.print();
+console.log(server.state.auth.guest);
+server.state.fork().restrict(server.state.auth.guest);
+// server.state.print();

@@ -21,6 +21,7 @@ function declareThings(server) {
    var t40 = Thing4.create();
    t1.set('column1', 10)
      .set('column2', t1);
+   t2.set('column2', t1);
    t4.set('column1', t1);
    t4.set('column2', t2);
    t4.set('column3', t3);

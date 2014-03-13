@@ -11,9 +11,10 @@ State.prototype.published = function (server) {
   this.publish = true;
 };
 
-State.prototype.checkChanges = function (state, group) {
+State.prototype.checkChanges = function (state, user) {
   var self = this;
   var valid = true;
+  var group = user.get('group').get();
   // console.log('joining ' + Object.keys(master.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   // console.log('with ' + Object.keys(target.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   
@@ -36,14 +37,14 @@ State.prototype.checkChanges = function (state, group) {
     ['read', 'create', 'update', 'delete'].forEach(function (action) {
       if (isChanged(serverAuth.get(action), clientAuth.get(action), ServerAuth.getProperty(action))) {
         var table = self.get(clientAuth.get('tname').get());
-        if (!self.canGrantTable(action, table, group)) {
+        if (!self.canGrantTable(action, table, user)) {
           console.log(group.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name);
           valid = false;
         }
       }
     });
   });
-
+  
   if (!valid) return valid;
 
 
@@ -68,7 +69,7 @@ State.prototype.checkChanges = function (state, group) {
       if (isChanged(serverColAuth.get(action), clientColAuth.get(action), ServerColAuth.getProperty(action))) {
         var table = self.get(clientColAuth.get('tname').get());
         var cname = clientColAuth.get('cname').get();
-        if (!self.canGrantColumn(action, table, cname, group)) {
+        if (!self.canGrantColumn(action, table, cname, user)) {
           console.log(group.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name + '.' + cname);
           valid = false;
         }
@@ -81,13 +82,14 @@ State.prototype.checkChanges = function (state, group) {
     var serverEntity = self.get(clientEntity.name);
     clientEntity.forEachState(function (key, val) {
       if (clientEntity.deleted(key) && !serverEntity.deleted(key)) {
-        if (!self.authedForTable('delete', clientEntity, group)) {
+        var entry = clientEntity.getByKey(key);
+        if (!self.authedForRow('delete', entry, user)) {
           console.log(group.get('name').get() + ' not authed for delete of ' + clientEntity.name);
           valid = false;
         }
       }
       if (clientEntity.exists(key) && !serverEntity.defined(key)) {
-        if (!self.authedForTable('create', clientEntity, group)) {
+        if (!self.authedForTable('create', clientEntity, user)) {
           console.log(group.get('name').get() + ' not authed for create of ' + clientEntity.name);
           valid = false;
         }
@@ -102,7 +104,8 @@ State.prototype.checkChanges = function (state, group) {
         var joiner = state.getProperty(property).getByKey(key);
         var joinee = self.getProperty(property).getByKey(key);
         if (isChanged(joinee, joiner, property)) {
-          if (!self.authedForColumn('update', array, property.name, group)) {
+          var entry = array.getByKey(key);
+          if (!self.authedForEntry('update', entry, property, user)) {
             console.log(group.get('name').get() + ' not authed for update of ' + array.name);
             valid = false;
           }

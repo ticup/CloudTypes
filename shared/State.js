@@ -90,7 +90,7 @@ State.prototype.declare = function (name, array, grant) {
   }
 
   if (grant !== 'N') {
-    this.auth.grantAll(array.name, grant);
+    this.auth.grantAll(array.name, 'T');
   }
   return array;
 };
@@ -409,24 +409,17 @@ State.prototype.fork = function () {
   forked.forEachArray(function (index) {
     index.forEachProperty(function (property) {
 
-      // Table Reference Type: replace by the new Table
-      // if (!CloudType.isCloudType(property.CType)) {
-      //   var fIndex = forked.get(property.CType.name);
-      //   property.CType = fIndex;
-        // property.forEachKey(function (key, val) {
-        //   var ref = fIndex.getByKey(val);
-        //   property.values[key] = .apply(fIndex, val.keys);
-        // });
-      // }
-
       // if CSet property -> give reference to the proxy entity
       if (property.CType.prototype === CSetPrototype) {
         property.CType.entity      = forked.get(index.name + property.name);
+
+        // and replace the table with the new table if it has a table as element
         if (property.CType.elementType instanceof Table) {
           property.CType.elementType = forked.get(property.CType.elementType.name);
         }
       }
 
+      // if reference property -> replace the table with the new table
       if (Reference.isReferenceDeclaration(property.CType)) {
         property.CType.prototype.table = forked.get(property.CType.prototype.table.name);
       }
@@ -436,110 +429,57 @@ State.prototype.fork = function () {
       if (type instanceof Table) {
         index.keys.types[i] = forked.get(type.name);
       }
-      // console.log('key: ' + key);
-      // if (Reference.isReferenceDeclaration(type)) {
-      //   console.log(type);
-      //   type.resolveTable(forked);
-      //   console.log(type.prototype.table.name);
-      // }
     });
   });
   return forked;
 };
 
-State.prototype.restrict = function (group) {
+State.prototype.restrict = function (user) {
   var self = this;
+
 
   self.forAllArray(function (index) {
 
     // If not authed to read table, replace by Restricted object
-    if (!self.authedForTable('read', index, group)) {
+    if (!self.canSeeTable(index, user)) {
+      // console.log('restricted from ' + index.name);
       var restricted = new Restricted(index.name);
       restricted.state = self;
       self.add(restricted);
       return;
     }
 
+    // console.log('can see some of ' + index.name);
     index.forEachProperty(function (property) {
 
-      // If not authed to read property, remove the property
-      if (!self.authedForColumn('read', index, property.name, group)) {
+
+      // 1) Can see the whole column
+      if (self.canSeeFullColumn(index, property.name, user)) {
+        // console.log('can see complete ' + index.name + '.' + property.name);
+        return;
+      }
+
+      // 2) Can see some of the entries of this column
+      if (self.canSeeColumn(index, property.name, user)) {
+        /* continue to delete entries depending on the view */
+
+      // 3) not authed to read any entry of this column, remove it
+      } else {
         delete index.properties.properties[property.name];
       }
 
-      // If its a reference, it needs to be authed to read the reference table
-      if (Reference.isReferenceDeclaration(property.CType) && !self.authedForTable('read', property.CType.prototype.table, group)) {
-        delete index.properties.properties[property.name];
-      }
+      // // If its a reference, it needs to be authed to read the reference table
+      // if (Reference.isReferenceDeclaration(property.CType) && !self.authedForTable('read', property.CType.prototype.table, group)) {
+      //   delete index.properties.properties[property.name];
+      // }
     });
 
-    // property.forEachKey(function (key) {
-
-    // });
   });
+
+
+
   return self;
 };
-
-// State.prototype.restrictedFork = function (group) {
-//   var forked = new State();
-//   var forker = this;
-
-//   forker.forAllArray(function (index) {
-//     var fIndex;
-
-//     if (!forker.authedForTable('read', index, group)) {
-//        // console.log('NOT authed for: ' + index.name);
-//       fIndex = new Restricted();
-//     } else {
-//        // console.log('authed for: ' + index.name);
-//       fIndex = index.restrictedFork(group);
-//     }
-//     fIndex.name = index.name;
-//     fIndex.state = forked;
-//     forked.add(fIndex);
-//   });
-
-//   // Fix Type references
-//   forked.forEachArray(function (index) {
-//     index.forEachProperty(function (property) {
-
-//       // Table Reference Type: replace by the new Table
-//       // if (!CloudType.isCloudType(property.CType)) {
-//       //   var fIndex = forked.get(property.CType.name);
-//       //   property.CType = fIndex;
-//         // property.forEachKey(function (key, val) {
-//         //   var ref = fIndex.getByKey(val);
-//         //   property.values[key] = .apply(fIndex, val.keys);
-//         // });
-//       // }
-
-//       // if CSet property -> give reference to the proxy entity
-//       if (property.CType.prototype === CSetPrototype) {
-//         property.CType.entity      = forked.get(index.name + property.name);
-//         if (property.CType.elementType instanceof Table) {
-//           property.CType.elementType = forked.get(property.CType.elementType.name);
-//         }
-//       }
-
-//       if (Reference.isReferenceDeclaration(property.CType)) {
-//         property.CType.prototype.table = forked.get(property.CType.prototype.table.name);
-//       }
-//     });
-
-//     index.keys.forEach(function (key, type, i) {
-//       if (type instanceof Table) {
-//         index.keys.types[i] = forked.get(type.name);
-//       }
-//       // console.log('key: ' + key);
-//       // if (Reference.isReferenceDeclaration(type)) {
-//       //   console.log(type);
-//       //   type.resolveTable(forked);
-//       //   console.log(type.prototype.table.name);
-//       // }
-//     });
-//   });
-//   return forked;
-// };
 
 State.prototype.applyFork = function () {
   var self = this;
