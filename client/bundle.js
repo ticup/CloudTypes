@@ -278,7 +278,7 @@ module.exports = Table;
 var create = Table.prototype.create;
 Table.prototype.create = function () {
   console.log('CREATING');
-  // this.state.checkTablePermission('create', this, this.state.getGroup());
+  // this.state.checkTablePermission('create', this, this.state.getUser());
   return create.apply(this, Array.prototype.slice.apply(arguments));
 };
 },{"../shared/Table":27}],6:[function(require,module,exports){
@@ -4635,11 +4635,11 @@ function addAuthentication(State) {
   /* Permission Checks */
   /*********************/
 
-  State.prototype.checkTablePermission = function (action, index, group) {
-    if (!this.authedForTable(action, index, group)) {
-      throw new Error("Not authorized to perform " + action + " on " + index.name);
-    }
-  };
+  // State.prototype.checkTablePermission = function (action, index, user) {
+  //   if (!this.authedForTable(action, index, user)) {
+  //     throw new Error("Not authorized to perform " + action + " on " + index.name);
+  //   }
+  // };
 
   // State.prototype.checkColumnPermission = function (action, index, columnName, group) {
   //   if (!this.authedForColumn(action, index, columnName, group)) {
@@ -4652,6 +4652,14 @@ function addAuthentication(State) {
       throw new Error("Not authorized to perform " + action + " on " + property.index.name + "." + property.name);
     }
   };
+
+  State.prototype.checkCreateOnTablePermission = function (table, grantingUser) {
+    if (!this.canCreateOnTable(table, grantingUser)) {
+      throw new Error("You don't have create access for " + table.name);
+    }
+  };
+
+
 
   State.prototype.checkGrantTablePermission = function (action, table, grantingUser) {
     if (!this.canGrantTable(action, table, grantingUser)) {
@@ -4945,6 +4953,39 @@ function addAuthentication(State) {
 
   // TABLE actions
   ////////////////
+  State.prototype.canCreateOnTable = function (table, user) {
+    var self = this;
+    var permission = false;
+    var group = user.get('group').get();
+
+    // already restricted
+    if (table instanceof Restricted)
+      return false;
+
+    // Find any (base or view) table authorization
+    this.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('tname').equals(table.name) &&
+          auth.get('group').equals(group) &&
+          auth.get('type').equals('T') &&
+          auth.get('create').equals('Y')) {
+          permission = true;
+      }
+    });
+
+    if (!permission) {
+      console.log(group.get('name').get() + ' not authed for create on ' + table.name);
+      return false;
+    }
+
+    // Has to be authorized for all Tables of keys
+    // table.keys.forEach(function (key, type) {
+    //   if (type instanceof Table && !self.canSeeTable(type, user)) {
+    //     authed = false;
+    //   }
+    // });
+
+    return permission;
+  };
   // State.prototype.canSeeTable = function (action, table, user) {
   //   var self = this;
   //   var authed = false;
@@ -6161,7 +6202,8 @@ Property.prototype.set = function (key, val) {
 };
 
 // Gets the value of given key
-Property.prototype.getByKey = function (key) {
+// keys is only for the Tables
+Property.prototype.getByKey = function (key, keys) {
   var ctype = this.values[key];
 
   // console.log('getting ' + key + '.' + this.name + ' = ' + ctype + ' (' + typeof ctype + ')');
@@ -6173,7 +6215,7 @@ Property.prototype.getByKey = function (key) {
 
   // 1) This key does not exist yet
   if (typeof ctype === 'undefined') {
-    var entry = this.index.getByKey(key);
+    var entry = this.index.getByKey(key, keys);
 
     // if it is a Cloud Type, make a new default.
     // if (CloudType.isCloudType(this.CType)) { 
@@ -7213,10 +7255,10 @@ Table.prototype.get = function () {
 };
 
 // Flattened key version (internal version)
-Table.prototype.getByKey = function (uid) {
+Table.prototype.getByKey = function (uid, keys) {
   var self = this;
   if (this.exists(uid)) {
-    var keys = this.getKeyValues(uid);
+    keys = keys || this.getKeyValues(uid);
     var cache = self.cached[uid];
     if (typeof cache !== 'undefined') {
       cache.keys = Keys.getKeys(keys, self);
@@ -7245,7 +7287,14 @@ Table.prototype.setMax = function (entity1, entity2, key) {
   }
   if (val1 === OK || val2 === OK) {
     this.states[key] = OK;
-    return;
+    if (val1 === OK && val2 !== OK) {
+      entity2.setKeyValues(key, entity1.getKeyValues(key));
+      return;
+    }
+    if (val2 === OK && val1 !== OK) {
+      entity1.setKeyValues(key, entity2.getKeyValues(key));
+    }
+    return false;
   }
 
 };

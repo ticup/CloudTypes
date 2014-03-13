@@ -46,7 +46,8 @@ Property.prototype.set = function (key, val) {
 };
 
 // Gets the value of given key
-Property.prototype.getByKey = function (key) {
+// keys is only for the Tables
+Property.prototype.getByKey = function (key, keys) {
   var ctype = this.values[key];
 
   // console.log('getting ' + key + '.' + this.name + ' = ' + ctype + ' (' + typeof ctype + ')');
@@ -58,7 +59,7 @@ Property.prototype.getByKey = function (key) {
 
   // 1) This key does not exist yet
   if (typeof ctype === 'undefined') {
-    var entry = this.index.getByKey(key);
+    var entry = this.index.getByKey(key, keys);
 
     // if it is a Cloud Type, make a new default.
     // if (CloudType.isCloudType(this.CType)) { 

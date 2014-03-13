@@ -198,11 +198,11 @@ function addAuthentication(State) {
   /* Permission Checks */
   /*********************/
 
-  State.prototype.checkTablePermission = function (action, index, group) {
-    if (!this.authedForTable(action, index, group)) {
-      throw new Error("Not authorized to perform " + action + " on " + index.name);
-    }
-  };
+  // State.prototype.checkTablePermission = function (action, index, user) {
+  //   if (!this.authedForTable(action, index, user)) {
+  //     throw new Error("Not authorized to perform " + action + " on " + index.name);
+  //   }
+  // };
 
   // State.prototype.checkColumnPermission = function (action, index, columnName, group) {
   //   if (!this.authedForColumn(action, index, columnName, group)) {
@@ -215,6 +215,14 @@ function addAuthentication(State) {
       throw new Error("Not authorized to perform " + action + " on " + property.index.name + "." + property.name);
     }
   };
+
+  State.prototype.checkCreateOnTablePermission = function (table, grantingUser) {
+    if (!this.canCreateOnTable(table, grantingUser)) {
+      throw new Error("You don't have create access for " + table.name);
+    }
+  };
+
+
 
   State.prototype.checkGrantTablePermission = function (action, table, grantingUser) {
     if (!this.canGrantTable(action, table, grantingUser)) {
@@ -508,6 +516,39 @@ function addAuthentication(State) {
 
   // TABLE actions
   ////////////////
+  State.prototype.canCreateOnTable = function (table, user) {
+    var self = this;
+    var permission = false;
+    var group = user.get('group').get();
+
+    // already restricted
+    if (table instanceof Restricted)
+      return false;
+
+    // Find any (base or view) table authorization
+    this.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('tname').equals(table.name) &&
+          auth.get('group').equals(group) &&
+          auth.get('type').equals('T') &&
+          auth.get('create').equals('Y')) {
+          permission = true;
+      }
+    });
+
+    if (!permission) {
+      console.log(group.get('name').get() + ' not authed for create on ' + table.name);
+      return false;
+    }
+
+    // Has to be authorized for all Tables of keys
+    // table.keys.forEach(function (key, type) {
+    //   if (type instanceof Table && !self.canSeeTable(type, user)) {
+    //     authed = false;
+    //   }
+    // });
+
+    return permission;
+  };
   // State.prototype.canSeeTable = function (action, table, user) {
   //   var self = this;
   //   var authed = false;

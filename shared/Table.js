@@ -101,10 +101,10 @@ Table.prototype.get = function () {
 };
 
 // Flattened key version (internal version)
-Table.prototype.getByKey = function (uid) {
+Table.prototype.getByKey = function (uid, keys) {
   var self = this;
   if (this.exists(uid)) {
-    var keys = this.getKeyValues(uid);
+    keys = keys || this.getKeyValues(uid);
     var cache = self.cached[uid];
     if (typeof cache !== 'undefined') {
       cache.keys = Keys.getKeys(keys, self);
@@ -133,7 +133,14 @@ Table.prototype.setMax = function (entity1, entity2, key) {
   }
   if (val1 === OK || val2 === OK) {
     this.states[key] = OK;
-    return;
+    if (val1 === OK && val2 !== OK) {
+      entity2.setKeyValues(key, entity1.getKeyValues(key));
+      return;
+    }
+    if (val2 === OK && val1 !== OK) {
+      entity1.setKeyValues(key, entity2.getKeyValues(key));
+    }
+    return false;
   }
 
 };

@@ -89,7 +89,7 @@ State.prototype.checkChanges = function (state, user) {
         }
       }
       if (clientEntity.exists(key) && !serverEntity.defined(key)) {
-        if (!self.authedForTable('create', clientEntity, user)) {
+        if (!self.canCreateOnTable(clientEntity, user)) {
           console.log(group.get('name').get() + ' not authed for create of ' + clientEntity.name);
           valid = false;
         }
