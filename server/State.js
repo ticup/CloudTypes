@@ -84,13 +84,15 @@ State.prototype.checkChanges = function (state, user) {
         var entry = serverEntity.getByKey(key);
         if (!self.authedForRow('delete', entry, user)) {
           console.log(user.get('name').get() + ' not authed for delete of ' + clientEntity.name);
-          valid = false;
+          clientEntity.obliterate(key);
+          // valid = false;
         }
       }
       if (clientEntity.exists(key) && !serverEntity.defined(key)) {
         if (!self.canCreateOnTable(clientEntity, user)) {
+          clientEntity.obliterate(key);
           console.log(user.get('name').get() + ' not authed for create of ' + clientEntity.name);
-          valid = false;
+          // valid = false;
         }
       }
     });
@@ -106,6 +108,7 @@ State.prototype.checkChanges = function (state, user) {
           var entry = array.getByKey(key);
           console.log(key + ' changed ');
           if (!self.authedForEntryProperty('update', entry, property, user)) {
+            state.getProperty(property).obliterate(key);
             console.log(user.get('name').get() + ' not authed for update of ' + array.name);
             valid = false;
           }

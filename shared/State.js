@@ -355,7 +355,7 @@ State.prototype._join = function (rev, target) {
     array.forEachProperty(function (property) {
 
       // If target does not have the property, access was granted to the property, just add it.
-      if (master === this && typeof target.get(array.name).getProperty(property) === 'undefined') {
+      if (rev === target && typeof target.get(array.name).properties.get(property) === 'undefined') {
         // TODO: make actual copy of it for local usage (not important right now)
         target.get(array.name).addProperty(property); 
         return;
@@ -498,10 +498,11 @@ State.prototype.restrict = function (user) {
 
       // 2) Can see some of the entries of this column
       if (self.canSeeColumn(index, property.name, user)) {
-        /* continue to delete entries depending on the view */
+        
+        // delete entries depending on the view
         property.forEachKey(function (key) {
           var entry = index.getByKey(key);
-          if (!self.authedForEntryProperty('read', entry, property, user)) {
+          if (entry && !self.authedForEntryProperty('read', entry, property, user)) {
             property.delete(key);
           }
         });

@@ -45,6 +45,10 @@ Property.prototype.set = function (key, val) {
   this.values[key] = val;
 };
 
+Property.prototype.obliterate = function (key) {
+  delete this.values[key];
+};
+
 Property.prototype.delete = function (key) {
   delete this.values[key];
 };

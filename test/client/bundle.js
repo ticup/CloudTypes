@@ -5350,9 +5350,9 @@ function addAuthentication(State) {
         user = self.get('SysUser').getByProperties({name: user});
       }
 
-      var theView = self.views.get(table);
+      var theView = self.views.get(view);
       if (typeof theView !== 'undefined') {
-        return this.grantView(action, theView, user, grantopt);
+        return this.grantViewTable(action, theView, user, grantopt);
       }
 
     // granting column on view
@@ -5362,7 +5362,7 @@ function addAuthentication(State) {
         user = self.get('SysUser').getByProperties({name: user});
       }
 
-      var theView = self.views.get(table);
+      var theView = self.views.get(view);
       if (typeof theView !== 'undefined') {
         return this.grantViewColumn(action, theView, column, user, grantopt);
       }
@@ -5371,6 +5371,9 @@ function addAuthentication(State) {
 
     throw new Error("Incorrect input for grantView");
   };
+
+
+
 
   // Table 
   State.prototype.grantTable = function (action, table, user, grantopt) {
@@ -5415,7 +5418,7 @@ function addAuthentication(State) {
   };
 
     // Table 
-  State.prototype.grantView = function (action, view, user, grantopt) {
+  State.prototype.grantViewTable = function (action, view, user, grantopt) {
     var self = this;
     grantopt = grantopt || 'N';
 
@@ -5566,11 +5569,6 @@ function addAuthentication(State) {
         return this.revokeTable(action, theTable, user);
       }
 
-      // view name was given
-      var theView = self.views.get(table);
-      if (typeof theView !== 'undefined') {
-        return this.revokeView(action, theView, user);
-      }
     }
 
     if (table instanceof Index) {
@@ -5584,8 +5582,41 @@ function addAuthentication(State) {
     throw new Error("Incorrect input for revoke");
   };
 
+  State.prototype.revokeView = function (action, view, column, user, grantopt) {
+    var self = this;
+    
+    // granting complete view
+    if (user === 'Y' || user === 'N') {
+      grantOpt = user;
+      user = column;
+      if (typeof user === 'string') {
+        user = self.get('SysUser').getByProperties({name: user});
+      }
+
+      var theView = self.views.get(view);
+      if (typeof theView !== 'undefined') {
+        return this.revokeViewTable(action, theView, user, grantopt);
+      }
+
+    // granting column on view
+    } else {
+
+      if (typeof user === 'string') {
+        user = self.get('SysUser').getByProperties({name: user});
+      }
+
+      var theView = self.views.get(view);
+      if (typeof theView !== 'undefined') {
+        return this.revokeViewColumn(action, theView, column, user, grantopt);
+      }
+
+    }
+
+    throw new Error("Incorrect input for grantView");
+  };
+
   // Revoke View
-  State.prototype.revokeView = function (action, view, user) {
+  State.prototype.revokeViewTable = function (action, view, user) {
     var self = this;
 
     console.log('Revoking view ' + view.name);
@@ -5671,6 +5702,27 @@ function addAuthentication(State) {
   };
 
 
+  // Revoke Column
+  State.prototype.revokeViewColumn = function (action, view, cname, user) {
+    var self = this;
+
+    // Can we revoke action from column?
+    self.checkGrantViewColumnPermission(action, view, cname, self.getUser());
+
+    // Revoke action from columns
+    self.get('SysColAuth').all().forEach(function (colAuth) {
+      if (colAuth.get('user').equals(user) &&
+          colAuth.get('vname').equals(view.name) &&
+          colAuth.get('cname').equals(cname) &&
+          colAuth.get('type').equals('V')) {
+        colAuth.set(action, 'N');
+      }
+    });
+
+    return this;
+  };
+
+
   /* Permission Checks */
   /*********************/
 
@@ -5717,6 +5769,12 @@ function addAuthentication(State) {
   State.prototype.checkGrantColumnPermission = function (action, table, columnName, grantingUser) {
     if (!this.canGrantColumn(action, table, columnName, grantingUser)) {
       throw new Error("You (" + grantingUser.get('name').get() + ") don't have " + action + " grant permissions for " + table.name + "." + columnName);
+    }
+  };
+
+    State.prototype.checkGrantViewColumnPermission = function (action, view, columnName, grantingUser) {
+    if (!this.canGrantViewColumn(action, view, columnName, grantingUser)) {
+      throw new Error("You (" + grantingUser.get('name').get() + ") don't have " + action + " grant permissions for " + view.name + "." + columnName);
     }
   };
 
@@ -7311,6 +7369,10 @@ Property.prototype.set = function (key, val) {
   this.values[key] = val;
 };
 
+Property.prototype.obliterate = function (key) {
+  delete this.values[key];
+};
+
 Property.prototype.delete = function (key) {
   delete this.values[key];
 };
@@ -8041,7 +8103,7 @@ State.prototype._join = function (rev, target) {
     array.forEachProperty(function (property) {
 
       // If target does not have the property, access was granted to the property, just add it.
-      if (master === this && typeof target.get(array.name).getProperty(property) === 'undefined') {
+      if (rev === target && typeof target.get(array.name).properties.get(property) === 'undefined') {
         // TODO: make actual copy of it for local usage (not important right now)
         target.get(array.name).addProperty(property); 
         return;
@@ -8184,10 +8246,11 @@ State.prototype.restrict = function (user) {
 
       // 2) Can see some of the entries of this column
       if (self.canSeeColumn(index, property.name, user)) {
-        /* continue to delete entries depending on the view */
+        
+        // delete entries depending on the view
         property.forEachKey(function (key) {
           var entry = index.getByKey(key);
-          if (!self.authedForEntryProperty('read', entry, property, user)) {
+          if (entry && !self.authedForEntryProperty('read', entry, property, user)) {
             property.delete(key);
           }
         });
