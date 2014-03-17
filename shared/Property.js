@@ -45,6 +45,10 @@ Property.prototype.set = function (key, val) {
   this.values[key] = val;
 };
 
+Property.prototype.delete = function (key) {
+  delete this.values[key];
+};
+
 // Gets the value of given key
 // keys is only for the Tables
 Property.prototype.getByKey = function (key, keys) {

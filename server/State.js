@@ -14,7 +14,6 @@ State.prototype.published = function (server) {
 State.prototype.checkChanges = function (state, user) {
   var self = this;
   var valid = true;
-  var group = user.get('group').get();
   // console.log('joining ' + Object.keys(master.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   // console.log('with ' + Object.keys(target.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   
@@ -23,9 +22,9 @@ State.prototype.checkChanges = function (state, user) {
   var ClientAuth = state.get('SysAuth');
   var ServerAuth = self.get('SysAuth');
   ClientAuth.forEachRow(function (clientAuth) {
-    // the grantopt/tname/group columns should never be changed
+    // the grantopt/tname/user columns should never be changed
     var serverAuth = ServerAuth.getByKey(clientAuth.uid);
-    ['grantopt', 'tname', 'group'].forEach(function (column) {
+    ['grantopt', 'tname', 'user'].forEach(function (column) {
       if (isChanged(serverAuth.get(column), clientAuth.get(column), ServerAuth.getProperty(column))) {
         console.log(column + ' was changed!');
         valid = false;
@@ -38,7 +37,7 @@ State.prototype.checkChanges = function (state, user) {
       if (isChanged(serverAuth.get(action), clientAuth.get(action), ServerAuth.getProperty(action))) {
         var table = self.get(clientAuth.get('tname').get());
         if (!self.canGrantTable(action, table, user)) {
-          console.log(group.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name);
+          console.log(user.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name);
           valid = false;
         }
       }
@@ -52,10 +51,10 @@ State.prototype.checkChanges = function (state, user) {
   var ClientColAuth = state.get('SysColAuth');
   var ServerColAuth = self.get('SysColAuth');
   ClientColAuth.forEachRow(function (clientColAuth) {
-    // the grantopt/tname/group columns should never be changed
+    // the grantopt/tname/user columns should never be changed
     var serverColAuth = ServerColAuth.getByKey(clientColAuth.uid);
 
-    ['grantopt', 'tname', 'group'].forEach(function (column) {
+    ['grantopt', 'tname', 'user'].forEach(function (column) {
 
       if (isChanged(serverColAuth.get(column), clientColAuth.get(column), ServerColAuth.getProperty(column))) {
         console.log(column + ' was changed!');
@@ -70,7 +69,7 @@ State.prototype.checkChanges = function (state, user) {
         var table = self.get(clientColAuth.get('tname').get());
         var cname = clientColAuth.get('cname').get();
         if (!self.canGrantColumn(action, table, cname, user)) {
-          console.log(group.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name + '.' + cname);
+          console.log(user.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name + '.' + cname);
           valid = false;
         }
       }
@@ -84,13 +83,13 @@ State.prototype.checkChanges = function (state, user) {
       if (clientEntity.deleted(key) && !serverEntity.deleted(key)) {
         var entry = serverEntity.getByKey(key);
         if (!self.authedForRow('delete', entry, user)) {
-          console.log(group.get('name').get() + ' not authed for delete of ' + clientEntity.name);
+          console.log(user.get('name').get() + ' not authed for delete of ' + clientEntity.name);
           valid = false;
         }
       }
       if (clientEntity.exists(key) && !serverEntity.defined(key)) {
         if (!self.canCreateOnTable(clientEntity, user)) {
-          console.log(group.get('name').get() + ' not authed for create of ' + clientEntity.name);
+          console.log(user.get('name').get() + ' not authed for create of ' + clientEntity.name);
           valid = false;
         }
       }
@@ -107,7 +106,7 @@ State.prototype.checkChanges = function (state, user) {
           var entry = array.getByKey(key);
           console.log(key + ' changed ');
           if (!self.authedForEntryProperty('update', entry, property, user)) {
-            console.log(group.get('name').get() + ' not authed for update of ' + array.name);
+            console.log(user.get('name').get() + ' not authed for update of ' + array.name);
             valid = false;
           }
         }

@@ -76,6 +76,17 @@ Table.prototype.setKeyValues = function (uid, keys) {
   return this;
 };
 
+
+// Removes all info about uid, only to be used by restrict
+Table.prototype.obliterate = function (uid) {
+  delete this.keyValues[uid];
+  delete this.states[uid];
+  delete this.cached[uid];
+  this.forEachProperty(function (property) {
+    property.delete(uid);
+  });
+};
+
 // Pure arguments version (user input version)
 // Table.prototype.get = function () {
 //   var args = Array.prototype.slice.call(arguments);
@@ -214,6 +225,17 @@ Table.prototype.getByKeys = function (keys) {
   }
   return null;
 };
+
+Table.prototype.find = function (callback) {
+  var self = this;
+  var result = null;
+  self.all().forEach(function (row) {
+    if (callback(row)) {
+      result = row;
+    }
+  });
+  return result;
+}
 
 
 

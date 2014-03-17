@@ -2,18 +2,23 @@ var View = require('./View');
 
 module.exports = Views;
 
-function Views(state) {
+function Views(state, auth) {
+  state.views = this;
   this.state = state;
+  this.auth  = auth;
   this.views = {};
 }
 
-Views.prototype.create = function (name, group, table, query) {
-  if (typeof group === 'string') {
-    group = this.state.get('SysGroup').getByProperties({name: group});
-  }
+Views.prototype.create = function (name, table, query) {
   if (typeof table === 'string') {
     table = this.state.get(table);
   }
-  this.views[name] = new View(group, table, query);
+  var view = new View(name, table, query);
+  this.views[name] = view;
+  this.auth.grantAllView(view);
   return this;
+};
+
+Views.prototype.get = function (name) {
+  return this.views[name];
 };

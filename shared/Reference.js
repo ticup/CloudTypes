@@ -111,7 +111,9 @@ ReferencePrototype.toJSON = function () {
 ReferencePrototype.set = function (row) {
   this.uid = row.serialKey()  ;
   this.isSet = true;
+  return this;
 };
+// CloudType.updateOperation(ReferencePrototype, 'set');
 
 
 

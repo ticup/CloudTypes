@@ -84,6 +84,7 @@ CInt.prototype.set = function (base) {
   this.base = base;
   this.isSet = true;
 };
+CloudType.updateOperation(CInt, 'set');
 
 CInt.prototype.get = function () {
   return (this.base + this.offset);
@@ -94,6 +95,7 @@ CInt.prototype.add = function (offset) {
     throw "CInt::add(base) : offset should be of type number, given: " + offset;
   this.offset += offset;
 };
+CloudType.updateOperation(CInt, 'add');
 
 // Defining _join(cint, target) provides the join and joinIn methods
 // by the CloudType prototype.

@@ -31,9 +31,9 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
     if (typeof self.uid === 'undefined') {
       console.log('client connected for first time');
       self.socket.emit('init', function (json) {
-        console.log(json.uid);
+        console.log('client id: ' + json.uid);
         state = State.fromJSON(json.state);
-        state.print();
+        // state.print();
         self.uid = json.uid;
         self.state = state;
         self.state.init(json.cid, self);

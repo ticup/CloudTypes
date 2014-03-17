@@ -2,6 +2,7 @@ var State = require('../shared/State');
 var CSetPrototype  = require('../shared/CSet').CSetPrototype;
 var Restricted = require('../shared/Restricted');
 var Index = require('../shared/Index');
+var Table = require('./Table');
 
 module.exports = State;
 
@@ -79,7 +80,6 @@ State.prototype.getUser = function () {
 var join = State.prototype.joinIn;
 State.prototype.joinIn = function (state) {
   var self = this;
-  join.call(this, state);
 
   var deleted = {};
   
@@ -96,6 +96,14 @@ State.prototype.joinIn = function (state) {
        var mProperty = mArray.getProperty(property);
       } catch(e) {
         delete array.properties.properties[property.name];
+        return;
+      }
+      if (array instanceof Table) {
+        array.forEachState(function (key) {
+          if (!mArray.defined(key)) {
+            array.obliterate(key);
+          }
+        });
       }
     });
   });
@@ -114,6 +122,9 @@ State.prototype.joinIn = function (state) {
     });
   });
   self.propagate();
+
+
+  join.call(this, state);
   return state;
 };
 

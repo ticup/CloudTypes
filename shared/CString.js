@@ -75,6 +75,7 @@ CString.prototype.set = function (value) {
   this.value   = value;
   this.written = 'wr';
 };
+CloudType.updateOperation(CString, 'set');
 
 CString.prototype.get = function () {
   return this.value;
@@ -99,6 +100,8 @@ CString.prototype.setIfEmpty = function (value) {
     // remain current values
   }
 };
+CloudType.updateOperation(CString, 'setIfEmpty');
+
 
 // Defining _join(cstring, target) provides the join and joinIn methods
 // by the CloudType prototype.

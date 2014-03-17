@@ -4,6 +4,8 @@ function CloudType() {}
 
 CloudType.types = {};
 
+CloudType.updateOperations = [];
+
 CloudType.register = function (typeDeclaration) {
   CloudType.types[typeDeclaration.tag] = typeDeclaration;
 };
@@ -47,4 +49,14 @@ CloudType.prototype.equals = function (val) {
 
 CloudType.prototype.toString = function () {
   return this.get();
+};
+
+CloudType.updateOperation = function (type, name) {
+  CloudType.updateOperations.push([type, name]);
+};
+
+CloudType.forEachUpdateOperation = function (callback) {
+  CloudType.updateOperations.forEach(function (arr) {
+    callback(arr[0], arr[1]);
+  });
 };

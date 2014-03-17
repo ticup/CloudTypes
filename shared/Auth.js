@@ -10,25 +10,25 @@ function addAuthentication(State) {
   /* Granting */
   /************/
 
-  State.prototype.grant = function (action, table, group, grantopt) {
+  State.prototype.grant = function (action, table, user, grantopt) {
     if (typeof table === 'string' || table instanceof Index) {
-      return this.grantTable(action, table, group, grantopt);
+      return this.grantTable(action, table, user, grantopt);
     } else if (table instanceof Property) {
-      return this.grantColumn(action, table.index, table.name, group, grantopt);
+      return this.grantColumn(action, table.index, table.name, user, grantopt);
     }
     throw new Error("Incorrect input for grant");
   };
 
   // Table 
-  State.prototype.grantTable = function (action, table, group, grantopt) {
+  State.prototype.grantTable = function (action, table, user, grantopt) {
     var self = this;
     grantopt = grantopt || 'N';
     if (typeof table === 'string') {
       table = self.get(table);
 
     }
-    if (typeof group === 'string') {
-      group = self.get('SysGroup').getByProperties({name: group});
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
     }
 
     // Can we grant action on table?
@@ -36,7 +36,7 @@ function addAuthentication(State) {
 
     // Do the granting
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('group').equals(group) &&
+      if (auth.get('user').equals(user) &&
           auth.get('tname').equals(table.name) &&
           auth.get('grantopt').equals(grantopt)) {
         auth.set(action, 'Y');
@@ -47,7 +47,7 @@ function addAuthentication(State) {
     // read/update are column actions, update their column rows accordingly
     if (action === 'read' || action === 'update') {
       self.get('SysColAuth').all().forEach(function (colAuth) {
-        if (colAuth.get('group').equals(group) &&
+        if (colAuth.get('user').equals(user) &&
             colAuth.get('tname').equals(table.name) &&
             colAuth.get('grantopt').equals(grantopt)) {
           colAuth.set(action, 'Y');
@@ -59,15 +59,15 @@ function addAuthentication(State) {
     table.forEachProperty(function (property) {
       if (property.CType.prototype === CSetPrototype) {
         // console.log(property.CType.prototype);
-        self.grantTable(action, property.CType.entity, group, grantopt);
+        self.grantTable(action, property.CType.entity, user, grantopt);
       }
     });
-    console.log('granted read to ' + group.get('name').get() + ' grantOpt: ' + grantopt);
+    console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
     return this;
   };
 
   // Column
-  State.prototype.grantColumn = function (action, table, columnName, group, grantopt) {
+  State.prototype.grantColumn = function (action, table, columnName, user, grantopt) {
     var col;
     var self = this;
     var granted = false;
@@ -76,8 +76,8 @@ function addAuthentication(State) {
     if (typeof table === 'string') {
       table = self.get(table);
     }
-    if (typeof group === 'string') {
-      group = self.get('SysGroup').getByProperties({name: group});
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
     }
 
     if (action !== 'read' && action !== 'update') {
@@ -87,7 +87,7 @@ function addAuthentication(State) {
     // If column is a CSet, perform grant on proxy table instead
     var property = table.getProperty(columnName);
     if (property.CType.prototype === CSetPrototype) {
-      return self.grantTable(action, property.CType.entity, group, grantopt);
+      return self.grantTable(action, property.CType.entity, user, grantopt);
     }
 
     // Can we grant action on given column?
@@ -95,17 +95,17 @@ function addAuthentication(State) {
     
     // Make the Table accessible
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('group').equals(group) &&
+      if (auth.get('user').equals(user) &&
           auth.get('tname').equals(table.name) &&
           auth.get('grantopt').equals(grantopt)) {
         auth.set(action, 'Y');
-        console.log('granted '+ action + ' to ' + group.get('name').get() + ' grantopt: ' + grantopt);
+        console.log('granted '+ action + ' to ' + user.get('name').get() + ' grantopt: ' + grantopt);
       }
     });
 
     // Do the grant on the column
     self.get('SysColAuth').all().forEach(function (colAuth) {
-      if (colAuth.get('group').equals(group) &&
+      if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(columnName) &&
           colAuth.get('grantopt').equals(grantopt)) {
@@ -121,62 +121,65 @@ function addAuthentication(State) {
   /* Revoking */
   /***********/
 
-  State.prototype.revoke = function (action, table, group) {
+  State.prototype.revoke = function (action, table, user) {
     if (typeof table === 'string' || table instanceof Index) {
-      return this.revokeTable(action, table, group);
+      return this.revokeTable(action, table, user);
     } else if (table instanceof Property) {
-      return this.revokeColumn(action, table.index, table.name, group);
+      return this.revokeColumn(action, table.index, table.name, user);
     }
     throw new Error("Incorrect input for grant");
   };
 
 
   // Revoke Table
-  State.prototype.revokeTable = function (action, table, group) {
+  State.prototype.revokeTable = function (action, table, user) {
     var self = this;
 
     if (typeof table === 'string') {
       table = self.get(table);    
     }
-    if (typeof group === 'string') {
-      group = self.get('SysGroup').getByProperties({name: group});
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
     }
 
+    console.log('checking permission');
     // Can we revoke action from table?
     self.checkGrantTablePermission(action, table, self.getUser());
-
+    console.log('allowed');
     // Revoke action (both with and without grantopt) from the Table
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('group').equals(group) &&
-          auth.get('tname').equals(table.name)) {
+      if (auth.get('user').equals(user) &&
+          auth.get('tname').equals(table.name) &&
+          auth.get('type').equals('T')) {
           auth.set(action, 'N');
       }
     });
-
+    console.log('removing columns');
     // Revoke action (both with and without grantopt) from columns if action = column operation
     if (action === 'read' || action === 'update') {
       self.get('SysColAuth').all().forEach(function (colAuth) {
-        if (colAuth.get('group').equals(group) &&
-            colAuth.get('tname').equals(table.name)) {
+        if (colAuth.get('user').equals(user) &&
+            colAuth.get('tname').equals(table.name) &&
+            colAuth.get('type').equals('T')) {
           colAuth.set(action, 'N');
         }
       });
     }
       
-    console.log('revoked '+ action+ ' from ' + group.get('name').get());
+    console.log('revoked '+ action+ ' from ' + user.get('name').get());
     return this;
   };
 
   // Revoke Column
-  State.prototype.revokeColumn = function (action, table, cname, group) {
+  State.prototype.revokeColumn = function (action, table, cname, user) {
     var self = this;
     var tname = table.name;
 
     if (typeof table === 'string') {
       table = self.get(table);    
     }
-    if (typeof group === 'string') {
-      group = self.get('SysGroup').getByProperties({name: group});
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
     }
 
     // Can we revoke action from column?
@@ -184,9 +187,10 @@ function addAuthentication(State) {
 
     // Revoke action from columns
     self.get('SysColAuth').all().forEach(function (colAuth) {
-      if (colAuth.get('group').equals(group) &&
+      if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(tname) &&
-          colAuth.get('cname').equals(cname)) {
+          colAuth.get('cname').equals(cname) &&
+          colAuth.get('type').equals('T')) {
         colAuth.set(action, 'N');
       }
     });
@@ -247,7 +251,6 @@ function addAuthentication(State) {
   State.prototype.canSeeTable = function (table, user) {
     var self = this;
     var authed = false;
-    var group = user.get('group').get();
 
     // already restricted
     if (table instanceof Restricted)
@@ -256,14 +259,14 @@ function addAuthentication(State) {
     // Find any (base or view) table authorization
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
-          auth.get('group').equals(group) &&
+          auth.get('user').equals(user) &&
           auth.get('read').equals('Y')) {
           authed = true;
       }
     });
 
     if (!authed) {
-      console.log(group.get('name').get() + ' not authed for ' + table.name);
+      console.log(user.get('name').get() + ' not authed for ' + table.name);
       return false;
     }
 
@@ -282,7 +285,6 @@ function addAuthentication(State) {
     var self = this;
     var authed = false;
     var property = table.getProperty(cname);
-    var group = user.get('group').get();
 
     // Already restricted
     if (table instanceof Restricted) {
@@ -293,7 +295,7 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'T') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('group').equals(group) &&
+      if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('read').equals('Y') &&
@@ -316,7 +318,6 @@ function addAuthentication(State) {
     var self = this;
     var authed = false;
     var property = table.getProperty(cname);
-    var group = user.get('group').get();
 
     // Already restricted
     if (table instanceof Restricted) {
@@ -327,7 +328,7 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'T') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('group').equals(group) &&
+      if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('read').equals('Y')) {
@@ -349,7 +350,6 @@ function addAuthentication(State) {
     var authed = false;
     var table = entry.index;
     var key = entry.uid;
-    var group = user.get('group').get();
 
     // Already restricted
     if (table instanceof Restricted) {
@@ -360,12 +360,12 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'T') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('group').equals(group) &&
+      if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('type').equals('V') &&
           colAuth.get('read').equals('Y')) {
-        var view = self.getView(colAuth.get('vname').get());
+        var view = self.views.get(colAuth.get('vname').get());
         if (view.includes(entry)) {
           authed = true;
         }
@@ -382,11 +382,10 @@ function addAuthentication(State) {
   State.prototype.authedForRow = function (action, entry, user) {
     var self = this;
     var authed = false;
-    var group = user.get('group').get();
     var table = entry.index;
 
 
-    console.log(user.get('name').get() + ' authed for row ' + entry.uid + '?');
+    // console.log(user.get('name').get() + ' authed for row ' + entry.uid + '?');
 
     // already restricted
     if (table instanceof Restricted)
@@ -394,7 +393,7 @@ function addAuthentication(State) {
 
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
-          auth.get('group').equals(group) &&
+          auth.get('user').equals(user) &&
           auth.get(action).equals('Y')) {
 
         // Authed for whole table
@@ -403,7 +402,7 @@ function addAuthentication(State) {
 
         // Authed for view
         } else {
-          var view = self.getView(auth.get('vname').get());
+          var view = self.views.get(auth.get('vname').get());
           if (view.includes(entry)) {
             authed = true;
           }
@@ -412,8 +411,7 @@ function addAuthentication(State) {
     });
 
     if (!authed) {
-      console.log(group.get('name').get() + ' not explicitly authed for ' + table.name);
-
+      
       // Implicit authorization for delete
       if (action === 'delete') {
         console.log('looking for implicit delete authorization');
@@ -427,7 +425,7 @@ function addAuthentication(State) {
           }
         });
       } else {
-        console.log(group.get('name').get() + ' not authed for ' + table.name);
+        console.log(user.get('name').get() + ' not authed for ' + table.name);
         return false;
       } 
     }
@@ -439,8 +437,14 @@ function addAuthentication(State) {
     table.keys.forEach(function (key, type, i) {
       if (type instanceof Table) {
         var keyEntry = entry.key(key);
+        
+        // key is restricted
+        if (!keyEntry) {
+          authed = false;
+          return;
+        }
         if (!self.authedForRow('read', keyEntry, user)) {
-          console.log(group.get('name').get() + ' not authed for ' + table.name + ' because no read access for keys');
+          console.log(user.get('name').get() + ' not authed for ' + table.name + ' because no read access for keys');
           authed = false;
         }
       }
@@ -453,8 +457,10 @@ function addAuthentication(State) {
   State.prototype.authedForEntryProperty = function (action, entry, property, user) {
     var self = this;
     var authed = true;
-    var group = user.get('group').get();
     var table = entry.index;
+    var cname = property.name;
+
+    // console.log('checking ' + action + ' on ' + table.name + '.' + cname);
 
     // Only read and update actions can be column-wise
     if (action !== 'read' && action !== 'update') {
@@ -471,6 +477,7 @@ function addAuthentication(State) {
       if (type instanceof Table) {
         var keyEntry = entry.key(key);
         if (!self.authedForRow('read', keyEntry, user)) {
+          console.log('not authed for the rows of the keys!');
           authed = false;
         }
       }
@@ -485,21 +492,20 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'R') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('group').equals(group) &&
-          colAuth.get('tname').equals(entry.index.name) &&
-          colAuth.get('cname').equals(property.name) &&
+      if (colAuth.get('user').equals(user) &&
+          colAuth.get('tname').equals(table.name) &&
+          colAuth.get('cname').equals(cname) &&
           colAuth.get(action).equals('Y')) {
 
         // 2.1) Full column access (Table)
         if (colAuth.get('type').equals('T')) {
-          console.log(group.get('name').get() + ' has full ' + action + ' access to ' + entry.index.name + '.'+property.name);
-          authed = true;
+              authed = true;
 
         // 2.2) Column row access (View)
         } else {
-          var view = self.getView(colAuth.get('vname').get());
+          var view = self.views.get(colAuth.get('vname').get());
           if (view.includes(entry)) {
-            authed = true;
+            authed = true;  
           }
         }
       }
@@ -519,7 +525,6 @@ function addAuthentication(State) {
   State.prototype.canCreateOnTable = function (table, user) {
     var self = this;
     var permission = false;
-    var group = user.get('group').get();
 
     // already restricted
     if (table instanceof Restricted)
@@ -528,7 +533,7 @@ function addAuthentication(State) {
     // Find any (base or view) table authorization
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
-          auth.get('group').equals(group) &&
+          auth.get('user').equals(user) &&
           auth.get('type').equals('T') &&
           auth.get('create').equals('Y')) {
           permission = true;
@@ -536,7 +541,7 @@ function addAuthentication(State) {
     });
 
     if (!permission) {
-      console.log(group.get('name').get() + ' not authed for create on ' + table.name);
+      console.log(user.get('name').get() + ' not authed for create on ' + table.name);
       return false;
     }
 
@@ -674,9 +679,8 @@ function addAuthentication(State) {
   State.prototype.canGrantTable = function (action, table, grantingUser) {
     var self = this;
     var Auth = this.get('SysAuth');
-    var grantingGroup = grantingUser.get('group').get();
     var permission = Auth.where(function (auth) {
-      return (auth.get('group').equals(grantingGroup) &&
+      return (auth.get('user').equals(grantingUser) &&
               auth.get('tname').equals(table.name) &&
               auth.get(action).equals('Y') &&
               auth.get('grantopt').equals('Y'));
@@ -686,7 +690,7 @@ function addAuthentication(State) {
     if (permission && (action === 'read' || action === 'update')) {
       table.forEachProperty(function (property) {
         if (!self.canGrantColumn(action, table, property.name, grantingUser)) {
-          console.log(property.name + " stopped access to grant " + action + " on " + table.name + " for " + grantingGroup.get('name').get());
+          console.log(property.name + " stopped access to grant " + action + " on " + table.name + " for " + grantingUser.get('name').get());
           permission = false;
         }
       });
@@ -698,7 +702,6 @@ function addAuthentication(State) {
   // Column
   State.prototype.canGrantColumn = function (action, table, columnName, grantingUser) {
     var self = this;
-    var grantingGroup = grantingUser.get('group').get();
 
     // Only read and update can be granted column-wise
     if (action !== 'read' && action !== 'update') {
@@ -707,7 +710,7 @@ function addAuthentication(State) {
 
     // Find the authorizing row
     var permission = self.get('SysColAuth').where(function (colAuth) {
-      return (colAuth.get('group').equals(grantingGroup) &&
+      return (colAuth.get('user').equals(grantingUser) &&
               colAuth.get('tname').equals(table.name) &&
               colAuth.get(action).equals('Y') &&
               colAuth.get('grantopt').equals('Y'));

@@ -12,6 +12,11 @@ function declareThings(server) {
    var Thing2 = server.declare('Thing2', Table([{'key1': 'Thing1'}], {'column1': 'CInt', 'column2': 'Thing1'}));
    var Thing3 = server.declare('Thing3', Table([{'key1': 'Thing2'}], {'column1': 'CInt'}));
    var Thing4 = server.declare('Thing4', Table([], {'column1': 'Thing1', 'column2': 'Thing2', 'column3': 'Thing3'}));
+   var LittleThing1 = server.view('LittleThing1', 'Thing1', function (thing, context) {
+      if (thing.get('column1').get() < 5) {
+         return true;
+      }
+   });
    var t1 = Thing1.create('thing1');
    Thing1.create('thing11');
    Thing1.create('thing111');

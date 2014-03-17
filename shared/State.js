@@ -322,6 +322,9 @@ State.prototype.dependendOn = function (child, parent) {
 State.prototype._join = function (rev, target) {
   var master = (this === target) ? rev : this;
   var self = this;
+
+  // master === this => client-join
+  // otherwise       => server-join
   
   // console.log('joining ' + Object.keys(master.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   // console.log('with ' + Object.keys(target.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
@@ -342,7 +345,7 @@ State.prototype._join = function (rev, target) {
     array.forEachProperty(function (property) {
 
       // If target does not have the property, access was granted to the property, just add it.
-      if (typeof target.get(array.name).properties.get(property) === 'undefined') {
+      if (master === this && typeof target.get(array.name).getProperty(property) === 'undefined') {
         // TODO: make actual copy of it for local usage (not important right now)
         target.get(array.name).addProperty(property); 
         return;
@@ -410,6 +413,7 @@ State.prototype.join = function (rev) {
 State.prototype.fork = function () {
   var forked = new State();
   var forker = this;
+  forked.views = forker.views;
 
   forker.forAllArray(function (index) {
     var fIndex = index.fork();
@@ -462,6 +466,16 @@ State.prototype.restrict = function (user) {
       return;
     }
 
+    if (index instanceof Table) {
+      index.forEachState(function (key) {
+        var entry = index.getByKey(key);
+        if (!self.authedForRow('read', entry, user)) {
+          console.log('obliterated ' + key);
+          index.obliterate(key);
+        }
+      });
+    }
+
     // console.log('can see some of ' + index.name);
     index.forEachProperty(function (property) {
 
@@ -475,8 +489,14 @@ State.prototype.restrict = function (user) {
       // 2) Can see some of the entries of this column
       if (self.canSeeColumn(index, property.name, user)) {
         /* continue to delete entries depending on the view */
+        property.forEachKey(function (key) {
+          var entry = index.getByKey(key);
+          if (!self.authedForEntryProperty('read', entry, property, user)) {
+            property.delete(key);
+          }
+        });
 
-      // 3) not authed to read any entry of this column, remove it
+      // 3) not authed to read any entry of this column, completely remove it
       } else {
         delete index.properties.properties[property.name];
       }

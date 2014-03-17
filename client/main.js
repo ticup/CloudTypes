@@ -8,6 +8,10 @@ var Restricted      = require('../shared/Restricted');
 var Table           = require('./Table');
 var TableEntry      = require('./TableEntry');
 
+// needs to be loaded after all CloudTypes (modifies them)
+var CloudType       = require('./CloudType');
+
+
 var View            = require('./views/View');
 var ListView        = require('./views/ListView');
 var EntryView       = require('./views/EntryView');
