@@ -4496,12 +4496,6 @@ function addAuthentication(State) {
       if (typeof theTable !== 'undefined') {
         return this.grantTable(action, theTable, user, grantopt);
       }
-
-      // view name was given
-      var theView = self.views.get(table);
-      if (typeof theView !== 'undefined') {
-        return this.grantView(action, theView, user);
-      }
     }
 
     if (table instanceof Index) {
@@ -4515,6 +4509,40 @@ function addAuthentication(State) {
     throw new Error("Incorrect input for grant");
   };
 
+
+  State.prototype.grantView = function (action, view, column, user, grantopt) {
+    var self = this;
+    
+    // granting complete view
+    if (user === 'Y' || user === 'N') {
+      grantOpt = user;
+      user = column;
+      if (typeof user === 'string') {
+        user = self.get('SysUser').getByProperties({name: user});
+      }
+
+      var theView = self.views.get(table);
+      if (typeof theView !== 'undefined') {
+        return this.grantView(action, theView, user, grantopt);
+      }
+
+    // granting column on view
+    } else {
+
+      if (typeof user === 'string') {
+        user = self.get('SysUser').getByProperties({name: user});
+      }
+
+      var theView = self.views.get(table);
+      if (typeof theView !== 'undefined') {
+        return this.grantViewColumn(action, theView, column, user, grantopt);
+      }
+
+    }
+
+    throw new Error("Incorrect input for grantView");
+  };
+
   // Table 
   State.prototype.grantTable = function (action, table, user, grantopt) {
     var self = this;
@@ -4526,6 +4554,7 @@ function addAuthentication(State) {
     // Do the granting
     self.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('user').equals(user) &&
+          auth.get('type').equals('T') &&
           auth.get('tname').equals(table.name) &&
           auth.get('grantopt').equals(grantopt)) {
         auth.set(action, 'Y');
@@ -4537,6 +4566,7 @@ function addAuthentication(State) {
     if (action === 'read' || action === 'update') {
       self.get('SysColAuth').all().forEach(function (colAuth) {
         if (colAuth.get('user').equals(user) &&
+            colAuth.get('type').equals('T') &&
             colAuth.get('tname').equals(table.name) &&
             colAuth.get('grantopt').equals(grantopt)) {
           colAuth.set(action, 'Y');
@@ -4604,13 +4634,6 @@ function addAuthentication(State) {
     var granted = false;
     grantopt = grantopt || 'N';
 
-    if (typeof table === 'string') {
-      table = self.get(table);
-    }
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
-    }
-
     if (action !== 'read' && action !== 'update') {
       throw new Error("Only read and update are column actions");
     }
@@ -4628,6 +4651,7 @@ function addAuthentication(State) {
     self.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('user').equals(user) &&
           auth.get('tname').equals(table.name) &&
+          auth.get('type').equals('T') &&
           auth.get('grantopt').equals(grantopt)) {
         auth.set(action, 'Y');
         console.log('granted '+ action + ' to ' + user.get('name').get() + ' grantopt: ' + grantopt);
@@ -4638,6 +4662,53 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
       if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(table.name) &&
+          colAuth.get('cname').equals(columnName) &&
+          colAuth.get('type').equals('T') &&
+          colAuth.get('grantopt').equals(grantopt)) {
+        colAuth.set(action, 'Y');
+      }
+    });
+
+    return this;
+  };
+
+  // ViewColumn
+  State.prototype.grantViewColumn = function (action, view, columnName, user, grantopt) {
+    var col;
+    var self = this;
+    var granted = false;
+    grantopt = grantopt || 'N';
+
+    if (action !== 'read' && action !== 'update') {
+      throw new Error("Only read and update are column actions");
+    }
+
+    // If column is a CSet, perform grant on proxy table instead
+    
+    // var property = table.getProperty(columnName);
+    // if (property.CType.prototype === CSetPrototype) {
+    //   return self.grantTable(action, property.CType.entity, user, grantopt);
+    // }
+
+    // Can we grant action on given column?
+    self.checkGrantColumnPermission(action, table, columnName, self.getUser());
+    
+    // Make the Table accessible
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('user').equals(user) &&
+          auth.get('type').equals('V') &&
+          auth.get('vname').equals(view.name) &&
+          auth.get('grantopt').equals(grantopt)) {
+        auth.set(action, 'Y');
+        console.log('granted '+ action + ' to ' + user.get('name').get() + ' grantopt: ' + grantopt);
+      }
+    });
+
+    // Do the grant on the column
+    self.get('SysColAuth').all().forEach(function (colAuth) {
+      if (colAuth.get('user').equals(user) &&
+          colAuth.get('type').equals('V') &&
+          colAuth.get('vname').equals(view.name) &&
           colAuth.get('cname').equals(columnName) &&
           colAuth.get('grantopt').equals(grantopt)) {
         colAuth.set(action, 'Y');
