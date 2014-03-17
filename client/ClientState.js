@@ -128,6 +128,7 @@ State.prototype.joinIn = function (state) {
   return state;
 };
 
+
 // var checkTablePermission = State.prototype.checkTablePermission;
 
 // State.prototype.checkTablePermission = function (action, table) {

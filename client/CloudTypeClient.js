@@ -1,4 +1,5 @@
 var State       = require('./ClientState');
+var Views       = require('../shared/Views');
 var io          = require('socket.io-client');
 
 global.io = io;
@@ -33,6 +34,7 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
       self.socket.emit('init', function (json) {
         console.log('client id: ' + json.uid);
         state = State.fromJSON(json.state);
+        self.views = Views.fromJSON(json.views, state);
         // state.print();
         self.uid = json.uid;
         self.state = state;
@@ -108,7 +110,7 @@ Client.prototype.login = function (username, password, finish) {
   var self = this;
   if (typeof this.socket === 'undefined')
     return finish("not connected");
-  this.socket.emit('Login', {username: username, password: password}, function (err, groupName) {
+  this.socket.emit('Login', {username: username, password: password}, function (err, userName) {
     if (err)
       throw err;
     self.user = self.state.get('SysUser').getByProperties({name: username});

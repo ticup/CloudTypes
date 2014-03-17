@@ -1,7 +1,7 @@
 var Server   = require('./Server');
 var State    = require('./State');
 var Auth     = require('./Auth');
-var Views    = require('./Views');
+var Views    = require('../shared/Views');
 
 module.exports = CServer;
 

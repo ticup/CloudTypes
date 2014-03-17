@@ -54,7 +54,7 @@ Server.prototype.open = function (target, staticPath) {
       uid = self.generateUID();
       var user = self.getUser(cuser);
       var fork = self.state.fork().restrict(user);
-      initClient({ uid: uid, cid: ++cid, state: fork});
+      initClient({ uid: uid, cid: ++cid, state: fork, views: self.views.toJSON() });
     });
 
     socket.on('YieldPush', function (json, yieldPull) {
@@ -98,7 +98,7 @@ Server.prototype.open = function (target, staticPath) {
         if (err)
           return finish(err);
         cuser = user;
-        finish(null, user.get('group').get().get('name').get());
+        finish(null, user.get('name').get());
       });
     });
 

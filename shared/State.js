@@ -28,6 +28,16 @@ State.prototype.get = function (name) {
   return this.arrays[name];
 };
 
+State.prototype.viewExists = function (name) {
+  var exists = false;
+  this.get('SysAuth').all().forEach(function (auth) {
+    if (auth.get('vname').equals(name) && auth.get('type').equals('V')) {
+      exists = true;
+    }
+  });
+  return true;
+};
+
 State.prototype.all = function () {
   var self = this;
   var tables = [];

@@ -22,3 +22,21 @@ Views.prototype.create = function (name, table, query) {
 Views.prototype.get = function (name) {
   return this.views[name];
 };
+
+Views.prototype.toJSON = function () {
+  var self = this;
+  var json = [];
+  Object.keys(this.views).forEach(function (name) {
+    json.push(self.views[name].toJSON());
+  });
+  return json;
+};
+
+Views.fromJSON = function (json, state) {
+  var views = new Views(state);
+  json.forEach(function (view) {
+    var view = View.fromJSON(view, state);
+    views.views[view.name] = view;
+  });
+  return views;
+};

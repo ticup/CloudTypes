@@ -153,6 +153,7 @@ State.prototype.joinIn = function (state) {
   return state;
 };
 
+
 // var checkTablePermission = State.prototype.checkTablePermission;
 
 // State.prototype.checkTablePermission = function (action, table) {
@@ -180,6 +181,7 @@ CloudType.forEachUpdateOperation(function (type, name){
 },{"../shared/CloudType":20}],5:[function(require,module,exports){
 (function (global){
 var State       = require('./ClientState');
+var Views       = require('../shared/Views');
 var io          = require('socket.io-client');
 
 global.io = io;
@@ -214,6 +216,7 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
       self.socket.emit('init', function (json) {
         console.log('client id: ' + json.uid);
         state = State.fromJSON(json.state);
+        self.views = Views.fromJSON(json.views, state);
         // state.print();
         self.uid = json.uid;
         self.state = state;
@@ -289,7 +292,7 @@ Client.prototype.login = function (username, password, finish) {
   var self = this;
   if (typeof this.socket === 'undefined')
     return finish("not connected");
-  this.socket.emit('Login', {username: username, password: password}, function (err, groupName) {
+  this.socket.emit('Login', {username: username, password: password}, function (err, userName) {
     if (err)
       throw err;
     self.user = self.state.get('SysUser').getByProperties({name: username});
@@ -297,7 +300,7 @@ Client.prototype.login = function (username, password, finish) {
   });
 };
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./ClientState":3,"socket.io-client":15}],6:[function(require,module,exports){
+},{"../shared/Views":35,"./ClientState":3,"socket.io-client":15}],6:[function(require,module,exports){
 var Table = require('../shared/Table');
 module.exports = Table;
 
@@ -690,7 +693,7 @@ function objEquiv (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":41}],14:[function(require,module,exports){
+},{"buffer":43}],14:[function(require,module,exports){
 /*!
  * Should
  * Copyright(c) 2010-2012 TJ Holowaychuk <tj@vision-media.ca>
@@ -1422,7 +1425,7 @@ Assertion.prototype = {
 ('below', 'lessThan');
 
 
-},{"./eql":13,"assert":38,"http":45,"util":65}],15:[function(require,module,exports){
+},{"./eql":13,"assert":40,"http":47,"util":67}],15:[function(require,module,exports){
 /*! Socket.IO.js build:0.9.16, development. Copyright(c) 2011 LearnBoost <dev@learnboost.com> MIT Licensed */
 
 var io = ('undefined' === typeof module ? {} : module.exports);
@@ -5310,11 +5313,34 @@ function addAuthentication(State) {
   /************/
 
   State.prototype.grant = function (action, table, user, grantopt) {
-    if (typeof table === 'string' || table instanceof Index) {
+    var self = this;
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
+    }
+
+    if (typeof table === 'string') {
+
+      // table name was given
+      var theTable = self.get(table);    
+      if (typeof theTable !== 'undefined') {
+        return this.grantTable(action, theTable, user, grantopt);
+      }
+
+      // view name was given
+      var theView = self.views.get(table);
+      if (typeof theView !== 'undefined') {
+        return this.grantView(action, theView, user);
+      }
+    }
+
+    if (table instanceof Index) {
       return this.grantTable(action, table, user, grantopt);
-    } else if (table instanceof Property) {
+    }
+
+    if (table instanceof Property) {
       return this.grantColumn(action, table.index, table.name, user, grantopt);
     }
+
     throw new Error("Incorrect input for grant");
   };
 
@@ -5322,13 +5348,6 @@ function addAuthentication(State) {
   State.prototype.grantTable = function (action, table, user, grantopt) {
     var self = this;
     grantopt = grantopt || 'N';
-    if (typeof table === 'string') {
-      table = self.get(table);
-
-    }
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
-    }
 
     // Can we grant action on table?
     self.checkGrantTablePermission(action, table, self.getUser());
@@ -5361,6 +5380,48 @@ function addAuthentication(State) {
         self.grantTable(action, property.CType.entity, user, grantopt);
       }
     });
+    console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
+    return this;
+  };
+
+    // Table 
+  State.prototype.grantView = function (action, view, user, grantopt) {
+    var self = this;
+    grantopt = grantopt || 'N';
+
+    // Can we grant action on table?
+    self.checkGrantViewPermission(action, view, self.getUser());
+
+    // Do the granting
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('user').equals(user) &&
+          auth.get('type').equals('V') &&
+          auth.get('vname').equals(view.name) &&
+          auth.get('grantopt').equals(grantopt)) {
+        auth.set(action, 'Y');
+      }
+    });
+
+
+    // read/update are column actions, update their column rows accordingly
+    if (action === 'read' || action === 'update') {
+      self.get('SysColAuth').all().forEach(function (colAuth) {
+        if (colAuth.get('user').equals(user) &&
+            colAuth.get('type').equals('V') &&
+            colAuth.get('vname').equals(view.name) &&
+            colAuth.get('grantopt').equals(grantopt)) {
+          colAuth.set(action, 'Y');
+        }
+      });
+    }   
+
+    // Perform same grant on the proxy table of CSet properties of given table
+    // table.forEachProperty(function (property) {
+    //   if (property.CType.prototype === CSetPrototype) {
+    //     // console.log(property.CType.prototype);
+    //     self.grantView(action, property.CType.entity, user, grantopt);
+    //   }
+    // });
     console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
     return this;
   };
@@ -5421,25 +5482,73 @@ function addAuthentication(State) {
   /***********/
 
   State.prototype.revoke = function (action, table, user) {
-    if (typeof table === 'string' || table instanceof Index) {
+    var self = this;
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
+    }
+
+    if (typeof table === 'string') {
+
+      // table name was given
+      var theTable = self.get(table);    
+      if (typeof theTable !== 'undefined') {
+        return this.revokeTable(action, theTable, user);
+      }
+
+      // view name was given
+      var theView = self.views.get(table);
+      if (typeof theView !== 'undefined') {
+        return this.revokeView(action, theView, user);
+      }
+    }
+
+    if (table instanceof Index) {
       return this.revokeTable(action, table, user);
-    } else if (table instanceof Property) {
+    }
+
+    if (table instanceof Property) {
       return this.revokeColumn(action, table.index, table.name, user);
     }
-    throw new Error("Incorrect input for grant");
+
+    throw new Error("Incorrect input for revoke");
+  };
+
+  // Revoke View
+  State.prototype.revokeView = function (action, view, user) {
+    var self = this;
+
+    console.log('Revoking view ' + view.name);
+    // Can we revoke action from table?
+    self.checkGrantViewPermission(action, view, self.getUser());
+    console.log('allowed');
+    // Revoke action (both with and without grantopt) from the Table
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('user').equals(user) &&
+          auth.get('vname').equals(view.name) &&
+          auth.get('type').equals('V')) {
+          auth.set(action, 'N');
+      }
+    });
+    console.log('removing columns');
+    // Revoke action (both with and without grantopt) from columns if action = column operation
+    if (action === 'read' || action === 'update') {
+      self.get('SysColAuth').all().forEach(function (colAuth) {
+        if (colAuth.get('user').equals(user) &&
+            colAuth.get('vname').equals(view.name) &&
+            colAuth.get('type').equals('V')) {
+          colAuth.set(action, 'N');
+        }
+      });
+    }
+      
+    console.log('revoked '+ action+ ' from ' + user.get('name').get() + ' on view ' + view.name);
+    return this;
   };
 
 
   // Revoke Table
   State.prototype.revokeTable = function (action, table, user) {
     var self = this;
-
-    if (typeof table === 'string') {
-      table = self.get(table);    
-    }
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
-    }
 
     console.log('checking permission');
     // Can we revoke action from table?
@@ -5473,13 +5582,6 @@ function addAuthentication(State) {
   State.prototype.revokeColumn = function (action, table, cname, user) {
     var self = this;
     var tname = table.name;
-
-    if (typeof table === 'string') {
-      table = self.get(table);    
-    }
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
-    }
 
     // Can we revoke action from column?
     self.checkGrantColumnPermission(action, table, cname, self.getUser());
@@ -5532,6 +5634,14 @@ function addAuthentication(State) {
       throw new Error("You don't have " + action + " grant permissions for " + table.name);
     }
   };
+
+
+  State.prototype.checkGrantViewPermission = function (action, view, grantingUser) {
+    if (!this.canGrantView(action, view, grantingUser)) {
+      throw new Error("You don't have " + action + " grant permissions for " + table.name);
+    }
+  };
+
 
   State.prototype.checkGrantColumnPermission = function (action, table, columnName, grantingUser) {
     if (!this.canGrantColumn(action, table, columnName, grantingUser)) {
@@ -5998,6 +6108,31 @@ function addAuthentication(State) {
     return permission;
   };
 
+  // View
+  State.prototype.canGrantView = function (action, view, grantingUser) {
+    var self = this;
+    var Auth = this.get('SysAuth');
+    var permission = Auth.where(function (auth) {
+      return (auth.get('user').equals(grantingUser) &&
+              auth.get('type').equals('V') &&
+              auth.get('vname').equals(view.name) &&
+              auth.get(action).equals('Y') &&
+              auth.get('grantopt').equals('Y'));
+    }).all().length > 0;
+
+    // If column action, also needs granting rights over all columns
+    if (permission && (action === 'read' || action === 'update')) {
+      view.table.forEachProperty(function (property) {
+        if (!self.canGrantViewColumn(action, view, property.name, grantingUser)) {
+          console.log(property.name + " stopped access to grant " + action + " on " + view.name + " for " + grantingUser.get('name').get());
+          permission = false;
+        }
+      });
+    }
+
+    return permission;
+  };
+
   // Column
   State.prototype.canGrantColumn = function (action, table, columnName, grantingUser) {
     var self = this;
@@ -6016,6 +6151,28 @@ function addAuthentication(State) {
     }).all().length > 0;
     return permission;
   };
+
+  // View Column
+  State.prototype.canGrantViewColumn = function (action, view, columnName, grantingUser) {
+    var self = this;
+
+    // Only read and update can be granted column-wise
+    if (action !== 'read' && action !== 'update') {
+      return false;
+    }
+
+    // Find the authorizing row
+    var permission = self.get('SysColAuth').where(function (colAuth) {
+      return (colAuth.get('user').equals(grantingUser) &&
+              colAuth.get('type').equals('V') &&
+              colAuth.get('vname').equals(view.name) &&
+              colAuth.get(action).equals('Y') &&
+              colAuth.get('grantopt').equals('Y'));
+    }).all().length > 0;
+    return permission;
+  };
+
+
 }
 
 module.exports = addAuthentication;
@@ -6163,7 +6320,7 @@ CInt.prototype.isChanged = function (cint) {
 CInt.prototype.compare = function (cint, reverse) {
   return ((reverse ? -1 : 1) * (this.get() - cint.get()));
 };
-},{"./CloudType":20,"util":65}],18:[function(require,module,exports){
+},{"./CloudType":20,"util":67}],18:[function(require,module,exports){
 /**
  * Created by ticup on 08/11/13.
  */
@@ -6475,7 +6632,7 @@ CString.prototype.isChanged = function (cstring) {
 CString.prototype.compare = function (cstring, reverse) {
   return ((reverse ? -1 : 1) * (this.get().localeCompare(cstring.get())));
 };
-},{"./CloudType":20,"util":65}],20:[function(require,module,exports){
+},{"./CloudType":20,"util":67}],20:[function(require,module,exports){
 module.exports = CloudType;
 
 function CloudType() {}
@@ -6660,7 +6817,7 @@ Index.fromJSON = function (json) {
   index.isProxy = json.isProxy;
   return index;
 };
-},{"./CloudType":20,"./IndexEntry":22,"./IndexQuery":23,"./Keys":24,"./Properties":25,"./Property":26,"./TypeChecker":33,"util":65}],22:[function(require,module,exports){
+},{"./CloudType":20,"./IndexEntry":22,"./IndexQuery":23,"./Keys":24,"./Properties":25,"./Property":26,"./TypeChecker":33,"util":67}],22:[function(require,module,exports){
 var Keys       = require('./Keys');
 var CloudType  = require('./CloudType');
 var TypeChecker = require('./TypeChecker');
@@ -7484,6 +7641,16 @@ State.prototype.get = function (name) {
   }
 
   return this.arrays[name];
+};
+
+State.prototype.viewExists = function (name) {
+  var exists = false;
+  this.get('SysAuth').all().forEach(function (auth) {
+    if (auth.get('vname').equals(name) && auth.get('type').equals('V')) {
+      exists = true;
+    }
+  });
+  return true;
 };
 
 State.prototype.all = function () {
@@ -8492,6 +8659,84 @@ var TypeChecker = {
 
 module.exports = TypeChecker;
 },{"./CloudType":20}],34:[function(require,module,exports){
+module.exports = View;
+
+
+function View(name, table, query) {
+  this.name = name;
+  this.table = table;
+  this.query = query;
+}
+
+View.prototype.includes = function (entry) {
+  var self =  this;
+  var included = false;
+  self.table.forEachState(function (key) {
+    var row = self.table.getByKey(key);
+    if (row.equals(entry) && self.query(row)) {
+      included = true;
+    }
+  });
+  return included;
+};
+
+View.prototype.toJSON = function () {
+  return {
+    name: this.name,
+    table: this.table.name,
+    query: this.query.toString(),
+  };
+};
+
+View.fromJSON = function (json, state) {
+  var table = state.get(json.table);
+  eval('var query = ' + json.query);
+  return new View(json.name, table, query);
+}
+},{}],35:[function(require,module,exports){
+var View = require('./View');
+
+module.exports = Views;
+
+function Views(state, auth) {
+  state.views = this;
+  this.state = state;
+  this.auth  = auth;
+  this.views = {};
+}
+
+Views.prototype.create = function (name, table, query) {
+  if (typeof table === 'string') {
+    table = this.state.get(table);
+  }
+  var view = new View(name, table, query);
+  this.views[name] = view;
+  this.auth.grantAllView(view);
+  return this;
+};
+
+Views.prototype.get = function (name) {
+  return this.views[name];
+};
+
+Views.prototype.toJSON = function () {
+  var self = this;
+  var json = [];
+  Object.keys(this.views).forEach(function (name) {
+    json.push(self.views[name].toJSON());
+  });
+  return json;
+};
+
+Views.fromJSON = function (json, state) {
+  var views = new Views(state);
+  json.forEach(function (view) {
+    var view = View.fromJSON(view, state);
+    views.views[view.name] = view;
+  });
+  return views;
+};
+},{"./View":34}],36:[function(require,module,exports){
 
 // load normal client file
 var main = require('../../client/main');
@@ -8500,7 +8745,7 @@ var main = require('../../client/main');
 exports.CInt     = require('../extensions/CInt');
 exports.CString  = require('../extensions/CString');
 exports.State    = require('../extensions/State');
-},{"../../client/main":8,"../extensions/CInt":35,"../extensions/CString":36,"../extensions/State":37}],35:[function(require,module,exports){
+},{"../../client/main":8,"../extensions/CInt":37,"../extensions/CString":38,"../extensions/State":39}],37:[function(require,module,exports){
 // test/extensions/CInt.js
 //
 // Extends the CInt CloudType with the necessary test
@@ -8539,7 +8784,7 @@ CInt.prototype.isEqual = function (cint) {
 CInt.prototype.isConsistent = function (cint) {
   this.get().should.equal(cint.get());
 };
-},{"../../shared/CInt":17,"should":14}],36:[function(require,module,exports){
+},{"../../shared/CInt":17,"should":14}],38:[function(require,module,exports){
 // test/extensions/CString.js
 //
 // Extends the CString CloudType with the necessary test
@@ -8597,7 +8842,7 @@ CString.prototype.isConsistent = function (cstring) {
 //  console.log(this.get() + " =? " + cint.get());
   this.get().should.equal(cstring.get());
 };
-},{"../../shared/CString":19,"should":14,"util":65}],37:[function(require,module,exports){
+},{"../../shared/CString":19,"should":14,"util":67}],39:[function(require,module,exports){
 var State = require('../../shared/State');
 var CloudType = require('../../shared/CloudType');
 var should = require('should');
@@ -8715,7 +8960,7 @@ State.prototype.isConsistent = function (state) {
     });
   });
 };
-},{"../../shared/CloudType":20,"../../shared/State":29,"should":14}],38:[function(require,module,exports){
+},{"../../shared/CloudType":20,"../../shared/State":29,"should":14}],40:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -9077,14 +9322,14 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":40}],39:[function(require,module,exports){
+},{"util/":42}],41:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],40:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -9674,7 +9919,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require("/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":39,"/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":50,"inherits":49}],41:[function(require,module,exports){
+},{"./support/isBuffer":41,"/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":52,"inherits":51}],43:[function(require,module,exports){
 /**
  * The buffer module from node.js, for the browser.
  *
@@ -10786,7 +11031,7 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-},{"base64-js":42,"ieee754":43}],42:[function(require,module,exports){
+},{"base64-js":44,"ieee754":45}],44:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -10909,7 +11154,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	module.exports.fromByteArray = uint8ToBase64
 }())
 
-},{}],43:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -10995,7 +11240,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],44:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -11297,7 +11542,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],45:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 var http = module.exports;
 var EventEmitter = require('events').EventEmitter;
 var Request = require('./lib/request');
@@ -11436,7 +11681,7 @@ http.STATUS_CODES = {
     510 : 'Not Extended',               // RFC 2774
     511 : 'Network Authentication Required' // RFC 6585
 };
-},{"./lib/request":46,"events":44,"url":63}],46:[function(require,module,exports){
+},{"./lib/request":48,"events":46,"url":65}],48:[function(require,module,exports){
 var Stream = require('stream');
 var Response = require('./response');
 var Base64 = require('Base64');
@@ -11627,7 +11872,7 @@ var indexOf = function (xs, x) {
     return -1;
 };
 
-},{"./response":47,"Base64":48,"inherits":49,"stream":56}],47:[function(require,module,exports){
+},{"./response":49,"Base64":50,"inherits":51,"stream":58}],49:[function(require,module,exports){
 var Stream = require('stream');
 var util = require('util');
 
@@ -11749,7 +11994,7 @@ var isArray = Array.isArray || function (xs) {
     return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{"stream":56,"util":65}],48:[function(require,module,exports){
+},{"stream":58,"util":67}],50:[function(require,module,exports){
 ;(function () {
 
   var object = typeof exports != 'undefined' ? exports : this; // #8: web workers
@@ -11811,7 +12056,7 @@ var isArray = Array.isArray || function (xs) {
 
 }());
 
-},{}],49:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -11836,7 +12081,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],50:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -11891,7 +12136,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],51:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 (function (global){
 /*! http://mths.be/punycode v1.2.4 by @mathias */
 ;(function(root) {
@@ -12402,7 +12647,7 @@ process.chdir = function (dir) {
 }(this));
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],52:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12488,7 +12733,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12575,13 +12820,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],54:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":52,"./encode":53}],55:[function(require,module,exports){
+},{"./decode":54,"./encode":55}],57:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12655,7 +12900,7 @@ function onend() {
   });
 }
 
-},{"./readable.js":59,"./writable.js":61,"inherits":49,"process/browser.js":57}],56:[function(require,module,exports){
+},{"./readable.js":61,"./writable.js":63,"inherits":51,"process/browser.js":59}],58:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12784,9 +13029,9 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"./duplex.js":55,"./passthrough.js":58,"./readable.js":59,"./transform.js":60,"./writable.js":61,"events":44,"inherits":49}],57:[function(require,module,exports){
-module.exports=require(50)
-},{}],58:[function(require,module,exports){
+},{"./duplex.js":57,"./passthrough.js":60,"./readable.js":61,"./transform.js":62,"./writable.js":63,"events":46,"inherits":51}],59:[function(require,module,exports){
+module.exports=require(52)
+},{}],60:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12829,7 +13074,7 @@ PassThrough.prototype._transform = function(chunk, encoding, cb) {
   cb(null, chunk);
 };
 
-},{"./transform.js":60,"inherits":49}],59:[function(require,module,exports){
+},{"./transform.js":62,"inherits":51}],61:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -13766,7 +14011,7 @@ function indexOf (xs, x) {
 }
 
 }).call(this,require("/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"./index.js":56,"/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":50,"buffer":41,"events":44,"inherits":49,"process/browser.js":57,"string_decoder":62}],60:[function(require,module,exports){
+},{"./index.js":58,"/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":52,"buffer":43,"events":46,"inherits":51,"process/browser.js":59,"string_decoder":64}],62:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -13972,7 +14217,7 @@ function done(stream, er) {
   return stream.push(null);
 }
 
-},{"./duplex.js":55,"inherits":49}],61:[function(require,module,exports){
+},{"./duplex.js":57,"inherits":51}],63:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -14360,7 +14605,7 @@ function endWritable(stream, state, cb) {
   state.ended = true;
 }
 
-},{"./index.js":56,"buffer":41,"inherits":49,"process/browser.js":57}],62:[function(require,module,exports){
+},{"./index.js":58,"buffer":43,"inherits":51,"process/browser.js":59}],64:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -14553,7 +14798,7 @@ function base64DetectIncompleteChar(buffer) {
   return incomplete;
 }
 
-},{"buffer":41}],63:[function(require,module,exports){
+},{"buffer":43}],65:[function(require,module,exports){
 /*jshint strict:true node:true es5:true onevar:true laxcomma:true laxbreak:true eqeqeq:true immed:true latedef:true*/
 (function () {
   "use strict";
@@ -15186,8 +15431,8 @@ function parseHost(host) {
 
 }());
 
-},{"punycode":51,"querystring":54}],64:[function(require,module,exports){
-module.exports=require(39)
-},{}],65:[function(require,module,exports){
-module.exports=require(40)
-},{"./support/isBuffer":64,"/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":50,"inherits":49}]},{},[34])
+},{"punycode":53,"querystring":56}],66:[function(require,module,exports){
+module.exports=require(41)
+},{}],67:[function(require,module,exports){
+module.exports=require(42)
+},{"./support/isBuffer":66,"/usr/local/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":52,"inherits":51}]},{},[36])

@@ -11,11 +11,34 @@ function addAuthentication(State) {
   /************/
 
   State.prototype.grant = function (action, table, user, grantopt) {
-    if (typeof table === 'string' || table instanceof Index) {
+    var self = this;
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
+    }
+
+    if (typeof table === 'string') {
+
+      // table name was given
+      var theTable = self.get(table);    
+      if (typeof theTable !== 'undefined') {
+        return this.grantTable(action, theTable, user, grantopt);
+      }
+
+      // view name was given
+      var theView = self.views.get(table);
+      if (typeof theView !== 'undefined') {
+        return this.grantView(action, theView, user);
+      }
+    }
+
+    if (table instanceof Index) {
       return this.grantTable(action, table, user, grantopt);
-    } else if (table instanceof Property) {
+    }
+
+    if (table instanceof Property) {
       return this.grantColumn(action, table.index, table.name, user, grantopt);
     }
+
     throw new Error("Incorrect input for grant");
   };
 
@@ -23,13 +46,6 @@ function addAuthentication(State) {
   State.prototype.grantTable = function (action, table, user, grantopt) {
     var self = this;
     grantopt = grantopt || 'N';
-    if (typeof table === 'string') {
-      table = self.get(table);
-
-    }
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
-    }
 
     // Can we grant action on table?
     self.checkGrantTablePermission(action, table, self.getUser());
@@ -62,6 +78,48 @@ function addAuthentication(State) {
         self.grantTable(action, property.CType.entity, user, grantopt);
       }
     });
+    console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
+    return this;
+  };
+
+    // Table 
+  State.prototype.grantView = function (action, view, user, grantopt) {
+    var self = this;
+    grantopt = grantopt || 'N';
+
+    // Can we grant action on table?
+    self.checkGrantViewPermission(action, view, self.getUser());
+
+    // Do the granting
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('user').equals(user) &&
+          auth.get('type').equals('V') &&
+          auth.get('vname').equals(view.name) &&
+          auth.get('grantopt').equals(grantopt)) {
+        auth.set(action, 'Y');
+      }
+    });
+
+
+    // read/update are column actions, update their column rows accordingly
+    if (action === 'read' || action === 'update') {
+      self.get('SysColAuth').all().forEach(function (colAuth) {
+        if (colAuth.get('user').equals(user) &&
+            colAuth.get('type').equals('V') &&
+            colAuth.get('vname').equals(view.name) &&
+            colAuth.get('grantopt').equals(grantopt)) {
+          colAuth.set(action, 'Y');
+        }
+      });
+    }   
+
+    // Perform same grant on the proxy table of CSet properties of given table
+    // table.forEachProperty(function (property) {
+    //   if (property.CType.prototype === CSetPrototype) {
+    //     // console.log(property.CType.prototype);
+    //     self.grantView(action, property.CType.entity, user, grantopt);
+    //   }
+    // });
     console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
     return this;
   };
@@ -122,25 +180,73 @@ function addAuthentication(State) {
   /***********/
 
   State.prototype.revoke = function (action, table, user) {
-    if (typeof table === 'string' || table instanceof Index) {
+    var self = this;
+    if (typeof user === 'string') {
+      user = self.get('SysUser').getByProperties({name: user});
+    }
+
+    if (typeof table === 'string') {
+
+      // table name was given
+      var theTable = self.get(table);    
+      if (typeof theTable !== 'undefined') {
+        return this.revokeTable(action, theTable, user);
+      }
+
+      // view name was given
+      var theView = self.views.get(table);
+      if (typeof theView !== 'undefined') {
+        return this.revokeView(action, theView, user);
+      }
+    }
+
+    if (table instanceof Index) {
       return this.revokeTable(action, table, user);
-    } else if (table instanceof Property) {
+    }
+
+    if (table instanceof Property) {
       return this.revokeColumn(action, table.index, table.name, user);
     }
-    throw new Error("Incorrect input for grant");
+
+    throw new Error("Incorrect input for revoke");
+  };
+
+  // Revoke View
+  State.prototype.revokeView = function (action, view, user) {
+    var self = this;
+
+    console.log('Revoking view ' + view.name);
+    // Can we revoke action from table?
+    self.checkGrantViewPermission(action, view, self.getUser());
+    console.log('allowed');
+    // Revoke action (both with and without grantopt) from the Table
+    self.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('user').equals(user) &&
+          auth.get('vname').equals(view.name) &&
+          auth.get('type').equals('V')) {
+          auth.set(action, 'N');
+      }
+    });
+    console.log('removing columns');
+    // Revoke action (both with and without grantopt) from columns if action = column operation
+    if (action === 'read' || action === 'update') {
+      self.get('SysColAuth').all().forEach(function (colAuth) {
+        if (colAuth.get('user').equals(user) &&
+            colAuth.get('vname').equals(view.name) &&
+            colAuth.get('type').equals('V')) {
+          colAuth.set(action, 'N');
+        }
+      });
+    }
+      
+    console.log('revoked '+ action+ ' from ' + user.get('name').get() + ' on view ' + view.name);
+    return this;
   };
 
 
   // Revoke Table
   State.prototype.revokeTable = function (action, table, user) {
     var self = this;
-
-    if (typeof table === 'string') {
-      table = self.get(table);    
-    }
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
-    }
 
     console.log('checking permission');
     // Can we revoke action from table?
@@ -174,13 +280,6 @@ function addAuthentication(State) {
   State.prototype.revokeColumn = function (action, table, cname, user) {
     var self = this;
     var tname = table.name;
-
-    if (typeof table === 'string') {
-      table = self.get(table);    
-    }
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
-    }
 
     // Can we revoke action from column?
     self.checkGrantColumnPermission(action, table, cname, self.getUser());
@@ -233,6 +332,14 @@ function addAuthentication(State) {
       throw new Error("You don't have " + action + " grant permissions for " + table.name);
     }
   };
+
+
+  State.prototype.checkGrantViewPermission = function (action, view, grantingUser) {
+    if (!this.canGrantView(action, view, grantingUser)) {
+      throw new Error("You don't have " + action + " grant permissions for " + table.name);
+    }
+  };
+
 
   State.prototype.checkGrantColumnPermission = function (action, table, columnName, grantingUser) {
     if (!this.canGrantColumn(action, table, columnName, grantingUser)) {
@@ -699,6 +806,31 @@ function addAuthentication(State) {
     return permission;
   };
 
+  // View
+  State.prototype.canGrantView = function (action, view, grantingUser) {
+    var self = this;
+    var Auth = this.get('SysAuth');
+    var permission = Auth.where(function (auth) {
+      return (auth.get('user').equals(grantingUser) &&
+              auth.get('type').equals('V') &&
+              auth.get('vname').equals(view.name) &&
+              auth.get(action).equals('Y') &&
+              auth.get('grantopt').equals('Y'));
+    }).all().length > 0;
+
+    // If column action, also needs granting rights over all columns
+    if (permission && (action === 'read' || action === 'update')) {
+      view.table.forEachProperty(function (property) {
+        if (!self.canGrantViewColumn(action, view, property.name, grantingUser)) {
+          console.log(property.name + " stopped access to grant " + action + " on " + view.name + " for " + grantingUser.get('name').get());
+          permission = false;
+        }
+      });
+    }
+
+    return permission;
+  };
+
   // Column
   State.prototype.canGrantColumn = function (action, table, columnName, grantingUser) {
     var self = this;
@@ -717,6 +849,28 @@ function addAuthentication(State) {
     }).all().length > 0;
     return permission;
   };
+
+  // View Column
+  State.prototype.canGrantViewColumn = function (action, view, columnName, grantingUser) {
+    var self = this;
+
+    // Only read and update can be granted column-wise
+    if (action !== 'read' && action !== 'update') {
+      return false;
+    }
+
+    // Find the authorizing row
+    var permission = self.get('SysColAuth').where(function (colAuth) {
+      return (colAuth.get('user').equals(grantingUser) &&
+              colAuth.get('type').equals('V') &&
+              colAuth.get('vname').equals(view.name) &&
+              colAuth.get(action).equals('Y') &&
+              colAuth.get('grantopt').equals('Y'));
+    }).all().length > 0;
+    return permission;
+  };
+
+
 }
 
 module.exports = addAuthentication;

@@ -70,6 +70,7 @@ Auth.prototype.createUser = function (name, password) {
   var user = this.User.create();
   user.set('name', name)
       .set('password', password);
+  this.guestGroup.get('users').add(user);
   return user;
 };
 

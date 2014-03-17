@@ -18,3 +18,17 @@ View.prototype.includes = function (entry) {
   });
   return included;
 };
+
+View.prototype.toJSON = function () {
+  return {
+    name: this.name,
+    table: this.table.name,
+    query: this.query.toString(),
+  };
+};
+
+View.fromJSON = function (json, state) {
+  var table = state.get(json.table);
+  eval('var query = ' + json.query);
+  return new View(json.name, table, query);
+}
