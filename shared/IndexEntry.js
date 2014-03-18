@@ -86,6 +86,10 @@ IndexEntry.prototype.equals = function (entry) {
   return true;
 };
 
+IndexEntry.prototype.isEntryOf = function (index) {
+  return (this.index == index);
+};
+
 IndexEntry.prototype.toString = function () {
   return Keys.createIndex(this.keys);
 };

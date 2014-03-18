@@ -38,7 +38,7 @@ State.prototype.checkChanges = function (state, user) {
     // }
 
 
-    ['grantopt', 'tname', 'user'].forEach(function (column) {
+    ['grantopt', 'tname', 'user', 'priv', 'type'].forEach(function (column) {
       if (isChanged(serverAuth.get(column), clientAuth.get(column), ServerAuth.getProperty(column))) {
         console.log(column + ' was changed!');
         valid = false;
@@ -47,15 +47,14 @@ State.prototype.checkChanges = function (state, user) {
 
     // If an authorization action is changed (= revoked or granted)
     // check if user had the permission to do that action
-    ['read', 'create', 'update', 'delete'].forEach(function (action) {
-      if (isChanged(serverAuth.get(action), clientAuth.get(action), ServerAuth.getProperty(action))) {
-        var table = self.get(clientAuth.get('tname').get());
-        if (!self.canGrantTable(action, table, user)) {
-          console.log(user.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name);
-          valid = false;
-        }
+    if (isChanged(serverAuth.get('active'), clientAuth.get('active'), ServerAuth.getProperty('active'))) {
+      var table = self.get(clientAuth.get('tname').get());
+      var action = clientAuth.get('priv').get();
+      if (!self.canGrantTable(action, table, user)) {
+        console.log(user.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name);
+        valid = false;
       }
-    });
+    }
   });
   
   if (!valid) return valid;
@@ -78,16 +77,15 @@ State.prototype.checkChanges = function (state, user) {
 
     // If an authorization action is changed (= revoked or granted)
     // check if user had the permission to do that action
-    ['read', 'update'].forEach(function (action) {
-      if (isChanged(serverColAuth.get(action), clientColAuth.get(action), ServerColAuth.getProperty(action))) {
-        var table = self.get(clientColAuth.get('tname').get());
-        var cname = clientColAuth.get('cname').get();
-        if (!self.canGrantColumn(action, table, cname, user)) {
-          console.log(user.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name + '.' + cname);
-          valid = false;
-        }
+    if (isChanged(serverColAuth.get('active'), clientColAuth.get('active'), ServerColAuth.getProperty('active'))) {
+      var table = self.get(clientColAuth.get('tname').get());
+      var cname = clientColAuth.get('cname').get();
+      var action = clientColAuth.get('priv').get();
+      if (!self.canGrantColumn(action, table, cname, user)) {
+        console.log(user.get('name').get() + ' not authed to grant ' + action + ' to ' + table.name + '.' + cname);
+        valid = false;
       }
-    });
+    }
   });
 
   // Check create/delete operations

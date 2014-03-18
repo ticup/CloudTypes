@@ -3,6 +3,7 @@ var Index      = require('./Index');
 var Table      = require('./Table');
 var CSetPrototype = require('./CSet').CSetPrototype;
 var Property = require('./Property');
+var IndexEntry = require('./IndexEntry');
 
 function addAuthentication(State) {
 
@@ -23,8 +24,12 @@ function addAuthentication(State) {
       grantopt = 'N';
     }
 
-    if (typeof user === 'string') {
-      user = self.get('SysUser').getByProperties({name: user});
+    // if (typeof user === 'string') {
+    //   user = self.get('SysUser').getByProperties({name: user});
+    // }
+
+    if (!(user instanceof IndexEntry) || (!user.isEntryOf(self.get('SysUser')) && !user.isEntryOf(self.get('SysGroup')))) {
+      throw new Error("Must give either a SysUser or a SysGroup entry, given: " + user);
     }
 
     if (typeof table === 'string') {
@@ -95,32 +100,66 @@ function addAuthentication(State) {
   // Table 
   State.prototype.grantTable = function (action, table, user, grantopt) {
     var self = this;
+    var group = null;
+    var granted = false;
+
+    if (user.isEntryOf(self.get('SysGroup'))) {
+      group = user;
+    }
 
     // Can we grant action on table?
     self.checkGrantTablePermission(action, table, self.getUser());
 
     // Do the granting
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('user').equals(user) &&
-          auth.get('type').equals('T') &&
+      if (auth.get('type').equals('T') &&
           auth.get('tname').equals(table.name) &&
-          auth.get('grantopt').equals(grantopt)) {
-        auth.set(action, 'Y');
+          auth.get('grantopt').equals(grantopt) &&
+          auth.get('user').equals(user) &&
+          auth.get('priv').equals(action)) {
+        auth.set('active', 'Y');
+        granted = true;
       }
     });
+              
+    if (!granted) {
+      var auth = self.get('SysAuth').create();
+      auth.set('type', 'T')
+          .set('tname', table.name)
+          .set('grantopt', grantopt)
+          .set('user', user)
+          .set('priv', action)
+          .set('active', 'Y');
+    }
 
-
-    // read/update are column actions, update their column rows accordingly
+    // Grant to all columns if column action (read/update)
     if (action === 'read' || action === 'update') {
-      self.get('SysColAuth').all().forEach(function (colAuth) {
-        if (colAuth.get('user').equals(user) &&
-            colAuth.get('type').equals('T') &&
-            colAuth.get('tname').equals(table.name) &&
-            colAuth.get('grantopt').equals(grantopt)) {
-          colAuth.set(action, 'Y');
+      table.forEachProperty(function (property) {
+        granted = false;
+        self.get('SysColAuth').all().forEach(function (colAuth) {
+          if (colAuth.get('type').equals('T') &&
+              colAuth.get('tname').equals(table.name) &&
+              colAuth.get('grantopt').equals(grantopt) &&
+              colAuth.get('user').equals(user) &&
+              colAuth.get('priv').equals(action)) {
+            colAuth.set('active', 'Y');
+            granted = true;
+          }
+        });
+
+        if (!granted) {
+          var auth = self.get('SysColAuth').create();
+          auth.set('type', 'T')
+              .set('tname', table.name)
+              .set('cname', property.name)
+              .set('grantopt', grantopt)
+              .set('user', user)
+              .set('priv', action)
+              .set('active', 'Y');
         }
-      });
-    }    
+      }); 
+    }   
+    
 
     // Perform same grant on the proxy table of CSet properties of given table
     table.forEachProperty(function (property) {
@@ -195,17 +234,6 @@ function addAuthentication(State) {
 
     // Can we grant action on given column?
     self.checkGrantColumnPermission(action, table, columnName, self.getUser());
-    
-    // Make the Table accessible
-    self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('user').equals(user) &&
-          auth.get('tname').equals(table.name) &&
-          auth.get('type').equals('T') &&
-          auth.get('grantopt').equals(grantopt)) {
-        auth.set(action, 'Y');
-        console.log('granted '+ action + ' to ' + user.get('name').get() + ' grantopt: ' + grantopt);
-      }
-    });
 
     // Do the grant on the column
     self.get('SysColAuth').all().forEach(function (colAuth) {
@@ -213,10 +241,23 @@ function addAuthentication(State) {
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(columnName) &&
           colAuth.get('type').equals('T') &&
+          colAuth.get('priv').equals(action) &&
           colAuth.get('grantopt').equals(grantopt)) {
-        colAuth.set(action, 'Y');
+        colAuth.set('active', 'Y');
+        granted = true;
       }
     });
+
+    if (!granted) {
+      var auth = self.get('SysColAuth').create();
+      auth.set('type', 'T')
+          .set('tname', table.name)
+          .set('cname', columnName)
+          .set('grantopt', grantopt)
+          .set('user', user)
+          .set('priv', action)
+          .set('active', 'Y');
+    }
 
     return this;
   };
@@ -380,8 +421,9 @@ function addAuthentication(State) {
     self.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('user').equals(user) &&
           auth.get('tname').equals(table.name) &&
-          auth.get('type').equals('T')) {
-          auth.set(action, 'N');
+          auth.get('type').equals('T') &&
+          auth.get('priv').equals(action)) {
+        auth.set('active', 'N');
       }
     });
     console.log('removing columns');
@@ -390,8 +432,9 @@ function addAuthentication(State) {
       self.get('SysColAuth').all().forEach(function (colAuth) {
         if (colAuth.get('user').equals(user) &&
             colAuth.get('tname').equals(table.name) &&
-            colAuth.get('type').equals('T')) {
-          colAuth.set(action, 'N');
+            colAuth.get('type').equals('T') &&
+            colAuth.get('priv').equals(action)) {
+          colAuth.set('active', 'N');
         }
       });
     }
@@ -413,8 +456,9 @@ function addAuthentication(State) {
       if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(tname) &&
           colAuth.get('cname').equals(cname) &&
-          colAuth.get('type').equals('T')) {
-        colAuth.set(action, 'N');
+          colAuth.get('type').equals('T') &&
+          colAuth.get('priv').equals(action)) {
+        colAuth.set('active', 'N');
       }
     });
 
@@ -602,8 +646,9 @@ function addAuthentication(State) {
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
           auth.get('user').equals(user) &&
-          auth.get('read').equals('Y')) {
-          authed = true;
+          auth.get('priv').equals('read') &&
+          auth.get('active').equals('Y')) {
+        authed = true;
       }
     });
 
@@ -638,10 +683,11 @@ function addAuthentication(State) {
 
       // Either authorized for the normal Table column (type = 'T') or for a column on a view on that Table (type = 'V')
       if (colAuth.get('user').equals(user) &&
+          colAuth.get('type').equals('T') &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
-          colAuth.get('read').equals('Y') &&
-          colAuth.get('type').equals('T')) {
+          colAuth.get('priv').equals('read') &&
+          colAuth.get('active').equals('Y')) {
         authed = true;
       }
     });
@@ -673,7 +719,8 @@ function addAuthentication(State) {
       if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
-          colAuth.get('read').equals('Y')) {
+          colAuth.get('priv').equals('read') &&
+          colAuth.get('active').equals('Y')) {
         authed = true;
       }
     });
@@ -706,7 +753,8 @@ function addAuthentication(State) {
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('type').equals('V') &&
-          colAuth.get('read').equals('Y')) {
+          colAuth.get('priv').equals(action) &&
+          colAuth.get('active').equals('Y')) {
         var view = self.views.get(colAuth.get('vname').get());
         if (view.includes(entry)) {
           authed = true;
@@ -736,7 +784,8 @@ function addAuthentication(State) {
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
           auth.get('user').equals(user) &&
-          auth.get(action).equals('Y')) {
+          auth.get('priv').equals(action) &&
+          auth.get('active').equals('Y')) {
 
         // Authed for whole table
         if (auth.get('type').equals('T')) {
@@ -837,7 +886,8 @@ function addAuthentication(State) {
       if (colAuth.get('user').equals(user) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
-          colAuth.get(action).equals('Y')) {
+          colAuth.get('priv').equals(action) &&
+          colAuth.get('active').equals('Y')) {
 
         // 2.1) Full column access (Table)
         if (colAuth.get('type').equals('T')) {
@@ -877,7 +927,8 @@ function addAuthentication(State) {
       if (auth.get('tname').equals(table.name) &&
           auth.get('user').equals(user) &&
           auth.get('type').equals('T') &&
-          auth.get('create').equals('Y')) {
+          auth.get('priv').equals('create') &&
+          auth.get('active').equals('Y')) {
           permission = true;
       }
     });
@@ -1024,7 +1075,8 @@ function addAuthentication(State) {
     var permission = Auth.where(function (auth) {
       return (auth.get('user').equals(grantingUser) &&
               auth.get('tname').equals(table.name) &&
-              auth.get(action).equals('Y') &&
+              auth.get('priv').equals(action) &&
+              auth.get('active').equals('Y') &&
               auth.get('grantopt').equals('Y'));
     }).all().length > 0;
 
@@ -1049,7 +1101,8 @@ function addAuthentication(State) {
       return (auth.get('user').equals(grantingUser) &&
               auth.get('type').equals('V') &&
               auth.get('vname').equals(view.name) &&
-              auth.get(action).equals('Y') &&
+              auth.get('priv').equals(action) &&
+              auth.get('active').equals('Y') &&
               auth.get('grantopt').equals('Y'));
     }).all().length > 0;
 
@@ -1079,7 +1132,8 @@ function addAuthentication(State) {
     var permission = self.get('SysColAuth').where(function (colAuth) {
       return (colAuth.get('user').equals(grantingUser) &&
               colAuth.get('tname').equals(table.name) &&
-              colAuth.get(action).equals('Y') &&
+              colAuth.get('priv').equals(action) &&
+              colAuth.get('active').equals('Y') &&
               colAuth.get('grantopt').equals('Y'));
     }).all().length > 0;
     return permission;
@@ -1099,7 +1153,8 @@ function addAuthentication(State) {
       return (colAuth.get('user').equals(grantingUser) &&
               colAuth.get('type').equals('V') &&
               colAuth.get('vname').equals(view.name) &&
-              colAuth.get(action).equals('Y') &&
+              colAuth.get('priv').equals(action) &&
+              colAuth.get('active').equals('Y') &&
               colAuth.get('grantopt').equals('Y'));
     }).all().length > 0;
     return permission;
