@@ -69,8 +69,8 @@ function Auth(state) {
 Auth.prototype.createUser = function (name, password) {
   var user = this.User.create();
   user.set('name', name)
-      .set('password', password);
-  this.guestGroup.get('users').add(user);
+      .set('password', password)
+      .set('group', this.guestGroup);
   return user;
 };
 
@@ -142,7 +142,7 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
   if (sys) {
     ops.forEach(function (priv) {
       auth = self.Auth.create();
-      auth.set('user', self.guest)
+      auth.set('group', self.guestGroup)
           .set('tname', tableName)
           .set('priv', priv)
           .set('active', 'Y')
@@ -152,12 +152,12 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
         auth.set('vname', viewName);
       }
     });
-  self.createColAuths('Y', 'Y', tableName, self.guest, type, 'N', viewName);
+  self.createColAuths('Y', 'Y', tableName, self.guestGroup, type, 'N', viewName);
 
   } else {
     // b) only read access otherwise
     auth = self.Auth.create();
-    auth.set('user', self.guest)
+    auth.set('group', self.guestGroup)
         .set('tname', tableName)
         .set('priv', 'read')
         .set('active', 'Y')
@@ -166,7 +166,7 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
     if (type === 'V') {
       auth.set('vname', viewName);
     }
-  self.createColAuths('Y', 'N', tableName, self.guest, type, 'N', viewName);
+  self.createColAuths('Y', 'N', tableName, self.guestGroup, type, 'N', viewName);
 
   }
 
@@ -174,7 +174,7 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
   // 1) with grantopt: all access
   ops.forEach(function (priv) {
     auth = self.Auth.create();
-    auth.set('user', self.root)
+    auth.set('group', self.rootGroup)
         .set('tname', tableName)
         .set('priv', priv)
         .set('active', 'Y')
@@ -184,7 +184,7 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
       auth.set('vname', viewName);
     }
   });
-  self.createColAuths('Y', 'Y', tableName, self.root, type, 'Y', viewName);
+  self.createColAuths('Y', 'Y', tableName, self.rootGroup, type, 'Y', viewName);
 
   // 2) without grantopt: all access
   // auth = self.Auth.create();
@@ -209,14 +209,14 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
   });
 };
 
-Auth.prototype.createColAuths = function (read, update, tableName, user, type, grantopt, viewName) {
+Auth.prototype.createColAuths = function (read, update, tableName, group, type, grantopt, viewName) {
   var self = this;
   var table = self.state.get(tableName);
   table.forEachProperty(function (property) {
     if (read === 'Y') {
       var colAuth = self.ColAuth.create();
       // console.log('creating ' + read + ' for ' +group.get('name').get() + ' for ' + table.name+'.'+property.name);
-      colAuth.set('user', user)
+      colAuth.set('group', group)
              .set('tname', table.name)
              .set('cname', property.name)
              .set('priv', 'read')
@@ -230,7 +230,7 @@ Auth.prototype.createColAuths = function (read, update, tableName, user, type, g
     if (update === 'Y') {
       var colAuth = self.ColAuth.create();
       // console.log('creating ' + read + ' for ' +group.get('name').get() + ' for ' + table.name+'.'+property.name);
-      colAuth.set('user', user)
+      colAuth.set('group', group)
              .set('tname', table.name)
              .set('cname', property.name)
              .set('priv', 'update')

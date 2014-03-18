@@ -5478,6 +5478,7 @@ function addAuthentication(State) {
     // Table 
   State.prototype.grantViewTable = function (action, view, user, grantopt) {
     var self = this;
+    var group = user.get('group').get();
 
     console.log('granting ' + action + ' on ' + view.name + ' for ' + user.get('name').get() + ' with ' + grantopt);
     // Can we grant action on table?
@@ -5486,7 +5487,7 @@ function addAuthentication(State) {
     console.log('granted');
     // Do the granting
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('user').equals(user) &&
+      if ((auth.get('user').equals(user) || auth.get('group').equals(group)) &&
           auth.get('type').equals('V') &&
           auth.get('vname').equals(view.name) &&
           auth.get('grantopt').equals(grantopt)) {
@@ -5498,7 +5499,7 @@ function addAuthentication(State) {
     // read/update are column actions, update their column rows accordingly
     if (action === 'read' || action === 'update') {
       self.get('SysColAuth').all().forEach(function (colAuth) {
-        if (colAuth.get('user').equals(user) &&
+        if ((colAuth.get('user').equals(user) || colAuth.get('group').equals(group)) &&
             colAuth.get('type').equals('V') &&
             colAuth.get('vname').equals(view.name) &&
             colAuth.get('grantopt').equals(grantopt)) {
@@ -5523,7 +5524,12 @@ function addAuthentication(State) {
     var col;
     var self = this;
     var granted = false;
+    var group = null;
     grantopt = grantopt || 'N';
+
+    if (user.isEntryOf(self.get('SysGroup'))) {
+      group = user;
+    }
 
     if (action !== 'read' && action !== 'update') {
       throw new Error("Only read and update are column actions");
@@ -5540,7 +5546,7 @@ function addAuthentication(State) {
 
     // Do the grant on the column
     self.get('SysColAuth').all().forEach(function (colAuth) {
-      if (colAuth.get('user').equals(user) &&
+      if ((group ? colAuth.get('group').equals(group) : colAuth.get('user').equals(user)) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(columnName) &&
           colAuth.get('type').equals('T') &&
@@ -5557,9 +5563,9 @@ function addAuthentication(State) {
           .set('tname', table.name)
           .set('cname', columnName)
           .set('grantopt', grantopt)
-          .set('user', user)
           .set('priv', action)
           .set('active', 'Y');
+      (group ? auth.set('group', group) : colAuth.set('user', user));
     }
 
     return this;
@@ -5570,6 +5576,7 @@ function addAuthentication(State) {
     var col;
     var self = this;
     var granted = false;
+    var group = user.get('group').get();
 
     if (action !== 'read' && action !== 'update') {
       throw new Error("Only read and update are column actions");
@@ -5587,7 +5594,7 @@ function addAuthentication(State) {
     
     // Make the Table accessible
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('user').equals(user) &&
+      if ((auth.get('user').equals(user) || auth.get('group').equals(group)) &&
           auth.get('type').equals('V') &&
           auth.get('vname').equals(view.name) &&
           auth.get('grantopt').equals(grantopt)) {
@@ -5598,7 +5605,7 @@ function addAuthentication(State) {
 
     // Do the grant on the column
     self.get('SysColAuth').all().forEach(function (colAuth) {
-      if (colAuth.get('user').equals(user) &&
+      if ((colAuth.get('user').equals(user) || colAuth.get('group').equals(group)) &&
           colAuth.get('type').equals('V') &&
           colAuth.get('vname').equals(view.name) &&
           colAuth.get('cname').equals(columnName) &&
@@ -5682,6 +5689,11 @@ function addAuthentication(State) {
   // Revoke View
   State.prototype.revokeViewTable = function (action, view, user) {
     var self = this;
+    var group = null;
+
+    if (user.isEntryOf(self.get('SysGroup'))) {
+      group = user;
+    }
 
     console.log('Revoking view ' + view.name);
     // Can we revoke action from table?
@@ -5689,20 +5701,22 @@ function addAuthentication(State) {
     console.log('allowed');
     // Revoke action (both with and without grantopt) from the Table
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('user').equals(user) &&
+      if ((group ? auth.get('group').equals(group) : auth.get('user').equals(user)) &&
           auth.get('vname').equals(view.name) &&
+          auth.get('priv').equals(action) &&
           auth.get('type').equals('V')) {
-          auth.set(action, 'N');
+          auth.set('active', 'N');
       }
     });
     console.log('removing columns');
     // Revoke action (both with and without grantopt) from columns if action = column operation
     if (action === 'read' || action === 'update') {
       self.get('SysColAuth').all().forEach(function (colAuth) {
-        if (colAuth.get('user').equals(user) &&
+        if ((group ? colAuth.get('group').equals(group) : colAuth.get('user').equals(user)) &&
             colAuth.get('vname').equals(view.name) &&
+            colAuth.get('priv').equals(action) &&
             colAuth.get('type').equals('V')) {
-          colAuth.set(action, 'N');
+          colAuth.set('active', 'N');
         }
       });
     }
@@ -5715,6 +5729,11 @@ function addAuthentication(State) {
   // Revoke Table
   State.prototype.revokeTable = function (action, table, user) {
     var self = this;
+    var group = null;
+
+    if (user.isEntryOf(self.get('SysGroup'))) {
+      group = user;
+    }
 
     console.log('checking permission');
     // Can we revoke action from table?
@@ -5722,7 +5741,7 @@ function addAuthentication(State) {
     console.log('allowed');
     // Revoke action (both with and without grantopt) from the Table
     self.get('SysAuth').all().forEach(function (auth) {
-      if (auth.get('user').equals(user) &&
+      if ((group ? auth.get('group').equals(group) : auth.get('user').equals(user)) &&
           auth.get('tname').equals(table.name) &&
           auth.get('type').equals('T') &&
           auth.get('priv').equals(action)) {
@@ -5733,7 +5752,7 @@ function addAuthentication(State) {
     // Revoke action (both with and without grantopt) from columns if action = column operation
     if (action === 'read' || action === 'update') {
       self.get('SysColAuth').all().forEach(function (colAuth) {
-        if (colAuth.get('user').equals(user) &&
+        if ((group ? colAuth.get('group').equals(group) : colAuth.get('user').equals(user)) &&
             colAuth.get('tname').equals(table.name) &&
             colAuth.get('type').equals('T') &&
             colAuth.get('priv').equals(action)) {
@@ -5750,13 +5769,18 @@ function addAuthentication(State) {
   State.prototype.revokeColumn = function (action, table, cname, user) {
     var self = this;
     var tname = table.name;
+    var group = null;
+
+    if (user.isEntryOf(self.get('SysGroup'))) {
+      group = user;
+    }
 
     // Can we revoke action from column?
     self.checkGrantColumnPermission(action, table, cname, self.getUser());
 
     // Revoke action from columns
     self.get('SysColAuth').all().forEach(function (colAuth) {
-      if (colAuth.get('user').equals(user) &&
+      if ((group ? colAuth.get('group').equals(group) : colAuth.get('user').equals(user)) &&
           colAuth.get('tname').equals(tname) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('type').equals('T') &&
@@ -5772,17 +5796,22 @@ function addAuthentication(State) {
   // Revoke Column
   State.prototype.revokeViewColumn = function (action, view, cname, user) {
     var self = this;
+    var group = null;
 
+    if (user.isEntryOf(self.get('SysGroup'))) {
+      group = user;
+    }
     // Can we revoke action from column?
     self.checkGrantViewColumnPermission(action, view, cname, self.getUser());
 
     // Revoke action from columns
     self.get('SysColAuth').all().forEach(function (colAuth) {
-      if (colAuth.get('user').equals(user) &&
+      if ((group ? colAuth.get('group').equals(group) : colAuth.get('user').equals(user)) &&
           colAuth.get('vname').equals(view.name) &&
           colAuth.get('cname').equals(cname) &&
+          colAuth.get('priv').equals(action) &&
           colAuth.get('type').equals('V')) {
-        colAuth.set(action, 'N');
+        colAuth.set('active', 'N');
       }
     });
 
@@ -5940,15 +5969,19 @@ function addAuthentication(State) {
   State.prototype.canSeeTable = function (table, user) {
     var self = this;
     var authed = false;
+    var group = user.get('group').get();
 
     // already restricted
     if (table instanceof Restricted)
       return false;
 
+    var group = 
+
     // Find any (base or view) table authorization
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
-          auth.get('user').equals(user) &&
+          (auth.get('user').equals(user) ||
+           auth.get('group').equals(group)) &&     // inherit from group
           auth.get('priv').equals('read') &&
           auth.get('active').equals('Y')) {
         authed = true;
@@ -5975,6 +6008,7 @@ function addAuthentication(State) {
     var self = this;
     var authed = false;
     var property = table.getProperty(cname);
+    var group = user.get('group').get();
 
     // Already restricted
     if (table instanceof Restricted) {
@@ -5985,7 +6019,8 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'T') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('user').equals(user) &&
+      if ((colAuth.get('user').equals(user) ||
+           colAuth.get('group').equals(group)) &&     // inherit from group
           colAuth.get('type').equals('T') &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
@@ -6009,6 +6044,7 @@ function addAuthentication(State) {
     var self = this;
     var authed = false;
     var property = table.getProperty(cname);
+    var group = user.get('group').get();
 
     // Already restricted
     if (table instanceof Restricted) {
@@ -6019,7 +6055,8 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'T') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('user').equals(user) &&
+      if ((colAuth.get('user').equals(user) ||
+           colAuth.get('group').equals(group)) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('priv').equals('read') &&
@@ -6042,6 +6079,7 @@ function addAuthentication(State) {
     var authed = false;
     var table = entry.index;
     var key = entry.uid;
+    var group = user.get('group').get();
 
     // Already restricted
     if (table instanceof Restricted) {
@@ -6052,7 +6090,7 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'T') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('user').equals(user) &&
+      if ((colAuth.get('user').equals(user) || colAuth.get('group').equals(group)) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('type').equals('V') &&
@@ -6076,6 +6114,7 @@ function addAuthentication(State) {
     var self = this;
     var authed = false;
     var table = entry.index;
+    var group = user.get('group').get();
 
 
     // console.log(user.get('name').get() + ' authed for row ' + entry.uid + '?');
@@ -6086,7 +6125,7 @@ function addAuthentication(State) {
 
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
-          auth.get('user').equals(user) &&
+          (auth.get('user').equals(user) || auth.get('group').equals(group)) &&
           auth.get('priv').equals(action) &&
           auth.get('active').equals('Y')) {
 
@@ -6119,7 +6158,7 @@ function addAuthentication(State) {
           }
         });
       } else {
-        console.log(user.get('name').get() + ' not authed for ' + table.name);
+        console.log(user.get('name').get() + ' not authed for row ' + entry.uid + ' of ' + table.name);
         return false;
       } 
     }
@@ -6153,6 +6192,7 @@ function addAuthentication(State) {
     var authed = true;
     var table = entry.index;
     var cname = property.name;
+    var group = user.get('group').get();
 
     // console.log('checking ' + action + ' on ' + table.name + '.' + cname);
 
@@ -6186,7 +6226,7 @@ function addAuthentication(State) {
     self.get('SysColAuth').all().forEach(function (colAuth) {
 
       // Either authorized for the normal Table column (type = 'R') or for a column on a view on that Table (type = 'V')
-      if (colAuth.get('user').equals(user) &&
+      if ((colAuth.get('user').equals(user) || colAuth.get('group').equals(group)) &&
           colAuth.get('tname').equals(table.name) &&
           colAuth.get('cname').equals(cname) &&
           colAuth.get('priv').equals(action) &&
@@ -6220,6 +6260,7 @@ function addAuthentication(State) {
   State.prototype.canCreateOnTable = function (table, user) {
     var self = this;
     var permission = false;
+    var group = user.get('group').get();
 
     // already restricted
     if (table instanceof Restricted)
@@ -6228,7 +6269,7 @@ function addAuthentication(State) {
     // Find any (base or view) table authorization
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
-          auth.get('user').equals(user) &&
+          (auth.get('user').equals(user) || auth.get('group').equals(group)) &&
           auth.get('type').equals('T') &&
           auth.get('priv').equals('create') &&
           auth.get('active').equals('Y')) {
@@ -6375,8 +6416,10 @@ function addAuthentication(State) {
   State.prototype.canGrantTable = function (action, table, grantingUser) {
     var self = this;
     var Auth = this.get('SysAuth');
+    var grantingGroup = grantingUser.get('group').get();
+
     var permission = Auth.where(function (auth) {
-      return (auth.get('user').equals(grantingUser) &&
+      return ((auth.get('user').equals(grantingUser) || auth.get('group').equals(grantingGroup)) &&
               auth.get('tname').equals(table.name) &&
               auth.get('priv').equals(action) &&
               auth.get('active').equals('Y') &&
@@ -6400,8 +6443,10 @@ function addAuthentication(State) {
   State.prototype.canGrantView = function (action, view, grantingUser) {
     var self = this;
     var Auth = this.get('SysAuth');
+    var grantingGroup = grantingUser.get('group').get();
+
     var permission = Auth.where(function (auth) {
-      return (auth.get('user').equals(grantingUser) &&
+      return ((auth.get('user').equals(grantingUser) || auth.get('group').equals(grantingGroup)) &&
               auth.get('type').equals('V') &&
               auth.get('vname').equals(view.name) &&
               auth.get('priv').equals(action) &&
@@ -6425,6 +6470,7 @@ function addAuthentication(State) {
   // Column
   State.prototype.canGrantColumn = function (action, table, columnName, grantingUser) {
     var self = this;
+    var grantingGroup = grantingUser.get('group').get();
 
     // Only read and update can be granted column-wise
     if (action !== 'read' && action !== 'update') {
@@ -6433,7 +6479,7 @@ function addAuthentication(State) {
 
     // Find the authorizing row
     var permission = self.get('SysColAuth').where(function (colAuth) {
-      return (colAuth.get('user').equals(grantingUser) &&
+      return ((colAuth.get('user').equals(grantingUser) || colAuth.get('group').equals(grantingGroup)) &&
               colAuth.get('tname').equals(table.name) &&
               colAuth.get('priv').equals(action) &&
               colAuth.get('active').equals('Y') &&
@@ -6445,6 +6491,7 @@ function addAuthentication(State) {
   // View Column
   State.prototype.canGrantViewColumn = function (action, view, columnName, grantingUser) {
     var self = this;
+    var grantingGroup = grantingUser.get('group').get();
 
     // Only read and update can be granted column-wise
     if (action !== 'read' && action !== 'update') {
@@ -6453,7 +6500,7 @@ function addAuthentication(State) {
 
     // Find the authorizing row
     var permission = self.get('SysColAuth').where(function (colAuth) {
-      return (colAuth.get('user').equals(grantingUser) &&
+      return ((colAuth.get('user').equals(grantingUser) || colAuth.get('group').equals(grantingGroup)) &&
               colAuth.get('type').equals('V') &&
               colAuth.get('vname').equals(view.name) &&
               colAuth.get('priv').equals(action) &&
