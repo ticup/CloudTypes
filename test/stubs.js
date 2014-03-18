@@ -123,7 +123,7 @@ exports.orderUnchanged = {
     },
     {
       name: 'customer',
-      type: { reference: 'Customer' },
+      type: 'Customer',
       values: {
         'Order:0#0': 'Customer:0#0',
       }
@@ -318,7 +318,7 @@ exports.orderChanged = {
     },
     {
       name: 'customer',
-      type: { reference: 'Customer' },
+      type: 'Customer',
       values: {
         'Order:0#0': 'Customer:0#2',
         'Order:0#1': 'Customer:0#2',

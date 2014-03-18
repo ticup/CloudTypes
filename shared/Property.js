@@ -10,6 +10,7 @@ var CloudType   = require('./CloudType');
 var CSet        = require('./CSet');
 var TypeChecker = require('./TypeChecker');
 var Keys        = require('./Keys');
+var Reference   = require('./Reference');
 
 function Property(name, CType, index, values) {
   this.name   = name;
@@ -36,14 +37,25 @@ Property.prototype.set = function (key, val) {
   TypeChecker.property(val, this.CType);
   
   // If it's a reference, simply store its uid
-  if (!CloudType.isCloudType(this.CType)) {
-    val = val.serialKey();
-  }
+  // if (this.CType.prototype === Reference.Prototype) {
+  //   if (val !== null) {
+  //     val = val.serialKey();
+  //   }
+  // }
   this.values[key] = val;
 };
 
+Property.prototype.obliterate = function (key) {
+  delete this.values[key];
+};
+
+Property.prototype.delete = function (key) {
+  delete this.values[key];
+};
+
 // Gets the value of given key
-Property.prototype.getByKey = function (key) {
+// keys is only for the Tables
+Property.prototype.getByKey = function (key, keys) {
   var ctype = this.values[key];
 
   // console.log('getting ' + key + '.' + this.name + ' = ' + ctype + ' (' + typeof ctype + ')');
@@ -55,34 +67,37 @@ Property.prototype.getByKey = function (key) {
 
   // 1) This key does not exist yet
   if (typeof ctype === 'undefined') {
-    var entry = this.index.getByKey(key);
+    var entry = this.index.getByKey(key, keys);
 
     // if it is a Cloud Type, make a new default.
-    if (CloudType.isCloudType(this.CType)) {
-      ctype = this.CType.newFor(entry);
+    // if (CloudType.isCloudType(this.CType)) { 
+      ctype = this.CType.newFor(entry, this);
 
       // do not add to values property for a CSet, because it is kept in dedicated Table
       if (this.CType.prototype === CSet.CSetPrototype) {
         return ctype;
       }
+    // } else {
+      // ctype = Reference.newFor(entry, this);
+    // }
       
-      // otherwise add the new cloudtype to the values property for this key
+      // add the new cloudtype to the values property for this key
       this.values[key] = ctype;
       return ctype;
 
     // if it is a reference and the key does not exist yet, return null
-    } else {
-      return null;
-    }
+    // } else {
+      // return null;
+    // }
   }
 
   // 2) The key exists
   // if it is a Cloud Type, simply return the value
-  if (CloudType.isCloudType(this.CType)) {
-    return ctype;
-  }
+  // if (CloudType.isCloudType(this.CType)) {
+  return ctype;
+  // }
   // if it's a reference, retrieve the entry for that key from the referred Table.
-  return this.CType.getByKey(ctype);
+  // return this.CType.getByKey(ctype);
 };
 
 
@@ -107,55 +122,80 @@ Property.prototype.toJSON = function () {
   var self = this;
   var values = {};
   
-  if (CloudType.isCloudType(this.CType)) {
+  // if (CloudType.isCloudType(this.CType)) {
     type = this.CType.toJSON();
-    self.forEachKey(function (key, val) {
-      values[key] = val.toJSON();
-    });
-  } else {
-    type = { reference: this.CType.name };
-    self.forEachKey(function (key, val) {
-      values[key] = val;
-    });
-  }
+  // } else {
+    // type = this.CType.name;
+  // }
+  self.forEachKey(function (key, val) {
+    values[key] = val.toJSON();
+  });
   return { name: this.name, type: type, values: values };
 };
 
 Property.fromJSON = function (json, index) {
   var values = {};
+  var CType;
   
-  // If the property is a Cloud, rebuild all entries
-  if (CloudType.isCloudType(json.type)) {
-    var CType = CloudType.fromJSON(json.type);
+  // If the property is a Cloud Type, rebuild all entries
+  // if (CloudType.isCloudType(json.type)) {
+    CType = CloudType.fromJSON(json.type);
+    var property = new Property(json.name, CType, index);
     Object.keys(json.values).forEach(function (key) {
-      values[key] = CType.fromJSON(json.values[key], index.getByKey(key));
+      values[key] = CType.fromJSON(json.values[key], index.getByKey(key), property);
     });
-    return new Property(json.name, CType, index, values);
-  }
-
-  // Otherwise it's a reference that will be replaced by the real reference in the second scan
-  Object.keys(json.values).forEach(function (key) {
-    values[key] = json.values[key];
-  });
-  return new Property(json.name, json.type.reference, index, values)
-  
+  // } else {
+    // Otherwise it's a reference that will be replaced by the real reference in the second scan
+    // CType = json.type;
+    // Object.keys(json.values).forEach(function (key) {
+      // values[key] = Reference.fromJSON(json.values[key], index.getByKey(key), property);
+    // });
+  // }
+    
+  // Object.keys(json.values).forEach(function (key) {
+  //   values[key] = CType.fromJSON(json.values[key], index.getByKey(key), property);
+  // });
+  property.values = values;
+  return property;  
 };
 
 Property.prototype.fork = function (index) {
   var self = this;
-  var fProperty = new Property(this.name, this.CType, index);
+  var fProperty, fType;
   // Cloud Types need to be forked
-  if (CloudType.isCloudType(this.CType)) {
+  // if (CloudType.isCloudType(this.CType)) {
+  //   fType = this.CType.fork();
+  // } else {
+    fType = this.CType;
+  // }
+    fProperty = new Property(this.name, fType, index);
     self.forEachKey(function (key, val) {
       fProperty.values[key] = val.fork();
     });
   // References are just copied
-  } else {
-    self.forEachKey(function (key, val) {
-      fProperty.values[key] = val;
-    });
-  }
+  // } else {
+  //   fProperty = new Property(this.name, this.CType, index);
+  //   self.forEachKey(function (key, val) {
+  //     fProperty.values[key] = val;
+  //   });
+  // }
   return fProperty;
 };
+
+// Property.prototype.restrictedFork = function (index, group) {
+//   var self = this;
+
+//   // Need to be authed to read this column
+//   if (!self.index.state.authedForColumn('read', self.index, self.name, group)) {
+//     return null;
+//   }
+
+//   // If its a reference, it needs to be authed to read the reference table
+//   if (Reference.isReferenceDeclaration(self.CType) && !self.index.state.authedForTable('read', self.CType.prototype.table, group)) {
+//     return null;
+//   }
+  
+//   return self.fork(index);
+// };
 
 module.exports = Property;

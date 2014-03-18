@@ -33,6 +33,10 @@ function CDate(value, isSet) {
 // put CloudType in prototype chain.
 CDate.prototype = Object.create(CloudType.prototype);
 
+CDate.fork = function () {
+  return CDate;
+};
+
 // Create a new instance of the declared CDate for given entry
 CDate.newFor = function (entry) {
   return new CDate();

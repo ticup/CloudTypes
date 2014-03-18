@@ -14,10 +14,10 @@ function CStringDeclaration() { }
 
 CStringDeclaration.declare = function () {
   return CString;
-}
+};
 CStringDeclaration.fromJSON = function () {
   return CString;
-}
+};
 
 // register this declaration as usable (will also allow to create CString with CloudType.fromJSON())
 CStringDeclaration.tag = "CString";
@@ -34,17 +34,31 @@ function CString(value, written, cond) {
 // put CloudType in prototype chain.
 CString.prototype = Object.create(CloudType.prototype);
 
+CString.fork = function () {
+  return CString;
+};
+
+CString.toString = function () {
+  return "CString";
+};
+
 // Create a new instance of the declared CString for given entry
-CString.newFor = function (entry) {
-  return new CString();
+CString.newFor = function (entry, property) {
+  var cstring = new CString();
+  cstring.entry = entry;
+  cstring.property = property;
+  return cstring;
 };
 
 CString.toJSON = function () {
   return { tag: CStringDeclaration.tag };
 };
 
-CString.fromJSON = function (json) {
-  return new CString(json.value, json.written, json.cond);
+CString.fromJSON = function (json, entry, property) {
+  var cstring = new CString(json.value, json.written, json.cond);
+  cstring.entry = entry;
+  cstring.property = property;
+  return cstring;
 };
 
 
@@ -62,6 +76,7 @@ CString.prototype.set = function (value) {
   this.value   = value;
   this.written = 'wr';
 };
+CloudType.updateOperation(CString, 'set');
 
 CString.prototype.get = function () {
   return this.value;
@@ -86,6 +101,8 @@ CString.prototype.setIfEmpty = function (value) {
     // remain current values
   }
 };
+CloudType.updateOperation(CString, 'setIfEmpty');
+
 
 // Defining _join(cstring, target) provides the join and joinIn methods
 // by the CloudType prototype.
@@ -137,6 +154,10 @@ CString.prototype.replaceBy = function (cstring) {
 
 CString.prototype.isDefault = function () {
   return (this.get() === '');
+};
+
+CString.prototype.isChanged = function (cstring) {
+  return !!cstring.written;
 };
 
 CString.prototype.compare = function (cstring, reverse) {

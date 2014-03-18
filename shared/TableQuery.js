@@ -15,7 +15,7 @@ TableQuery.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(self.index.states).forEach(function (uid) {
-    if (self.index.exists(uid) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(uid))))
+    if (!self.index.state.deleted(uid, self.index) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(uid))))
       entities.push(self.index.getByKey(uid));
   });
   if (self.orderProperty) {

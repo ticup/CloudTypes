@@ -1,4 +1,5 @@
-var State       = require('../shared/State');
+var State       = require('./ClientState');
+var Views       = require('../shared/Views');
 var io          = require('socket.io-client');
 
 global.io = io;
@@ -28,15 +29,17 @@ Client.prototype.connect = function (host, options, connected, reconnected, disc
 
   this.socket = io.connect(host, options);
   this.socket.on('connect', function () {
-
     if (typeof self.uid === 'undefined') {
       console.log('client connected for first time');
       self.socket.emit('init', function (json) {
-        console.log(json.uid);
-        var state = State.fromJSON(json.state);
+        console.log('client id: ' + json.uid);
+        state = State.fromJSON(json.state);
+        self.views = Views.fromJSON(json.views, state);
+        // state.print();
         self.uid = json.uid;
         self.state = state;
         self.state.init(json.cid, self);
+        self.user = state.get('SysUser').getByProperties({name: 'guest'});
         connected(self.state);
       });
     } else {
@@ -67,8 +70,8 @@ Client.prototype.close = function () {
 };
 
 Client.prototype.unrecognizedClient = function () {
-  alert("Sorry, his client is unrecognized by the server! The server probably restarted and your data is lost... Please refresh.");
   this.disconnect();
+  throw new Error("Sorry, his client is unrecognized by the server! The server probably restarted and your data is lost... Please refresh.");
 };
 
 Client.prototype.yieldPush = function (pushState) {
@@ -93,5 +96,24 @@ Client.prototype.flushPush = function (pushState, flushPull) {
     }
     var pullState = State.fromJSON(stateJson);
     flushPull(pullState);
+  });
+};
+
+/* Authentication */
+// Client.prototype.register = function (username, password, group, finish) {
+//   if (typeof this.socket === 'undefined')
+//     return finish("not connected");
+//   this.socket.emit('Register', {username: username, password: password, group: group}, finish);
+// };
+
+Client.prototype.login = function (username, password, finish) {
+  var self = this;
+  if (typeof this.socket === 'undefined')
+    return finish("not connected");
+  this.socket.emit('Login', {username: username, password: password}, function (err, userName) {
+    if (err)
+      throw err;
+    self.user = self.state.get('SysUser').getByProperties({name: username});
+    finish(null, true);
   });
 };

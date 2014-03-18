@@ -30,6 +30,7 @@ function Table(keys, columns) {
   this.keyValues = {};
   this.states    = {};
   this.uid       = 0;
+  this.cached = {};
 }
 
 Table.prototype = Object.create(Index.prototype);
@@ -60,7 +61,7 @@ Table.prototype.delete = function (entry) {
   console.log('deleting: ' + entry.uid);
   this.setDeleted(entry.uid);
   this.state.propagate();
-};  
+};
 
 Table.prototype.getKeyValues = function (uid) {
   var values = this.keyValues[uid];
@@ -71,7 +72,19 @@ Table.prototype.getKeyValues = function (uid) {
 };
 
 Table.prototype.setKeyValues = function (uid, keys) {
-  return this.keyValues[uid] = keys;
+  this.keyValues[uid] = keys;
+  return this;
+};
+
+
+// Removes all info about uid, only to be used by restrict
+Table.prototype.obliterate = function (uid) {
+  delete this.keyValues[uid];
+  delete this.states[uid];
+  delete this.cached[uid];
+  this.forEachProperty(function (property) {
+    property.delete(uid);
+  });
 };
 
 // Pure arguments version (user input version)
@@ -99,26 +112,46 @@ Table.prototype.get = function () {
 };
 
 // Flattened key version (internal version)
-Table.prototype.getByKey = function (uid) {
+Table.prototype.getByKey = function (uid, keys) {
+  var self = this;
   if (this.exists(uid)) {
-    var keys = this.getKeyValues(uid);
-    return new TableEntry(this, uid, keys);
+    keys = keys || this.getKeyValues(uid);
+    var cache = self.cached[uid];
+    if (typeof cache !== 'undefined') {
+      cache.keys = Keys.getKeys(keys, self);
+      return cache;
+    }
+    var entry = new TableEntry(this, uid, keys);
+    self.cached[uid] = entry;
+    return entry;
   }
   return null;
 };
 
 Table.prototype.forEachState = function (callback) {
-  return Object.keys(this.states).forEach(callback);
+  var self = this;
+  return Object.keys(this.states).forEach(function (key) {
+    callback(key, self.states[key]);
+  });
 };
 
 Table.prototype.setMax = function (entity1, entity2, key) {
   var val1 = entity1.states[key];
   var val2 = entity2.states[key];
   if (val1 === DELETED || val2 === DELETED) {
-    return this.states[key] = DELETED;
+    this.states[key] = DELETED;
+    return;
   }
   if (val1 === OK || val2 === OK) {
-    return this.states[key] = OK;
+    this.states[key] = OK;
+    if (val1 === OK && val2 !== OK) {
+      entity2.setKeyValues(key, entity1.getKeyValues(key));
+      return;
+    }
+    if (val2 === OK && val1 !== OK) {
+      entity1.setKeyValues(key, entity2.getKeyValues(key));
+    }
+    return false;
   }
 
 };
@@ -131,10 +164,18 @@ Table.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(this.states).forEach(function (uid) {
-    if (self.exists(uid))
+    if (!self.state.deleted(uid, self))
       entities.push(self.getByKey(uid));
   });
   return entities;
+};
+
+Table.prototype.forEachRow = function (callback) {
+  var self = this;
+  Object.keys(this.states).forEach(function (uid) {
+    if (!self.state.deleted(uid, self))
+      callback(self.getByKey(uid));
+  });
 };
 
 Table.prototype.setDeleted = function (key) {
@@ -146,13 +187,72 @@ Table.prototype.setCreated = function (key) {
 };
 
 
+Table.prototype.getByProperties = function (properties) {
+  var results = this.where(function (row) {
+    var toReturn = true;
+    Object.keys(properties).forEach(function (name) {
+      if (!row.get(name).equals(properties[name])) {
+        toReturn = false;
+      }
+    });
+    return toReturn;
+  }).all();
+  if (results.length > 0) {
+    return results[0];
+  }
+  return null;
+};
+
+Table.prototype.getByKeys = function (keys) {
+  var results = this.where(function (row) {
+    var toReturn = true;
+    Object.keys(keys).forEach(function (name) {
+      var val = row.key(name);
+      if (val instanceof TableEntry) {
+        if (!(val.equals(keys[name]))) {
+          toReturn = false;
+        }
+      } else {
+        if (val !== keys[name]) {
+          toReturn = false;
+        }
+      }
+    });
+    return toReturn;
+  }).all();
+  if (results.length > 0) {
+    return results[0];
+  }
+  return null;
+};
+
+Table.prototype.find = function (callback) {
+  var self = this;
+  var result = null;
+  self.all().forEach(function (row) {
+    if (callback(row)) {
+      result = row;
+    }
+  });
+  return result;
+}
+
+
 
 Table.prototype.exists = function (idx) {
-  return (typeof this.states[idx] !== 'undefined' && this.states[idx] === OK);
+  return (this.defined(idx) && this.created(idx));
+};
+
+Table.prototype.created = function (idx) {
+  return (this.states[idx] === OK);
+};
+
+Table.prototype.defined = function (idx) {
+  return (typeof this.states[idx] !== 'undefined');
 };
 
 Table.prototype.deleted = function (idx) {
-  return (this.states[idx] === DELETED)
+  return (this.states[idx] === DELETED);
 };
 
 Table.prototype.fork = function () {
@@ -161,18 +261,31 @@ Table.prototype.fork = function () {
   table.keys = fKeys;
   table.properties = this.properties.fork(table);
   table.states     = this.states;
+  table.keyValues  = this.keyValues;
+  table.isProxy    = this.isProxy;
   return table;
 };
+
+// Table.prototype.restrictedFork = function (group) {
+//   var fKeys = this.keys.fork();
+//   var table = new Table();
+//   table.keys = fKeys;
+//   table.properties = this.properties.restrictedFork(table, group);
+//   table.states     = this.states;
+//   table.isProxy    = this.isProxy;
+//   table.keyValues  = this.keyValues;
+//   return table;
+// };
 
 Table.fromJSON = function (json) {
   var table = new Table();
   table.keys = Keys.fromJSON(json.keys);
   table.keyValues = json.keyValues;
-  table.properties = Properties.fromJSON(json.properties, table);
   table.states = {};
   Object.keys(json.states).forEach(function (key) {
     table.states[key] = json.states[key];
   });
+  table.properties = Properties.fromJSON(json.properties, table);
   return table;
 };
 

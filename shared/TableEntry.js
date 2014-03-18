@@ -20,8 +20,13 @@ TableEntry.prototype.delete = function () {
 };    
 
 TableEntry.prototype.equals = function (entry) {
-  if (this.index !== entry.index)
+  if (!(entry instanceof TableEntry)) {
     return false;
+  }
+
+  if (this.index.name !== entry.index.name) {
+    return false;
+  }
 
   return this.uid === entry.uid;
 };

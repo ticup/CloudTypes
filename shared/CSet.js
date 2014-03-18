@@ -10,15 +10,16 @@ function CSetDeclaration(elementType) {
   }
 
   // CSet.entity should be set by the state to the entity that is made for this CSet.
-  // CSet.array should be set by the state to the a
   CSet.elementType = elementType;
 
 
-  CSet.newFor = function (entry) {
-    return new CSet(entry);
+  CSet.newFor = function (entry, property) {
+    var cset = new CSet(entry);
+    cset.property = property;
+    return cset;
   };
 
-  // Puts the declared (parametrized) CSet into json
+    // Puts the declared (parametrized) CSet into json
   CSet.toJSON = function () {
     return { tag: CSetDeclaration.tag, elementType: elementType };
   };
@@ -28,12 +29,16 @@ function CSetDeclaration(elementType) {
     return new CSet(entry);
   };
 
-  CSet.declareProxyTable = function (state, index, property) {
+  CSet.toString = function () {
+    return "CSet<" + CSet.elementType.toString() + ">";
+  };
+
+  CSet.declareProxyTable = function (state, index, property, grant) {
     var Table = require('./Table');
     if (!(index instanceof Table)) {
       throw new Error("Can only create CSet for a Table");
     }
-    this.entity = state.declare(index.name + property.name, new Table([{entry: index}, {element: this.elementType}]));
+    this.entity = state.declare(index.name + property.name, new Table([{entry: index}, {element: this.elementType}]), grant);
   };
 
   CSet.tag = "CSet";
@@ -127,6 +132,11 @@ CSetPrototype.replaceBy = function (cset) {
 
 CSetPrototype.isDefault = function () {
   return (this.get().length !== 0);
+};
+
+// Change detection is incorporated through the proxyTable
+CSetPrototype.isChanged = function () {
+  return false;
 };
 
 CSetPrototype.compare = function (cset, reverse) {

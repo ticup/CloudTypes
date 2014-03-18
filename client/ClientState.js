@@ -1,7 +1,10 @@
 var State = require('../shared/State');
+var CSetPrototype  = require('../shared/CSet').CSetPrototype;
+var Restricted = require('../shared/Restricted');
+var Index = require('../shared/Index');
+var Table = require('./Table');
 
 module.exports = State;
-
 
 State.prototype.init = function (cid, client) {
   this.pending  = false;
@@ -56,8 +59,10 @@ State.prototype.flush = function (callback, timeout) {
   this.client.flushPush(this, function flushPull(state) {
     // should actually replace this state,
     // but since there should be no operations done merging is the same.
-//    self.print();
+    // self.print();
     console.log('received flushpull on client');
+
+    // console.log('received: ' + Object.keys(state.arrays).map(function (n) { return n + "(" + state.arrays[n].constructor.name+")";}));
 
     state.joinIn(self);
 
@@ -67,3 +72,71 @@ State.prototype.flush = function (callback, timeout) {
   self.applyFork();
   return this;
 };
+
+State.prototype.getUser = function () {
+  return this.client.user;
+};
+
+var join = State.prototype.joinIn;
+State.prototype.joinIn = function (state) {
+  var self = this;
+
+  var deleted = {};
+  
+  // Retract data to which the state has no access anymore
+  state.forEachArray(function (array) {
+    var mArray = self.get(array.name);
+    if (mArray instanceof Restricted) {
+      deleted[array.name] = state.arrays[array.name];
+      state.arrays[array.name] = mArray;
+      return;
+    }
+    array.forEachProperty(function (property) {
+      try {
+       var mProperty = mArray.getProperty(property);
+      } catch(e) {
+        delete array.properties.properties[property.name];
+        return;
+      }
+      if (array instanceof Table) {
+        array.forEachState(function (key) {
+          if (!mArray.defined(key)) {
+            array.obliterate(key);
+          }
+        });
+      }
+    });
+  });
+
+  state.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+      if (property.CType instanceof Index) {
+        property.CType = state.get(property.CType.name);
+      }
+    });
+
+    index.keys.forEach(function (key, type, i) {
+      if (type instanceof Index) {
+        index.keys.types[i] = state.get(type.name);
+      }
+    });
+  });
+  self.propagate();
+
+
+  join.call(this, state);
+  return state;
+};
+
+
+// var checkTablePermission = State.prototype.checkTablePermission;
+
+// State.prototype.checkTablePermission = function (action, table) {
+//   return checkTablePermission.call(this, action, table, this.client.group);
+// };
+
+// var checkColumnPermission = State.prototype.checkColumnPermission;
+
+// State.prototype.checkColumnPermission = function (action, table, cname) {
+//   return checkColumnPermission.call(this, action, table, cname, this.client.group);
+// };

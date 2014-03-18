@@ -22,13 +22,13 @@ IndexEntry.prototype.set = function (propertyName, value) {
   TypeChecker.property(value, property.CType);
 
   // If it is a Cloud Type column, retrieve it and call set(value) on it
-  if (CloudType.isCloudType(property.CType)) {
+  // if (CloudType.isCloudType(property.CType)) {
     property.getByKey(key).set(value);
-    return this;
-  }
+    // return this;
+  // }
   
   // Otherwise replace the reference
-  property.set(key, value);
+  // property.set(key, value);
   return this;
 };
 
@@ -53,14 +53,12 @@ IndexEntry.prototype.key = function (name) {
   var position = this.index.keys.getPositionOf(name);
   if (position === -1)
     throw Error("This Array does not have a key named " + name);
-
   var type = this.index.keys.getType(position);
   var value =  this.keys[position];
   if (type === 'int') {
     value = parseInt(value, 10);
   }
   if (type !== 'int' && type !== 'string') {
-    debugger;
     value = type.getByKey(value);
   }
   return value;
@@ -75,7 +73,10 @@ IndexEntry.prototype.serialKey = function () {
 };
 
 IndexEntry.prototype.equals = function (entry) {
-  if (this.index !== entry.index)
+  if (!(entry instanceof IndexEntry))
+    return false;
+  
+  if (this.index.name !== entry.index.name)
     return false;
 
   for (var i = 0; i<this.keys.length; i++) {
@@ -83,6 +84,10 @@ IndexEntry.prototype.equals = function (entry) {
       return false;
   }
   return true;
+};
+
+IndexEntry.prototype.isEntryOf = function (index) {
+  return (this.index == index);
 };
 
 IndexEntry.prototype.toString = function () {

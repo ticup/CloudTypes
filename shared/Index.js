@@ -50,7 +50,7 @@ Index.prototype.get = function () {
 };
 
 Index.prototype.getByKey = function (key) {
-  return new IndexEntry(this, key)
+  return new IndexEntry(this, key);
 };
 
 Index.prototype.entries = function (propertyName) {
@@ -82,6 +82,26 @@ Index.prototype.fork = function () {
   return index;
 };
 
+// Index.prototype.restrictedFork = function (group) {
+//   var fKeys = this.keys.fork();
+//   var index = new Index();
+//   index.keys = fKeys;
+//   index.properties = this.properties.restrictedFork(index, group);
+//   index.isProxy = this.isProxy;
+//   return index;
+// };
+
+Index.prototype.getKeys = function () {
+  return this.keys.names;
+};
+
+Index.prototype.getProperties = function () {
+  return Object.keys(this.properties.properties);
+};
+
+Index.prototype.toString = function () {
+  return this.name;
+};
 
 Index.prototype.toJSON = function () {
   return {

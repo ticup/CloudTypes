@@ -42,6 +42,15 @@ describe('State', function () {
         });
       });
     });
+
+    it('should replace the key and property type references by the real Tables', function () {
+      state = new State();
+      state.declare('Thing', new Table([{'key1': 'Thing'}], {'column1': 'Thing'}));
+      json = state.toJSON();
+      var state2 = State.fromJSON(json);
+      state2.arrays.Thing.properties.properties['column1'].CType.should.equal(state2.arrays.Thing);
+      state2.arrays.Thing.keys.types[0].should.equal(state2.arrays.Thing);
+    });
   });
 
   describe('.toJSON()', function () {
@@ -56,6 +65,13 @@ describe('State', function () {
         json.should.eql(State.fromJSON(json).toJSON());
       });
     });
+    it('should put key and property types in reference representation', function () {
+      state = new State();
+      state.declare('Thing', new Table([{'key1': 'Thing'}], {'column1': 'Thing'}));
+      json = state.toJSON();
+      json.arrays.Thing.properties[0].type.should.equal('Thing');
+      json.arrays.Thing.keys.types[0].should.equal('Thing');
+    })
   });
 
   describe('.declare(name, index) (declare Index/Table)', function () {

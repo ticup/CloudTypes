@@ -14,7 +14,7 @@ IndexQuery.prototype.all = function () {
   var self = this;
   var entities = [];
   Object.keys(self.index.states).forEach(function (key) {
-    if (self.index.exists(key) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
+    if (!self.index.state.deleted(key, self.index) && (typeof self.sumFilter === 'undefined' || self.sumFilter(self.index.getByKey(key))))
       entities.push(self.index.getByKey(key));
   });
   if (self.orderProperty) {

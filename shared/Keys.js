@@ -2,6 +2,8 @@
 /********/
 /* The names and types of the keys of an Index */
 
+var CloudType = require('./CloudType');
+
 module.exports = Keys;
 
 function Keys(keys, state) {
@@ -43,7 +45,6 @@ Keys.prototype.getName = function (position) {
 // Returns the type of given key name.
 Keys.prototype.getTypeOf = function (name) {
   var position = this.getPositionOf(name);
-  // console.log(name + ' in ' + this.names + "? -> " + position);
   return this.types[position];
 };
 
@@ -56,9 +57,15 @@ Keys.prototype.getPositionOf = function (name) {
 Keys.prototype.toJSON = function () {
   return {
     names: this.names,
-    types: this.types
+    types: this.types.map(function (type) {
+      if (typeof type === 'string') {
+        return type;
+      }
+      return type.name;
+    })
   };
 };
+
 
 Keys.fromJSON = function (json) {
   var keys = new Keys();
