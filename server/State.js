@@ -18,12 +18,26 @@ State.prototype.checkChanges = function (state, user) {
   // console.log('with ' + Object.keys(target.arrays).map(function (n) { return n + "(" + master.arrays[n].constructor.name+")";}));
   
 
+
   // 1) Check SysAuth table changes
   var ClientAuth = state.get('SysAuth');
   var ServerAuth = self.get('SysAuth');
   ClientAuth.forEachRow(function (clientAuth) {
     // the grantopt/tname/user columns should never be changed
     var serverAuth = ServerAuth.getByKey(clientAuth.uid);
+
+    // // negative authorization on client-side
+    // if (clientAuth.get('privtype').equals('-')) {
+      
+    //   // client added a negative authorization
+    //   if (!serverAuth) {
+    //     if (!self.canGrantTable(clientAuth.get('action').get(), self.get(clientAuth.get('tname').get()), clientAuth.get('user').get())) {
+    //       valid = false;
+    //     }
+    //   }
+    // }
+
+
     ['grantopt', 'tname', 'user'].forEach(function (column) {
       if (isChanged(serverAuth.get(column), clientAuth.get(column), ServerAuth.getProperty(column))) {
         console.log(column + ' was changed!');

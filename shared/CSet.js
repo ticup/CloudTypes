@@ -13,8 +13,10 @@ function CSetDeclaration(elementType) {
   CSet.elementType = elementType;
 
 
-  CSet.newFor = function (entry) {
-    return new CSet(entry);
+  CSet.newFor = function (entry, property) {
+    var cset = new CSet(entry);
+    cset.property = property;
+    return cset;
   };
 
     // Puts the declared (parametrized) CSet into json

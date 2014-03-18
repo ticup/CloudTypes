@@ -27,6 +27,7 @@ function Auth(state) {
                                                         cname:    'CString',
                                                         type:     'CString',
                                                         vname:    'CString',
+                                                        privtype: 'CString',
                                                         grantopt: 'CString' }), 'N');
 
   // init groups

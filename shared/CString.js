@@ -43,9 +43,10 @@ CString.toString = function () {
 };
 
 // Create a new instance of the declared CString for given entry
-CString.newFor = function (entry) {
+CString.newFor = function (entry, property) {
   var cstring = new CString();
   cstring.entry = entry;
+  cstring.property = property;
   return cstring;
 };
 

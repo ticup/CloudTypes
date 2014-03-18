@@ -10,8 +10,19 @@ function addAuthentication(State) {
   /* Granting */
   /************/
 
+  /* grant('action',
+   *       tableRef || 'tablename' || propertyRef,
+   *       userRef || 'userName',
+   *       [grantopt])
+   */
+  
   State.prototype.grant = function (action, table, user, grantopt) {
     var self = this;
+
+    if (typeof grantopt === 'undefined') {
+      grantopt = 'N';
+    }
+
     if (typeof user === 'string') {
       user = self.get('SysUser').getByProperties({name: user});
     }
@@ -40,9 +51,13 @@ function addAuthentication(State) {
   State.prototype.grantView = function (action, view, column, user, grantopt) {
     var self = this;
     
+    if (typeof user === 'undefined') {
+      user = 'N';
+    }
+
     // granting complete view
     if (user === 'Y' || user === 'N') {
-      grantOpt = user;
+      grantopt = user;
       user = column;
       if (typeof user === 'string') {
         user = self.get('SysUser').getByProperties({name: user});
@@ -55,6 +70,10 @@ function addAuthentication(State) {
 
     // granting column on view
     } else {
+
+      if (typeof grantopt === 'undefined') {
+        grantopt = 'N';
+      }
 
       if (typeof user === 'string') {
         user = self.get('SysUser').getByProperties({name: user});
@@ -76,7 +95,6 @@ function addAuthentication(State) {
   // Table 
   State.prototype.grantTable = function (action, table, user, grantopt) {
     var self = this;
-    grantopt = grantopt || 'N';
 
     // Can we grant action on table?
     self.checkGrantTablePermission(action, table, self.getUser());
@@ -118,11 +136,12 @@ function addAuthentication(State) {
     // Table 
   State.prototype.grantViewTable = function (action, view, user, grantopt) {
     var self = this;
-    grantopt = grantopt || 'N';
 
+    console.log('granting ' + action + ' on ' + view.name + ' for ' + user.get('name').get() + ' with ' + grantopt);
     // Can we grant action on table?
     self.checkGrantViewPermission(action, view, self.getUser());
 
+    console.log('granted');
     // Do the granting
     self.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('user').equals(user) &&
@@ -207,7 +226,6 @@ function addAuthentication(State) {
     var col;
     var self = this;
     var granted = false;
-    grantopt = grantopt || 'N';
 
     if (action !== 'read' && action !== 'update') {
       throw new Error("Only read and update are column actions");
@@ -280,12 +298,16 @@ function addAuthentication(State) {
     throw new Error("Incorrect input for revoke");
   };
 
-  State.prototype.revokeView = function (action, view, column, user, grantopt) {
+
+  State.prototype.revokeView = function (action, view, column, user) {
     var self = this;
     
+    if (typeof user === 'undefined') {
+      user = 'N';
+    }
+
     // granting complete view
     if (user === 'Y' || user === 'N') {
-      grantOpt = user;
       user = column;
       if (typeof user === 'string') {
         user = self.get('SysUser').getByProperties({name: user});
@@ -293,7 +315,7 @@ function addAuthentication(State) {
 
       var theView = self.views.get(view);
       if (typeof theView !== 'undefined') {
-        return this.revokeViewTable(action, theView, user, grantopt);
+        return this.revokeViewTable(action, theView, user);
       }
 
     // granting column on view
@@ -305,7 +327,7 @@ function addAuthentication(State) {
 
       var theView = self.views.get(view);
       if (typeof theView !== 'undefined') {
-        return this.revokeViewColumn(action, theView, column, user, grantopt);
+        return this.revokeViewColumn(action, theView, column, user);
       }
 
     }
@@ -419,6 +441,90 @@ function addAuthentication(State) {
 
     return this;
   };
+
+
+
+
+
+  /* Deny: negative authorization */
+  /********************************/
+  /* Not allowed on Views, only on Tables and columns */
+
+  // State.prototype.deny = function (action, table, cname, user) {
+  //   var self = this;
+    
+  //   // Denying table
+  //   if (typeof user === 'undefined') {
+  //     user = cname;
+
+  //     if (typeof user === 'string') {
+  //       user = self.get('SysUser').getByProperties({name: user});
+  //     }
+
+  //     if (typeof table === 'string') {
+  //       table = self.get(table);
+  //     }
+
+  //     if (typeof table !== 'undefined') {
+  //       return this.denyTable(action, table, user);
+  //     }
+
+  //   }
+
+  //   throw new Error("Incorrect input for grantView");
+  // };
+
+  // // Deny Table
+  // State.prototype.denyTable = function (action, table, user) {
+  //   var self = this;
+
+  //   console.log('checking permission for denial of ' + action + ' on ' + table.name + ' for ' + user.get('name').get());
+  //   // Can we revoke action from table?
+  //   self.checkGrantTablePermission(action, table, self.getUser());
+  //   console.log('allowed');
+
+  //   // Already denied
+  //   if (self.isTableDenied(action, table, user)) {
+  //     return this;
+  //   }
+  //   console.log('not denied yet');
+
+  //   // Add negative authorization for Table
+  //   var auth = self.get('SysAuth').create();
+  //   auth.set('user', user)
+  //       .set('tname', table.name)
+  //       .set('type', 'T')
+  //       .set('privtype', '-')
+  //       .set(action, 'Y');
+      
+  //   console.log('denied '+ action+ ' from ' + table.name + ' for ' + user.get('name').get());
+  //   return this;
+  // };
+
+
+  // State.prototype.isTableDenied = function (action, table, user) {
+  //   var self = this;
+  //   return self.get('SysAuth').where(function (auth) {
+  //     return auth.get('user').equals(user) &&
+  //            auth.get('tname').equals(table.name) &&
+  //            auth.get('privtype').equals('-') &&
+  //            auth.get('type').equals('T') &&
+  //            auth.get(action).equals('Y');
+  //   }).all().length > 0;
+  // }
+
+  // State.prototype.isColumnDenied = function (action, table, cname, user) {
+  //   var self = this;
+  //   return self.get('SysColAuth').where(function (auth) {
+  //     return auth.get('user').equals(user) &&
+  //            auth.get('tname').equals(table.name) &&
+  //            auth.get('cname').equals(cname) &&
+  //            auth.get('privtype').equals('-') &&
+  //            auth.get('type').equals('T')) &&
+  //            auth.get(action).equals('Y');
+  //   }).all().length > 0;
+  // };
+
 
 
   /* Permission Checks */
