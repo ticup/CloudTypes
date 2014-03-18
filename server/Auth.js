@@ -9,8 +9,8 @@ module.exports = Auth;
 function Auth(state) {
   state.auth  = this;
   this.state  = state;
-  this.User   = state.declare('SysUser',  new Table({name: 'CString', password: 'CString'}), 'N');
-  this.Group  = state.declare('SysGroup', new Table({name: 'CString', users: new CSet('SysUser')}), 'N');
+  this.Group  = state.declare('SysGroup', new Table({name: 'CString'}), 'N');
+  this.User   = state.declare('SysUser',  new Table({name: 'CString', password: 'CString', group: 'SysGroup'}), 'N');
   this.Auth   = state.declare('SysAuth',  new Table({user:     'SysUser',
                                                      group:    'SysGroup',
                                                      tname:    'CString',
@@ -37,13 +37,13 @@ function Auth(state) {
   // init root user
   this.root = this.User.create();
   this.root.set('name', 'root')
-           .set('password','root');
-  this.rootGroup.get('users').add(this.root);
+           .set('password','root')
+           .set('group', this.rootGroup);
 
   this.guest = this.User.create();
   this.guest.set('name', 'guest')
-            .set('password', 'guest');
-  this.guestGroup.get('users').add(this.guest);
+            .set('password', 'guest')
+            .set('group', this.guestGroup);
 
   // grant privileges for the system tables
   this.grantAll('SysGroup', 'T', true);
@@ -84,13 +84,6 @@ Auth.prototype.exists = function (username) {
 
 Auth.prototype.getUser = function (username) {
   return this.User.getByProperties({name: username});
-};
-
-Auth.prototype.getGroupsOf = function (user) {
-  var self = this;
-  return self.Group.where(function (group) {
-    return group.get('users').contains(user);
-  }).all();
 };
 
 Auth.prototype.getGroup = function (name) {
