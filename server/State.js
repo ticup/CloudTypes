@@ -26,12 +26,22 @@ State.prototype.checkChanges = function (state, user) {
     // the grantopt/tname/user columns should never be changed
     var serverAuth = ServerAuth.getByKey(clientAuth.uid);
 
+
+
+    // client added table authorization
+    if (!serverAuth) {
+      if (!self.canGrantTable(clientAuth.get('priv').get(), self.get(clientAuth.get('tname').get()), user)) {
+        console.log('client added authorization that it was not authorized to');
+        valid = false;
+      }
+    }
+
     // // negative authorization on client-side
     // if (clientAuth.get('privtype').equals('-')) {
       
     //   // client added a negative authorization
     //   if (!serverAuth) {
-    //     if (!self.canGrantTable(clientAuth.get('action').get(), self.get(clientAuth.get('tname').get()), clientAuth.get('user').get())) {
+    //     if (!self.canGrantTable(clientAuth.get('action').get(), self.get(clientAuth.get('tname').get()), user) {
     //       valid = false;
     //     }
     //   }
@@ -67,7 +77,15 @@ State.prototype.checkChanges = function (state, user) {
     // the grantopt/tname/user columns should never be changed
     var serverColAuth = ServerColAuth.getByKey(clientColAuth.uid);
 
-    ['grantopt', 'tname', 'user'].forEach(function (column) {
+    // client added table authorization
+    if (!serverColAuth) {
+      if (!self.canGrantTable(clientColAuth.get('priv').get(), self.get(clientColAuth.get('tname').get()), user)) {
+        console.log('client added authorization that it was not authorized to');
+        valid = false;
+      }
+    }
+
+    ['grantopt', 'tname', 'cname', 'user', 'priv', 'type'].forEach(function (column) {
 
       if (isChanged(serverColAuth.get(column), clientColAuth.get(column), ServerColAuth.getProperty(column))) {
         console.log(column + ' was changed!');

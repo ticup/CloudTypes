@@ -5417,7 +5417,7 @@ function addAuthentication(State) {
       if (auth.get('type').equals('T') &&
           auth.get('tname').equals(table.name) &&
           auth.get('grantopt').equals(grantopt) &&
-          auth.get('user').equals(user) &&
+          (group ? auth.get('group').equals(group) : auth.get('user').equals(user)) &&
           auth.get('priv').equals(action)) {
         auth.set('active', 'Y');
         granted = true;
@@ -5429,9 +5429,10 @@ function addAuthentication(State) {
       auth.set('type', 'T')
           .set('tname', table.name)
           .set('grantopt', grantopt)
-          .set('user', user)
           .set('priv', action)
           .set('active', 'Y');
+      (group ? auth.set('group', group) : auth.set('user', user));
+
     }
 
     // Grant to all columns if column action (read/update)
@@ -5442,7 +5443,7 @@ function addAuthentication(State) {
           if (colAuth.get('type').equals('T') &&
               colAuth.get('tname').equals(table.name) &&
               colAuth.get('grantopt').equals(grantopt) &&
-              colAuth.get('user').equals(user) &&
+              (group ? colAuth.get('group').equals(group) : colAuth.get('user').equals(user)) &&
               colAuth.get('priv').equals(action)) {
             colAuth.set('active', 'Y');
             granted = true;
@@ -5455,9 +5456,9 @@ function addAuthentication(State) {
               .set('tname', table.name)
               .set('cname', property.name)
               .set('grantopt', grantopt)
-              .set('user', user)
               .set('priv', action)
               .set('active', 'Y');
+          (group ? auth.set('group', group) : auth.set('user', user));
         }
       }); 
     }   
