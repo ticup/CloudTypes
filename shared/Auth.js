@@ -858,7 +858,7 @@ function addAuthentication(State) {
           colAuth.get('priv').equals(action) &&
           colAuth.get('active').equals('Y')) {
         var view = self.views.get(colAuth.get('vname').get());
-        if (view.includes(entry)) {
+        if (view.includes(entry, user)) {
           authed = true;
         }
       }
@@ -897,7 +897,7 @@ function addAuthentication(State) {
         // Authed for view
         } else {
           var view = self.views.get(auth.get('vname').get());
-          if (view.includes(entry)) {
+          if (view.includes(entry, user)) {
             authed = true;
           }
         }
@@ -1000,7 +1000,7 @@ function addAuthentication(State) {
         // 2.2) Column row access (View)
         } else {
           var view = self.views.get(colAuth.get('vname').get());
-          if (view.includes(entry)) {
+          if (view.includes(entry, user)) {
             authed = true;  
           }
         }

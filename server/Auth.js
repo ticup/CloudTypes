@@ -74,7 +74,7 @@ Auth.prototype.initProtection = function (views) {
     }
     return false;
   });
-  views.revoke('all', 'User', 'Guest');
+  views.revoke('all', this.state.get('SysUser').getProperty('password'), 'Guest');
 };
 
 Auth.prototype.createUser = function (name, password) {

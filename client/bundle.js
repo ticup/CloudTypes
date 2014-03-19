@@ -5331,7 +5331,7 @@ function addAuthentication(State) {
           colAuth.get('priv').equals(action) &&
           colAuth.get('active').equals('Y')) {
         var view = self.views.get(colAuth.get('vname').get());
-        if (view.includes(entry)) {
+        if (view.includes(entry, user)) {
           authed = true;
         }
       }
@@ -5370,7 +5370,7 @@ function addAuthentication(State) {
         // Authed for view
         } else {
           var view = self.views.get(auth.get('vname').get());
-          if (view.includes(entry)) {
+          if (view.includes(entry, user)) {
             authed = true;
           }
         }
@@ -5473,7 +5473,7 @@ function addAuthentication(State) {
         // 2.2) Column row access (View)
         } else {
           var view = self.views.get(colAuth.get('vname').get());
-          if (view.includes(entry)) {
+          if (view.includes(entry, user)) {
             authed = true;  
           }
         }
@@ -7241,7 +7241,7 @@ State.prototype.all = function () {
   var tables = [];
   Object.keys(this.arrays).forEach(function (name) {
     var index = self.arrays[name];
-    if (!(index instanceof Restricted) && (name.indexOf('Sys') === -1)) {
+    if (!(index instanceof Restricted) && ((name.indexOf('Sys') === -1) || name === 'SysUser')) {
       tables.push(index);
     }
   });
@@ -8252,12 +8252,12 @@ function View(name, table, query) {
   this.query = query;
 }
 
-View.prototype.includes = function (entry) {
+View.prototype.includes = function (entry, user) {
   var self =  this;
   var included = false;
   self.table.forEachState(function (key) {
     var row = self.table.getByKey(key);
-    if (row.equals(entry) && self.query(row)) {
+    if (row.equals(entry) && self.query(row, {current_user: user})) {
       included = true;
     }
   });

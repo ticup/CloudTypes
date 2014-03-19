@@ -10,6 +10,7 @@ function CServer(state) {
   this.auth    = new Auth(this.state);
   this.views   = new Views(this.state, this.auth);
   this.server  = new Server(this.state, this.auth, this.views);
+  this.auth.initProtetion();
 }
 
 CServer.prototype.publish = function (target, static) {

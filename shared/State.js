@@ -43,7 +43,7 @@ State.prototype.all = function () {
   var tables = [];
   Object.keys(this.arrays).forEach(function (name) {
     var index = self.arrays[name];
-    if (!(index instanceof Restricted) && (name.indexOf('Sys') === -1)) {
+    if (!(index instanceof Restricted) && ((name.indexOf('Sys') === -1) || name === 'SysUser')) {
       tables.push(index);
     }
   });
