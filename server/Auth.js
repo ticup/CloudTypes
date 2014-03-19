@@ -66,6 +66,17 @@ function Auth(state) {
 //   return auths;
 // };
 
+
+Auth.prototype.initProtection = function (views) {
+  views.create('read', 'MyUser', 'SysUser', function (user, current_user) {
+    if (user.equals(context.current_user)) {
+      return true;
+    }
+    return false;
+  });
+  views.revoke('all', 'User', 'Guest');
+};
+
 Auth.prototype.createUser = function (name, password) {
   var user = this.User.create();
   user.set('name', name)

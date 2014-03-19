@@ -7,10 +7,10 @@
 var CloudTypes = require('../../../server/main.js');
 
 function declare(server) {
-  var Group   = server.declare('Group',   new CloudTypes.index([], {name: 'CString', CloudTypes.CSet('SysUser')}))
+  var Group   = server.declare('Group',   new CloudTypes.index([{name: 'CString', CloudTypes.CSet('SysUser')}));
   var Grocery = server.declare('Grocery', new CloudTypes.Index([{group: 'Group'}, {name: 'string'}], {toBuy: 'CInt'}));
 
-  var OtherGroups = server.view('MyGroups', 'Group', function (group, context) {
+  var MyGroups = server.view('MyGroups', 'Group', function (group, context) {
       if (group.get('users').contains(context.current_user)) {
          return true;
       }
