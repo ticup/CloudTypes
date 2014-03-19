@@ -32,6 +32,8 @@ function declareThings(server) {
    t4.set('column2', t2);
    t4.set('column3', t3);
    t40.set('column1', t1);
+   server.auth.createUser("foo", "bar");
+   server.auth.createUser("bar", "foo");
    return server;
 }
 

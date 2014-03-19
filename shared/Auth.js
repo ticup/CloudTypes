@@ -351,7 +351,7 @@ function addAuthentication(State) {
 
     if (action instanceof Array) {
       action.forEach(function (act) {
-        self.revoke(act, table, user, grantopt);
+        self.revoke(act, table, user);
       });
       return;
     }

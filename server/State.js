@@ -11,6 +11,10 @@ State.prototype.published = function (server) {
   this.publish = true;
 };
 
+State.prototype.getUser = function () {
+  return this.get('SysUser').getByProperties({name: 'root'});
+}
+
 State.prototype.checkChanges = function (state, user) {
   var self = this;
   var valid = true;

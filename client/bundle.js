@@ -123,14 +123,21 @@ State.prototype.joinIn = function (state) {
         delete array.properties.properties[property.name];
         return;
       }
-      if (array instanceof Table) {
+      property.forEachKey(function (key) {
+        var value = property.getByKey(key);
+        var mValue = mProperty.getByKey(key);
+        if (typeof mValue === 'undefined') {
+          property.obliterate(key);
+        }
+      })
+    });
+    if (array instanceof Table) {
         array.forEachState(function (key) {
           if (!mArray.defined(key)) {
             array.obliterate(key);
           }
         });
       }
-    });
   });
 
   state.forEachArray(function (index) {
@@ -4824,7 +4831,7 @@ function addAuthentication(State) {
 
     if (action instanceof Array) {
       action.forEach(function (act) {
-        self.revoke(act, table, user, grantopt);
+        self.revoke(act, table, user);
       });
       return;
     }

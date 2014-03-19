@@ -68,13 +68,13 @@ function Auth(state) {
 
 
 Auth.prototype.initProtection = function (views) {
-  views.create('read', 'MyUser', 'SysUser', function (user, current_user) {
+  this.state.views.create('MyUser', 'SysUser', function (user, context) {
     if (user.equals(context.current_user)) {
       return true;
     }
     return false;
   });
-  views.revoke('all', this.state.get('SysUser').getProperty('password'), 'Guest');
+  this.state.revoke('read', this.state.get('SysUser').getProperty('password'), this.state.get('SysGroup').getByProperties({name: 'Guest'}));
 };
 
 Auth.prototype.createUser = function (name, password) {
