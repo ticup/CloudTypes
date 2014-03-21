@@ -68,13 +68,20 @@ function Auth(state) {
 
 
 Auth.prototype.initProtection = function (views) {
+  var guest = this.state.get('SysGroup').getByProperties({name: 'Guest'});
+
+  // Guest can only see password of his own
   this.state.views.create('MyUser', 'SysUser', function (user, context) {
-    if (user.equals(context.current_user)) {
-      return true;
-    }
-    return false;
+    return user.equals(context.current_user);
   });
-  this.state.revoke('read', this.state.get('SysUser').getProperty('password'), this.state.get('SysGroup').getByProperties({name: 'Guest'}));
+  this.state.revoke('read', this.state.get('SysUser').getProperty('password'), guest);
+
+  // Only see you own authorization
+  this.state.revoke('all', this.state.get('SysAuth'), guest);
+  this.state.views.create('MyAuth', 'SysAuth', function (auth, context) {
+    return (auth.get('user').equals(context.current_user) || auth.get('group').equals(context.current_user.get('group').get()));
+  });
+
 };
 
 Auth.prototype.createUser = function (name, password) {

@@ -4956,13 +4956,7 @@ function addAuthentication(State) {
     console.log('allowed');
     
     // Revoke action (both with and without grantopt) from the Table
-    if (action instanceof Array) {
-      action.forEach(function (act) {
-        self.doRevokeTable(act, table, user);
-      });
-    } else {
-      self.doRevokeTable(action, table, user);
-    }
+    self.doRevokeTable(action, table, user);
 
     console.log('revoked '+ action+ ' from ' + user.get('name').get());
     return this;
@@ -4970,11 +4964,8 @@ function addAuthentication(State) {
 
   State.prototype.doRevokeTable = function (action, table, user) {
     var self = this;
-    var group = null;
+    var group = self.setIfGroup(user);
 
-    if (user.isEntryOf(self.get('SysGroup'))) {
-      group = user;
-    }
     self.get('SysAuth').all().forEach(function (auth) {
       if ((group ? auth.get('group').equals(group) : auth.get('user').equals(user)) &&
           auth.get('tname').equals(table.name) &&
@@ -5388,7 +5379,7 @@ function addAuthentication(State) {
       
       // Implicit authorization for delete
       if (action === 'delete') {
-        console.log('looking for implicit delete authorization');
+        // console.log('looking for implicit delete authorization');
         table.keys.forEach(function (key, type, i) {
         // TODO: change to Index, when indexes are taken into account
           if (type instanceof Table) {
@@ -5399,7 +5390,7 @@ function addAuthentication(State) {
           }
         });
       } else {
-        console.log(user.get('name').get() + ' not authed for row ' + entry.uid + ' of ' + table.name);
+        // console.log(user.get('name').get() + ' not authed for row ' + entry.uid + ' of ' + table.name);
         return false;
       } 
     }
@@ -5418,7 +5409,7 @@ function addAuthentication(State) {
           return;
         }
         if (!self.authedForRow('read', keyEntry, user)) {
-          console.log(user.get('name').get() + ' not authed for ' + table.name + ' because no read access for keys');
+          // console.log(user.get('name').get() + ' not authed for ' + table.name + ' because no read access for keys');
           authed = false;
         }
       }
@@ -5452,7 +5443,7 @@ function addAuthentication(State) {
       if (type instanceof Table) {
         var keyEntry = entry.key(key);
         if (!self.authedForRow('read', keyEntry, user)) {
-          console.log('not authed for the rows of the keys!');
+          // console.log('not authed for the rows of the keys!');
           authed = false;
         }
       }
@@ -5519,7 +5510,7 @@ function addAuthentication(State) {
     });
 
     if (!permission) {
-      console.log(user.get('name').get() + ' not authed for create on ' + table.name);
+      // console.log(user.get('name').get() + ' not authed for create on ' + table.name);
       return false;
     }
 
@@ -7248,7 +7239,7 @@ State.prototype.all = function () {
   var tables = [];
   Object.keys(this.arrays).forEach(function (name) {
     var index = self.arrays[name];
-    if (!(index instanceof Restricted) && ((name.indexOf('Sys') === -1) || name === 'SysUser')) {
+    if (!(index instanceof Restricted) && ((name.indexOf('Sys') === -1) || name === 'SysUser' || name === 'SysAuth')) {
       tables.push(index);
     }
   });
@@ -7685,7 +7676,7 @@ State.prototype.restrict = function (user) {
       index.forEachState(function (key) {
         var entry = index.getByKey(key);
         if (!self.authedForRow('read', entry, user)) {
-          console.log('obliterated ' + key);
+          // console.log('obliterated ' + key);
           index.obliterate(key);
         }
       });
@@ -8076,12 +8067,19 @@ Table.prototype.deleted = function (idx) {
 };
 
 Table.prototype.fork = function () {
+  var self = this;
   var fKeys = this.keys.fork();
   var table = new Table();
   table.keys = fKeys;
-  table.properties = this.properties.fork(table);
-  table.states     = this.states;
-  table.keyValues  = this.keyValues;
+  table.properties = self.properties.fork(table);
+  table.states     = {};
+  Object.keys(self.states).forEach(function (key) {
+    table.states[key] = self.states[key];
+  });
+  table.keyValues  = {};
+  Object.keys(self.keyValues).forEach(function (key) {
+    table.keyValues[key] = self.keyValues[key];
+  })
   table.isProxy    = this.isProxy;
   return table;
 };

@@ -256,12 +256,19 @@ Table.prototype.deleted = function (idx) {
 };
 
 Table.prototype.fork = function () {
+  var self = this;
   var fKeys = this.keys.fork();
   var table = new Table();
   table.keys = fKeys;
-  table.properties = this.properties.fork(table);
-  table.states     = this.states;
-  table.keyValues  = this.keyValues;
+  table.properties = self.properties.fork(table);
+  table.states     = {};
+  Object.keys(self.states).forEach(function (key) {
+    table.states[key] = self.states[key];
+  });
+  table.keyValues  = {};
+  Object.keys(self.keyValues).forEach(function (key) {
+    table.keyValues[key] = self.keyValues[key];
+  })
   table.isProxy    = this.isProxy;
   return table;
 };

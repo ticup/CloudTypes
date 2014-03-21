@@ -43,7 +43,7 @@ State.prototype.all = function () {
   var tables = [];
   Object.keys(this.arrays).forEach(function (name) {
     var index = self.arrays[name];
-    if (!(index instanceof Restricted) && ((name.indexOf('Sys') === -1) || name === 'SysUser')) {
+    if (!(index instanceof Restricted) && ((name.indexOf('Sys') === -1) || name === 'SysUser' || name === 'SysAuth')) {
       tables.push(index);
     }
   });
@@ -480,7 +480,7 @@ State.prototype.restrict = function (user) {
       index.forEachState(function (key) {
         var entry = index.getByKey(key);
         if (!self.authedForRow('read', entry, user)) {
-          console.log('obliterated ' + key);
+          // console.log('obliterated ' + key);
           index.obliterate(key);
         }
       });
