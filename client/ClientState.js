@@ -27,6 +27,17 @@ State.prototype.yieldPull = function (state) {
 };
 
 State.prototype.yield = function () {
+  var self = this;
+  // Check authorization for created rows
+  self.forEachEntity(function (table) {
+    table.forEachFreshCreated(function (key) {
+      var entry = table.getBykey(key);
+      if (!self.canCreateTableEntry(entry, self.getUser())) {
+        throw new Error("Not authorized to create " + entry);
+      }
+    });
+  });
+
   // (B) Revision from the server arrived, merge
   if (this.received) {
     console.log('yield: got revision from server');

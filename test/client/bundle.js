@@ -52,6 +52,17 @@ State.prototype.yieldPull = function (state) {
 };
 
 State.prototype.yield = function () {
+  var self = this;
+  // Check authorization for created rows
+  self.forEachEntity(function (table) {
+    table.forEachFreshCreated(function (key) {
+      var entry = table.getBykey(key);
+      if (!self.canCreateTableEntry(entry, self.getUser())) {
+        throw new Error("Not authorized to create " + entry);
+      }
+    });
+  });
+
   // (B) Revision from the server arrived, merge
   if (this.received) {
     console.log('yield: got revision from server');
@@ -315,7 +326,29 @@ var create = Table.prototype.create;
 Table.prototype.create = function () {
   console.log('CREATING');
   this.state.checkCreateOnTablePermission(this, this.state.getUser());
-  return create.apply(this, Array.prototype.slice.apply(arguments));
+  var entry = create.apply(this, Array.prototype.slice.apply(arguments));
+  this.setFreshCreated(entry.uid);
+  return entry;
+};
+
+Table.prototype.setFreshCreated = function (uid) {
+  if (typeof this.freshCreated === 'undefined') {
+    this.resetFreshCreated();
+  }
+  this.freshCreated[uid] = true;
+};
+
+Table.prototype.isFreshCreated = function (uid) {
+  return this.freshCreated[uid];
+};
+
+Table.prototype.resetFreshCreated = function () {
+  this.freshCreated = {};
+};
+
+Table.prototype.forEachFreshCreated = function (callback) {
+  if (typeof this.freshCreated === 'undefined') return;
+  Object.keys(this.freshCreated).forEach(callback);
 };
 },{"../shared/Table":30}],7:[function(require,module,exports){
 var TableEntry = require('../shared/TableEntry');
@@ -6331,24 +6364,42 @@ function addAuthentication(State) {
     this.get('SysAuth').all().forEach(function (auth) {
       if (auth.get('tname').equals(table.name) &&
           (auth.get('user').equals(user) || auth.get('group').equals(group)) &&
-          auth.get('type').equals('T') &&
           auth.get('priv').equals('create') &&
           auth.get('active').equals('Y')) {
           permission = true;
       }
     });
 
-    if (!permission) {
-      // console.log(user.get('name').get() + ' not authed for create on ' + table.name);
-      return false;
-    }
+    return permission;
+  };
 
-    // Has to be authorized for all Tables of keys
-    // table.keys.forEach(function (key, type) {
-    //   if (type instanceof Table && !self.canSeeTable(type, user)) {
-    //     authed = false;
-    //   }
-    // });
+  State.prototype.canCreateTableEntry = function (entry, user) {
+    var self = this;
+    var permission = false;
+    var group = user.get('group').get();
+
+     // already restricted
+    if (table instanceof Restricted)
+      return false;
+
+    // Find any (base or view) table authorization
+    this.get('SysAuth').all().forEach(function (auth) {
+      if (auth.get('tname').equals(table.name) &&
+          (auth.get('user').equals(user) || auth.get('group').equals(group)) &&
+          auth.get('priv').equals('create') &&
+          auth.get('active').equals('Y')) {
+        if (auth.get('type').equals('T')) {
+          permission = true;
+        } else {
+          var view = self.views.get(auth.get('vname').get());
+          if (view.includes(entry)) {
+            permission = true;
+          }
+        }
+      }
+    });
+
+
 
     return permission;
   };
@@ -6472,6 +6523,26 @@ function addAuthentication(State) {
 
   /* Can Grant To Others? */
   /************************/
+
+  State.prototype.canGrantAuth = function (auth, user) {
+    if (auth.get('type').equals('T')) {
+      return this.canGrantTable(auth.get('priv').get(), this.get(auth.get('tname').get()), user);
+    } 
+    if (auth.get('type').equals('V')) {
+      return this.canGrantView(auth.get('priv').get(), this.views.get(auth.get('vname').get()), user);
+    }
+    throw new Error("Auth without type: " + auth.get('vname').get());
+  };
+
+  State.prototype.canGrantColAuth = function (colAuth, user) {
+    if (colAuth.get('type').equals('T')) {
+      return this.canGrantColumn(colAuth.get('priv').get(), this.get(colAuth.get('tname').get()), colAuth.get('cname').get(), user);
+    }
+    if (colAuth.get('type').equals('V')) {
+      return this.canGrantViewColumn(colAuth.get('priv').get(), this.views.get(colAuth.get('vname').get()), colAuth.get('cname').get(), user);
+    }
+    throw new Error("ColAuth without type: " + colAuth.get('vname').get());
+  };
 
   // Table
   State.prototype.canGrantTable = function (action, table, grantingUser) {
