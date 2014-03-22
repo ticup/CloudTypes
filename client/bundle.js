@@ -128,12 +128,15 @@ State.prototype.joinIn = function (state) {
       return;
     }
     array.forEachProperty(function (property) {
-      try {
+      // try {
        var mProperty = mArray.getProperty(property);
-      } catch(e) {
+      if (typeof mProperty === 'undefined') {
         delete array.properties.properties[property.name];
         return;
       }
+      // } catch(e) {
+        
+      // }
       property.forEachKey(function (key) {
         var value = property.getByKey(key);
         var mValue = mProperty.getByKey(key);
@@ -4982,11 +4985,9 @@ function addAuthentication(State) {
   // Revoke Table
   State.prototype.revokeTable = function (action, table, user) {
     var self = this;
-    console.log('checking permission');
 
     // Can we revoke action from table?
     self.checkGrantTablePermission(action, table, self.getUser());
-    console.log('allowed');
     
     // Revoke action (both with and without grantopt) from the Table
     self.doRevokeTable(action, table, user);
@@ -6405,9 +6406,6 @@ Index.prototype.where = function (filter) {
 
 Index.prototype.getProperty = function (property) {
   var result = this.properties.get(property);
-  if (typeof result === 'undefined') {
-    throw Error(this.name + " does not have property " + property);
-  }
   return result;
 };
 
@@ -6420,6 +6418,15 @@ Index.prototype.fork = function () {
   var index = new Index();
   index.keys = fKeys;
   index.properties = this.properties.fork(index);
+  index.isProxy = this.isProxy;
+  return index;
+};
+
+Index.prototype.shallowFork = function () {
+  var fKeys = this.keys.fork();
+  var index = new Index();
+  index.keys = fKeys;
+  index.properties = new Properties;
   index.isProxy = this.isProxy;
   return index;
 };
@@ -6451,6 +6458,16 @@ Index.prototype.toJSON = function () {
     keys        : this.keys.toJSON(),
     properties  : this.properties.toJSON(),
     isProxy     : this.isProxy
+  };
+};
+
+Index.prototype.skeletonToJSON = function () {
+  return {
+    type        : 'Array',
+    keys        : this.keys.toJSON(),
+    properties  : {},
+    isProxy     : this.isProxy,
+    name        : this.name
   };
 };
 
@@ -6976,6 +6993,10 @@ Property.prototype.toJSON = function () {
   return { name: this.name, type: type, values: values };
 };
 
+Property.prototype.skeletonToJSON = function () {
+  return { name: this.name, type: this.CType.toJSON(), values: {} };
+};
+
 Property.fromJSON = function (json, index) {
   var values = {};
   var CType;
@@ -7023,6 +7044,10 @@ Property.prototype.fork = function (index) {
   //   });
   // }
   return fProperty;
+};
+
+Property.prototype.shallowFork = function (index) {
+  return fProperty = new Property(this.name, this.CType, index);
 };
 
 // Property.prototype.restrictedFork = function (index, group) {
@@ -7390,6 +7415,14 @@ State.prototype.createUID = function (uid) {
   var id = this.cid + "#" + uid;
   return id;
 };
+
+State.prototype.skeletonToJSON = function () {
+  return {
+    arrays: {},
+    views: this.views.toJSON()
+  };
+};
+
 
 State.prototype.toJSON = function () {
   var self = this;
@@ -7792,6 +7825,100 @@ State.prototype.restrict = function (user) {
   return self;
 };
 
+State.prototype.restrictedFork = function (user) {
+  var view, keys, tname, index, fIndex, cgroup;
+  var self = this;
+  var json = self.skeletonToJSON();
+  var group = user.get('group').get();
+  console.log(user.get('name').get());
+  console.log(group.get('name').get());
+
+  var colAuths = self.get('SysColAuth').where(function (colAuth) {
+    return (colAuth.get('user').equals(user) || colAuth.get('group').equals(group));
+  }).all();
+  console.log(colAuths.length);
+
+  self.get('SysAuth').all().forEach(function (auth) {
+    var g = auth.get('group');
+      console.log(auth.get('user') + " | " + g + " | " + auth.get('tname').get() + " | " + auth.get('vname') + " | " + auth.get('priv').get() + " | " + auth.get("active").get());
+    if ((auth.get('user').equals(user) || auth.get('group').equals(group))) {
+if (auth.get('priv').equals('read') &&
+        auth.get('active').equals('Y')) {
+      cgroup = auth.get('group').equals(group);
+      tname = auth.get('tname').get();
+            console.log(tname);
+
+      index  = self.get(tname);
+      fIndex = json.arrays[tname];
+      if (typeof fIndex === 'undefined') {
+        fIndex = index.skeletonToJSON();
+        json.arrays[tname] = fIndex;
+        if (index instanceof Table) {
+          if (auth.get('type').equals('T')) {
+            index.forEachState(function (key) {
+              fIndex.states[key] = index[key];
+            });
+
+          } else {
+            keys = [];
+            view = self.views.get(auth.get('vname').get());
+            console.log('setting keys for ' + view.name);
+            index.forEachState(function (key) {
+              var entry = index.getByKey(key);
+              if (entry && view.includes(entry, user)) {
+                // console.log('adding ' + key);
+                keys.push(key);
+                fIndex.states[key] = index[key];
+              }
+            });
+          }
+        }
+      }
+
+      colAuths.forEach(function (colAuth) {
+        if ((cgroup ? colAuth.get('group').equals(cgroup) : colAuth.get('user').equals(user)) &&
+            colAuth.get('tname').equals(auth.get('tname').get()) &&
+            colAuth.get('grantopt').equals(auth.get('grantopt').get()) &&
+            colAuth.get('priv').equals('read') &&
+            colAuth.get('active').equals('Y')) {
+          var cname = colAuth.get('cname').get();
+          console.log('\t.'+cname);
+          var property = index.getProperty(cname);
+          var fProperty = fIndex.properties[cname];
+          if (typeof fProperty === 'undefined') {
+            fProperty = property.skeletonToJSON(fIndex);
+            fIndex.properties[cname] = fProperty;
+          }
+          if (colAuth.get('type').equals('T')) {
+            // console.log('full:');
+            property.forEachKey(function (key, val) {
+              fProperty.values[key] = val.fork().toJSON();
+            });
+          } else if (colAuth.get('vname').equals(auth.get('vname').get())) {
+            // console.log('setting columns for ' + colAuth.get('vname').get());
+             keys.forEach(function (key) {
+              // console.log('\t'+key);
+              var val = property.getByKey(key);
+              fProperty.values[key] = val.fork().toJSON();
+            });
+          }
+        }
+      });
+      cgroup = null;
+    }}
+  });
+
+  Object.keys(json.arrays).forEach(function (name) {
+    var index = json.arrays[name];
+    index.properties = Object.keys(index.properties).map(function (pname) {
+      return index.properties[pname];
+    });
+  });
+
+  console.log(json);
+  return json;
+};
+
 State.prototype.applyFork = function () {
   var self = this;
   self.forEachProperty(function (property) {
@@ -7916,6 +8043,7 @@ function Table(keys, columns) {
 }
 
 Table.prototype = Object.create(Index.prototype);
+Table.prototype.constructor = Table;
 
 Table.OK = OK;
 Table.DELETED = DELETED;
@@ -8155,6 +8283,16 @@ Table.prototype.fork = function () {
   return table;
 };
 
+Table.prototype.shallowFork = function () {
+  var self = this;
+  var fKeys = this.keys.fork();
+  var table = new Table();
+  table.keys = fKeys;
+  table.properties = new Properties();
+  table.isProxy    = this.isProxy;
+  return table;
+};
+
 // Table.prototype.restrictedFork = function (group) {
 //   var fKeys = this.keys.fork();
 //   var table = new Table();
@@ -8184,7 +8322,20 @@ Table.prototype.toJSON = function () {
     keys        : this.keys.toJSON(),
     keyValues   : this.keyValues,
     properties  : this.properties.toJSON(),
-    states      : this.states
+    states      : this.states,
+    isProxy     : this.isProxy
+  };
+};
+
+Table.prototype.skeletonToJSON = function () {
+  return {
+    type        : 'Entity',
+    keys        : this.keys.toJSON(),
+    keyValues   : this.keyValues,
+    properties  : {},
+    states      : this.states,
+    isProxy     : this.isProxy,
+    name        : this.name
   };
 };
 
@@ -8330,14 +8481,10 @@ function View(name, table, query) {
 
 View.prototype.includes = function (entry, user) {
   var self =  this;
-  var included = false;
-  self.table.forEachState(function (key) {
-    var row = self.table.getByKey(key);
-    if (row.equals(entry) && self.query(row, {current_user: user})) {
-      included = true;
-    }
-  });
-  return included;
+  // var included = false;
+  // self.table.forEachState(function (key) {
+  //   var row = self.table.getByKey(key);
+  return self.query(entry, {current_user: user});
 };
 
 View.prototype.toJSON = function () {

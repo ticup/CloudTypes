@@ -63,9 +63,6 @@ Index.prototype.where = function (filter) {
 
 Index.prototype.getProperty = function (property) {
   var result = this.properties.get(property);
-  if (typeof result === 'undefined') {
-    throw Error(this.name + " does not have property " + property);
-  }
   return result;
 };
 
@@ -78,6 +75,15 @@ Index.prototype.fork = function () {
   var index = new Index();
   index.keys = fKeys;
   index.properties = this.properties.fork(index);
+  index.isProxy = this.isProxy;
+  return index;
+};
+
+Index.prototype.shallowFork = function () {
+  var fKeys = this.keys.fork();
+  var index = new Index();
+  index.keys = fKeys;
+  index.properties = new Properties;
   index.isProxy = this.isProxy;
   return index;
 };
@@ -109,6 +115,16 @@ Index.prototype.toJSON = function () {
     keys        : this.keys.toJSON(),
     properties  : this.properties.toJSON(),
     isProxy     : this.isProxy
+  };
+};
+
+Index.prototype.skeletonToJSON = function () {
+  return {
+    type        : 'Array',
+    keys        : this.keys.toJSON(),
+    properties  : {},
+    isProxy     : this.isProxy,
+    name        : this.name
   };
 };
 

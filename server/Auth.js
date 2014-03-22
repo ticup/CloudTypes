@@ -88,22 +88,23 @@ Auth.prototype.initProtection = function (views) {
   this.state.views.create('MyAuth', 'SysAuth', function (auth, context) {
     return (auth.get('user').equals(context.current_user) || auth.get('group').equals(context.current_user.get('group').get()));
   });
-  this.state.revokeView('delete', 'MyAuth', guest);
+  // this.state.revokeView('delete', 'MyAuth', guest);
 
   this.state.views.create('MyGrantAuth', 'SysAuth', function (auth, context) {
     return self.state.canGrantAuth(auth, context.current_user);
   });
-  this.state.revokeView('delete', 'MyGrantAuth', guest)
+  // this.state.revokeView('delete', 'MyGrantAuth', guest)
 
   this.state.views.create('MyGrantColAuth', 'SysColAuth', function (colAuth, context) {
     return self.state.canGrantColAuth(colAuth, context.current_user);
   });
-  this.state.revokeView('delete', 'MyGrantColAuth', guest)
-
+  // this.state.revokeView('delete', 'MyGrantColAuth', guest)
+  
   this.state.revoke('all', this.ColAuth, guest);
   this.state.views.create('MyColAuth', 'SysColAuth', function (auth, context) {
     return (auth.get('user').equals(context.current_user) || auth.get('group').equals(context.current_user.get('group').get()));
   });
+
 
 
 
@@ -178,29 +179,30 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
   // var auth = self.Auth.create();
   var table = this.state.get(tableName);
   var ops = ['read', 'update', 'create', 'delete'];
-
+  console.log()
   // Guest group
   // 1) with grantopt: no access
   // 2) without grantopt:
   //    a) all access when system table
   if (sys) {
-  //   ops.forEach(function (priv) {
-  //     auth = self.Auth.create();
-  //     auth.set('group', self.guestGroup)
-  //         .set('tname', tableName)
-  //         .set('priv', priv)
-  //         .set('active', 'Y')
-  //         .set('type', type)
-  //         .set('grantopt', 'N');
-  //     if (type === 'V') {
-  //       auth.set('vname', viewName);
-  //     }
-  //   });
-  // self.createColAuths('Y', 'Y', tableName, self.guestGroup, type, 'N', viewName);
+    ops.forEach(function (priv) {
+      auth = self.Auth.create();
+      auth.set('group', self.guestGroup)
+          .set('tname', tableName)
+          .set('priv', priv)
+          .set('active', 'Y')
+          .set('type', type)
+          .set('grantopt', 'N');
+      if (type === 'V') {
+        auth.set('vname', viewName);
+      }
+    });
+  self.createColAuths('Y', 'Y', tableName, self.guestGroup, type, 'N', viewName);
 
   } else {
     // b) only read access otherwise
     auth = self.Auth.create();
+    console.log('granting ' + self.guestGroup);
     auth.set('group', self.guestGroup)
         .set('tname', tableName)
         .set('priv', 'read')

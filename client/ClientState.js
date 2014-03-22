@@ -103,12 +103,15 @@ State.prototype.joinIn = function (state) {
       return;
     }
     array.forEachProperty(function (property) {
-      try {
+      // try {
        var mProperty = mArray.getProperty(property);
-      } catch(e) {
+      if (typeof mProperty === 'undefined') {
         delete array.properties.properties[property.name];
         return;
       }
+      // } catch(e) {
+        
+      // }
       property.forEachKey(function (key) {
         var value = property.getByKey(key);
         var mValue = mProperty.getByKey(key);

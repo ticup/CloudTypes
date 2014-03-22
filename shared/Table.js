@@ -34,6 +34,7 @@ function Table(keys, columns) {
 }
 
 Table.prototype = Object.create(Index.prototype);
+Table.prototype.constructor = Table;
 
 Table.OK = OK;
 Table.DELETED = DELETED;
@@ -273,6 +274,16 @@ Table.prototype.fork = function () {
   return table;
 };
 
+Table.prototype.shallowFork = function () {
+  var self = this;
+  var fKeys = this.keys.fork();
+  var table = new Table();
+  table.keys = fKeys;
+  table.properties = new Properties();
+  table.isProxy    = this.isProxy;
+  return table;
+};
+
 // Table.prototype.restrictedFork = function (group) {
 //   var fKeys = this.keys.fork();
 //   var table = new Table();
@@ -302,6 +313,19 @@ Table.prototype.toJSON = function () {
     keys        : this.keys.toJSON(),
     keyValues   : this.keyValues,
     properties  : this.properties.toJSON(),
-    states      : this.states
+    states      : this.states,
+    isProxy     : this.isProxy
+  };
+};
+
+Table.prototype.skeletonToJSON = function () {
+  return {
+    type        : 'Entity',
+    keys        : this.keys.toJSON(),
+    keyValues   : this.keyValues,
+    properties  : {},
+    states      : {},
+    isProxy     : this.isProxy,
+    name        : this.name
   };
 };

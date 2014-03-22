@@ -133,6 +133,10 @@ Property.prototype.toJSON = function () {
   return { name: this.name, type: type, values: values };
 };
 
+Property.prototype.skeletonToJSON = function () {
+  return { name: this.name, type: this.CType.toJSON(), values: {} };
+};
+
 Property.fromJSON = function (json, index) {
   var values = {};
   var CType;
@@ -180,6 +184,10 @@ Property.prototype.fork = function (index) {
   //   });
   // }
   return fProperty;
+};
+
+Property.prototype.shallowFork = function (index) {
+  return fProperty = new Property(this.name, this.CType, index);
 };
 
 // Property.prototype.restrictedFork = function (index, group) {

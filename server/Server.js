@@ -53,8 +53,8 @@ Server.prototype.open = function (target, staticPath) {
     socket.on('init', function (initClient) {
       uid = self.generateUID();
       var user = self.getUser(cuser);
-      var fork = self.state.fork().restrict(user);
-      initClient({ uid: uid, cid: ++cid, state: fork, views: self.views.toJSON() });
+      var fork = self.state.restrictedFork(user);
+      initClient({ uid: uid, cid: ++cid, state: fork, views: fork.views});
     });
 
     socket.on('YieldPush', function (json, yieldPull) {
@@ -68,7 +68,7 @@ Server.prototype.open = function (target, staticPath) {
         return yieldPull("Unauthorized Access!");
       }
       self.state.join(state);
-      var fork = self.state.fork().restrict(user);
+      var fork = self.state.restrictedFork(user);
       yieldPull(null, fork);
     });
 
@@ -86,7 +86,7 @@ Server.prototype.open = function (target, staticPath) {
       console.log('authorized');
       self.state.join(state);
       console.log('joined');
-      var fork = self.state.fork().restrict(user);
+      var fork = self.state.restrictedFork(user);
       console.log('forked');
       flushPull(null, fork);
     });

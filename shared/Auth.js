@@ -469,11 +469,9 @@ function addAuthentication(State) {
   // Revoke Table
   State.prototype.revokeTable = function (action, table, user) {
     var self = this;
-    console.log('checking permission');
 
     // Can we revoke action from table?
     self.checkGrantTablePermission(action, table, self.getUser());
-    console.log('allowed');
     
     // Revoke action (both with and without grantopt) from the Table
     self.doRevokeTable(action, table, user);

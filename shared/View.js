@@ -9,14 +9,10 @@ function View(name, table, query) {
 
 View.prototype.includes = function (entry, user) {
   var self =  this;
-  var included = false;
-  self.table.forEachState(function (key) {
-    var row = self.table.getByKey(key);
-    if (row.equals(entry) && self.query(row, {current_user: user})) {
-      included = true;
-    }
-  });
-  return included;
+  // var included = false;
+  // self.table.forEachState(function (key) {
+  //   var row = self.table.getByKey(key);
+  return self.query(entry, {current_user: user});
 };
 
 View.prototype.toJSON = function () {

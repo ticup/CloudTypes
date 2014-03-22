@@ -124,6 +124,14 @@ State.prototype.createUID = function (uid) {
   return id;
 };
 
+State.prototype.skeletonToJSON = function () {
+  return {
+    arrays: {},
+    views: this.views.toJSON()
+  };
+};
+
+
 State.prototype.toJSON = function () {
   var self = this;
   var arrays = {};
@@ -523,6 +531,101 @@ State.prototype.restrict = function (user) {
 
 
   return self;
+};
+
+State.prototype.restrictedFork = function (user) {
+  var view, keys, tname, index, fIndex, cgroup;
+  var self = this;
+  var json = self.skeletonToJSON();
+  var group = user.get('group').get();
+  console.log(user.get('name').get());
+  console.log(group.get('name').get());
+
+  var colAuths = self.get('SysColAuth').where(function (colAuth) {
+    return (colAuth.get('user').equals(user) || colAuth.get('group').equals(group));
+  }).all();
+  console.log(colAuths.length);
+
+  self.get('SysAuth').all().forEach(function (auth) {
+    var g = auth.get('group');
+      // console.log(auth.get('user') + " | " + g + " | " + auth.get('tname').get() + " | " + auth.get('vname') + " | " + auth.get('priv').get() + " | " + auth.get("active").get());
+      // console.log(g.get());
+    if ((auth.get('user').equals(user) || auth.get('group').equals(group)) &&
+        auth.get('priv').equals('read') &&
+        auth.get('active').equals('Y')) {
+      cgroup = auth.get('group').equals(group);
+      tname = auth.get('tname').get();
+      console.log(tname);
+
+      index  = self.get(tname);
+      fIndex = json.arrays[tname];
+      if (typeof fIndex === 'undefined') {
+        fIndex = index.skeletonToJSON();
+        json.arrays[tname] = fIndex;
+      }
+      if (index instanceof Table) {
+        if (auth.get('type').equals('T')) {
+          index.forEachState(function (key) {
+            fIndex.states[key] = index.states[key];
+          });
+
+        } else {
+          keys = [];
+          view = self.views.get(auth.get('vname').get());
+          console.log('setting keys for ' + view.name);
+          index.forEachState(function (key) {
+            var entry = index.getByKey(key);
+            if (entry && view.includes(entry, user)) {
+              // console.log('adding ' + key);
+              keys.push(key);
+              fIndex.states[key] = index.states[key];
+            }
+          });
+        }
+      }
+
+      colAuths.forEach(function (colAuth) {
+        if ((cgroup ? colAuth.get('group').equals(auth.get('group').get()) : colAuth.get('user').equals(user)) &&
+            colAuth.get('tname').equals(auth.get('tname').get()) &&
+            colAuth.get('grantopt').equals(auth.get('grantopt').get()) &&
+            colAuth.get('priv').equals('read') &&
+            colAuth.get('active').equals('Y')) {
+          var cname = colAuth.get('cname').get();
+          console.log('\t.'+cname);
+          var property = index.getProperty(cname);
+          var fProperty = fIndex.properties[cname];
+          if (typeof fProperty === 'undefined') {
+            fProperty = property.skeletonToJSON(fIndex);
+            fIndex.properties[cname] = fProperty;
+          }
+          if (colAuth.get('type').equals('T')) {
+            // console.log('full:');
+            property.forEachKey(function (key, val) {
+              fProperty.values[key] = val.fork().toJSON();
+            });
+          } else if (colAuth.get('vname').equals(auth.get('vname').get())) {
+            // console.log('setting columns for ' + colAuth.get('vname').get());
+             keys.forEach(function (key) {
+              console.log('\t'+key);
+              var val = property.getByKey(key);
+              fProperty.values[key] = val.fork().toJSON();
+            });
+          }
+        }
+      });
+      cgroup = null;
+    }
+  });
+
+  Object.keys(json.arrays).forEach(function (name) {
+    var index = json.arrays[name];
+    index.properties = Object.keys(index.properties).map(function (pname) {
+      return index.properties[pname];
+    });
+  });
+
+  console.log(json.arrays.SysGroup.states);
+  return json;
 };
 
 State.prototype.applyFork = function () {
