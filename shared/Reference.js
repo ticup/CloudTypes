@@ -37,7 +37,7 @@ function ReferenceDeclaration(table) {
     return Reference.prototype.table.getByKey(key);
   };
 
-  Reference.fork = function () {
+  Reference.copy = function () {
     return new ReferenceDeclaration(Reference.prototype.table.name);
   };
 

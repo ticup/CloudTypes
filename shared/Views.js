@@ -1,4 +1,5 @@
 var View = require('./View');
+var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = Views;
 
@@ -10,13 +11,23 @@ function Views(state, auth) {
 }
 
 Views.prototype.create = function (name, table, query) {
+  var self = this;
   if (typeof table === 'string') {
     table = this.state.get(table);
+  }
+  if (typeof this.get(name) !== 'undefined') {
+    throw new Error("View " + name + " already exists!");
   }
   var view = new View(name, table, query);
   this.views[name] = view;
   this.auth.grantAllView(view);
-  return this;
+  // table.forEachProperty(function (property) {
+  //     if (property.CType.prototype === CSetPrototype) {
+  //       // console.log(property.CType.prototype);
+  //       self.create(name+'.'+property.name, property.CType.entity, query);
+  //     }
+  //   });
+  return view;
 };
 
 Views.prototype.get = function (name) {

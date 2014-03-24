@@ -1,0 +1,20 @@
+<form role="form" id="signin-form" class="form" ng-submit="login(username, password)">
+  <h2> Please sign in </h2>
+  <div class="form-group">
+    <label class="sr-only" for="loginusername">Group name</label>
+    <input type="text" id="loginusername" class="form-control" ng-model="username" placeholder="Username">
+  </div>
+
+  <div class="form-group">
+    <label class="sr-only" for="loginpassword">Group name</label>
+    <input type="text" id="loginpassword" class="form-control" ng-model="password" placeholder="Password">
+  </div>
+
+  <div class="form-group">
+    <input type="submit" class="btn btn-large btn-primary form-control" type="submit"  value="Sign In">
+  </div>
+
+  <div class="form-group">
+    <input type="button" class="btn btn-large btn-primary form-control" type="submit" ng-click="register(username, password)" value="Register">
+  </div>
+</form>

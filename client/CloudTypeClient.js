@@ -100,20 +100,34 @@ Client.prototype.flushPush = function (pushState, flushPull) {
 };
 
 /* Authentication */
-// Client.prototype.register = function (username, password, group, finish) {
-//   if (typeof this.socket === 'undefined')
-//     return finish("not connected");
-//   this.socket.emit('Register', {username: username, password: password, group: group}, finish);
-// };
+Client.prototype.register = function (username, password, finish) {
+  var self = this;
+  if (typeof this.socket === 'undefined')
+    return finish("not connected");
+  this.socket.emit('Register', {username: username, password: password}, function (err, userKey) {
+     if (err)
+      return finish(err);
+    self.state.flush(function (state) {
+      self.user = self.state.get('SysUser').getByKey(userKey);
+      console.log('key ' + userKey);
+      console.log('setting user to ' + self.user.get('name').get());
+      finish(null, true); 
+    });
+  });
+};
 
 Client.prototype.login = function (username, password, finish) {
   var self = this;
   if (typeof this.socket === 'undefined')
     return finish("not connected");
-  this.socket.emit('Login', {username: username, password: password}, function (err, userName) {
+  this.socket.emit('Login', {username: username, password: password}, function (err, userKey) {
     if (err)
-      throw err;
-    self.user = self.state.get('SysUser').getByProperties({name: username});
+      return finish(err);
+    self.user = self.state.get('SysUser').getByKey(userKey);
     finish(null, true);
   });
+};
+
+Client.prototype.getUser = function () {
+  return this.user;
 };

@@ -53,15 +53,6 @@ State.prototype.yieldPull = function (state) {
 
 State.prototype.yield = function () {
   var self = this;
-  // Check authorization for created rows
-  self.forEachEntity(function (table) {
-    table.forEachFreshCreated(function (key) {
-      var entry = table.getBykey(key);
-      if (!self.canCreateTableEntry(entry, self.getUser())) {
-        throw new Error("Not authorized to create " + entry);
-      }
-    });
-  });
 
   // (B) Revision from the server arrived, merge
   if (this.received) {
@@ -77,10 +68,24 @@ State.prototype.yield = function () {
   }
   // (A) Not expecting server response, send state to server
   console.log('yield: pushing to server');
+  this.checkCreations();
   this.client.yieldPush(this);
   this.applyFork();
   this.pending  = true;
   this.received = false;
+};
+
+State.prototype.checkCreations = function () {
+  var self = this;
+  self.forEachEntity(function (table) {
+    // table.forEachFreshCreated(function (key) {
+  //     var entry = table.getByKey(key);
+  //     if (!self.canCreateTableEntry(entry, self.getUser())) {
+  //       throw new Error("Not authorized to create " + entry);
+  //     }
+  //   });
+    table.resetFreshCreated();
+  });
 };
 
 // callback should take 1 argument that is set if it could not flush with server
@@ -122,9 +127,9 @@ State.prototype.joinIn = function (state) {
   // Retract data to which the state has no access anymore
   state.forEachArray(function (array) {
     var mArray = self.get(array.name);
-    if (mArray instanceof Restricted) {
+    if (typeof mArray === 'undefined' || mArray instanceof Restricted) {
       deleted[array.name] = state.arrays[array.name];
-      state.arrays[array.name] = mArray;
+      delete state.arrays[array.name];
       return;
     }
     array.forEachProperty(function (property) {
@@ -147,7 +152,8 @@ State.prototype.joinIn = function (state) {
     });
     if (array instanceof Table) {
         array.forEachState(function (key) {
-          if (!mArray.defined(key)) {
+          if (!mArray.defined(key) && !array.isFreshCreated(key)) {
+            console.log('removing ' + key);
             array.obliterate(key);
           }
         });
@@ -195,7 +201,7 @@ CloudType.forEachUpdateOperation(function (type, name){
   var operation = type.prototype[name];
   type.prototype[name] = function () {
     var args = Array.prototype.slice.call(arguments);
-    this.entry.index.state.checkEntryPropertyPermission('update', this.entry, this.property, this.entry.index.state.getUser());
+    // this.entry.index.state.checkEntryPropertyPermission('update', this.entry, this.property, this.entry.index.state.getUser());
     return operation.apply(this, args);
   };
 });
@@ -303,22 +309,36 @@ Client.prototype.flushPush = function (pushState, flushPull) {
 };
 
 /* Authentication */
-// Client.prototype.register = function (username, password, group, finish) {
-//   if (typeof this.socket === 'undefined')
-//     return finish("not connected");
-//   this.socket.emit('Register', {username: username, password: password, group: group}, finish);
-// };
+Client.prototype.register = function (username, password, finish) {
+  var self = this;
+  if (typeof this.socket === 'undefined')
+    return finish("not connected");
+  this.socket.emit('Register', {username: username, password: password}, function (err, userKey) {
+     if (err)
+      return finish(err);
+    self.state.flush(function (state) {
+      self.user = self.state.get('SysUser').getByKey(userKey);
+      console.log('key ' + userKey);
+      console.log('setting user to ' + self.user.get('name').get());
+      finish(null, true); 
+    });
+  });
+};
 
 Client.prototype.login = function (username, password, finish) {
   var self = this;
   if (typeof this.socket === 'undefined')
     return finish("not connected");
-  this.socket.emit('Login', {username: username, password: password}, function (err, userName) {
+  this.socket.emit('Login', {username: username, password: password}, function (err, userKey) {
     if (err)
-      throw err;
-    self.user = self.state.get('SysUser').getByProperties({name: username});
+      return finish(err);
+    self.user = self.state.get('SysUser').getByKey(userKey);
     finish(null, true);
   });
+};
+
+Client.prototype.getUser = function () {
+  return this.user;
 };
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../shared/Views":33,"./ClientState":3,"socket.io-client":13}],6:[function(require,module,exports){
@@ -342,7 +362,7 @@ Table.prototype.setFreshCreated = function (uid) {
 };
 
 Table.prototype.isFreshCreated = function (uid) {
-  return this.freshCreated[uid];
+  return ((typeof this.freshCreated !== 'undefined') && this.freshCreated[uid]);
 };
 
 Table.prototype.resetFreshCreated = function () {
@@ -409,8 +429,8 @@ var CloudTypes = {
   EditableListView: EditableListView,
 
   // Types
-  Table: Table,
-  Index: Index,
+  Table: Table.declare,
+  Index: Index.declare,
   Restricted: Restricted,
   CInt: CInt,
   CString: CString
@@ -4587,6 +4607,13 @@ function addAuthentication(State) {
       action = ['read', 'update', 'create', 'delete'];
     }
 
+    if (action instanceof Array) {
+      action.forEach(function (act) {
+        self.grantView(act, view, column, user, grantopt);
+      });
+      return;
+    }
+
     if (typeof user === 'undefined') {
       user = 'N';
     }
@@ -4595,13 +4622,15 @@ function addAuthentication(State) {
     if (user === 'Y' || user === 'N') {
       grantopt = user;
       user = column;
-      if (typeof user === 'string') {
-        user = self.get('SysUser').getByProperties({name: user});
-      }
+      // if (typeof user === 'string') {
+      //   user = self.get('SysUser').getByProperties({name: user});
+      // }
 
-      var theView = self.views.get(view);
-      if (typeof theView !== 'undefined') {
-        return this.grantViewTable(action, theView, user, grantopt);
+      // if (typeof view === 'string') {
+      //   view = self.views.get(view);
+      // }
+      if (typeof view !== 'undefined') {
+        return this.grantViewTable(action, view, user, grantopt);
       }
 
     // granting column on view
@@ -4611,13 +4640,14 @@ function addAuthentication(State) {
         grantopt = 'N';
       }
 
-      if (typeof user === 'string') {
-        user = self.get('SysUser').getByProperties({name: user});
-      }
-
-      var theView = self.views.get(view);
-      if (typeof theView !== 'undefined') {
-        return this.grantViewColumn(action, theView, column, user, grantopt);
+      // if (typeof user === 'string') {
+      //   user = self.get('SysUser').getByProperties({name: user});
+      // }
+      // if (typeof view === 'string') {
+      //   view = self.views.get(view);
+      // }
+      if (typeof view !== 'undefined') {
+        return this.grantViewColumn(action, view, column, user, grantopt);
       }
 
     }
@@ -4684,7 +4714,7 @@ function addAuthentication(State) {
         self.grantTable(action, property.CType.entity, user, grantopt);
       }
     });
-    console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
+    console.log('granted ' + action + ' to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
   }
 
     // Table 
@@ -4696,16 +4726,8 @@ function addAuthentication(State) {
     self.checkGrantViewPermission(action, view, self.getUser());
 
     // console.log('granted');
-
     self.doGrantViewTable(action, view, user, grantopt);
 
-    // Perform same grant on the proxy table of CSet properties of given table
-    // table.forEachProperty(function (property) {
-    //   if (property.CType.prototype === CSetPrototype) {
-    //     // console.log(property.CType.prototype);
-    //     self.grantView(action, property.CType.entity, user, grantopt);
-    //   }
-    // });
     console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
     return this;
   };
@@ -4730,6 +4752,7 @@ function addAuthentication(State) {
       var auth = self.get('SysAuth').create();
       auth.set('type', 'V')
           .set('vname', view.name)
+          .set('tname', view.table.name)
           .set('priv', action)
           .set('grantopt', grantopt)
           .set('active', 'Y');
@@ -4739,9 +4762,24 @@ function addAuthentication(State) {
     // Grant to all columns if column action (read/update)
     if (action === 'read' || action === 'update') {
       view.table.forEachProperty(function (property) {
-        self.doGrantViewColumn(action, view, property.name, user, grantopt);
+        // Perform same grant on the proxy table of CSet properties of given table
+          // if (property.CType.prototype !== CSetPrototype) {
+          //   // console.log(property.CType.prototype);
+          //   var propertyView = self.views.get(view.name+'.'+property.name, user, grantopt);
+          //   self.grantViewTable(action, propertyView, user, grantopt);
+          // } else {
+            self.doGrantViewColumn(action, view, property.name, user, grantopt);
+          // }
       }); 
-    }   
+    } 
+
+    // Perform same grant on the proxy table of CSet properties of given table
+    view.table.forEachProperty(function (property) {
+      if (property.CType.prototype === CSetPrototype) {
+        // console.log(property.CType.prototype);
+        self.grantTable(action, property.CType.entity, user, grantopt);
+      }
+    });
 
 
     return this;
@@ -4829,6 +4867,8 @@ function addAuthentication(State) {
     var group = self.setIfGroup(user);
     var granted = false;
 
+    console.log('granting view on column ' + columnName);
+
     self.get('SysColAuth').all().forEach(function (colAuth) {
       if (colAuth.get('type').equals('V') &&
           colAuth.get('vname').equals(view.name) &&
@@ -4845,6 +4885,7 @@ function addAuthentication(State) {
       var auth = self.get('SysColAuth').create();
       auth.set('type', 'V')
           .set('vname', view.name)
+          .set('tname', view.table.name)
           .set('cname', columnName)
           .set('grantopt', grantopt)
           .set('priv', action)
@@ -5207,7 +5248,7 @@ function addAuthentication(State) {
 
   State.prototype.checkGrantViewPermission = function (action, view, grantingUser) {
     if (!this.canGrantView(action, view, grantingUser)) {
-      throw new Error("You don't have " + action + " grant permissions for " + table.name);
+      throw new Error("You don't have " + action + " grant permissions for " + view.name);
     }
   };
 
@@ -5549,6 +5590,7 @@ function addAuthentication(State) {
     var self = this;
     var permission = false;
     var group = user.get('group').get();
+    var table = entry.index;
 
      // already restricted
     if (table instanceof Restricted)
@@ -5857,7 +5899,7 @@ function CInt(base, offset, isSet) {
 // put CloudType in prototype chain.
 CInt.prototype = Object.create(CloudType.prototype);
 
-CInt.fork = function () {
+CInt.copy = function () {
   return CInt;
 };
 
@@ -5998,6 +6040,10 @@ function CSetDeclaration(elementType) {
     return "CSet<" + CSet.elementType.toString() + ">";
   };
 
+  CSet.copy = function () {
+    return new CSetDeclaration(elementType);
+  };
+
   CSet.declareProxyTable = function (state, index, property, grant) {
     var Table = require('./Table');
     if (!(index instanceof Table)) {
@@ -6012,7 +6058,7 @@ function CSetDeclaration(elementType) {
 }
 
 CSetDeclaration.declare = function (elementType) {
-  new CSsetDeclaration(elementType);
+  new CSetDeclaration(elementType);
 };
 
 // called by CloudType to initialize the parametrized CSet for a property
@@ -6148,7 +6194,7 @@ function CString(value, written, cond) {
 // put CloudType in prototype chain.
 CString.prototype = Object.create(CloudType.prototype);
 
-CString.fork = function () {
+CString.copy = function () {
   return CString;
 };
 
@@ -6426,7 +6472,7 @@ Index.prototype.shallowFork = function () {
   var fKeys = this.keys.fork();
   var index = new Index();
   index.keys = fKeys;
-  index.properties = new Properties;
+  index.properties = new Properties();
   index.isProxy = this.isProxy;
   return index;
 };
@@ -6493,6 +6539,9 @@ function IndexEntry(index, keys) {
 
 IndexEntry.prototype.get = function (propertyName) {
   var property = this.index.getProperty(propertyName);
+  if (typeof property === 'undefined') {
+    throw new Error(this.index.name + " does not have property: " + propertyName);
+  }
   var key = this.key();
   return property.getByKey(key);
 };
@@ -6620,7 +6669,7 @@ IndexQuery.prototype.entries = function (propertyName) {
   }
 
   if (self.orderProperty) {
-    var property = self.index.get(self.orderProperty);
+    var property = self.index.getProperty(self.orderProperty);
     if (typeof property === 'undefined') {
       throw new Error("orderBy only allowed on properties for the moment");
     }
@@ -6720,11 +6769,10 @@ Keys.fromJSON = function (json) {
   return keys;
 };
 
-// Forking keys: names can be shared, because they are immutable.
 Keys.prototype.fork = function () {
   var keys = new Keys();
-  keys.names = this.names;
-  keys.types = this.types;
+  keys.names = Array.prototype.slice.call(this.names);
+  keys.types = Array.prototype.slice.call(this.types);
   return keys;
 };
 
@@ -6891,9 +6939,9 @@ Property.prototype.forEachKey = function (callback) {
 
 // Sets given value for given key and checks the type
 Property.prototype.set = function (key, val) {
-  if (this.CType.prototype === CSet.CSetPrototype) {
-    throw new Error("Can not call set on a CSet propety");
-  }
+  // if (this.CType.prototype === CSet.CSetPrototype) {
+  //   throw new Error("Can not call set on a CSet propety");
+  // }
   TypeChecker.property(val, this.CType);
   
   // If it's a reference, simply store its uid
@@ -7047,7 +7095,10 @@ Property.prototype.fork = function (index) {
 };
 
 Property.prototype.shallowFork = function (index) {
-  return fProperty = new Property(this.name, this.CType, index);
+  // Cloud Types need to be forked
+  var fType;
+  fType = this.CType.copy();
+  return fProperty = new Property(this.name, fType, index);
 };
 
 // Property.prototype.restrictedFork = function (index, group) {
@@ -7107,7 +7158,7 @@ function ReferenceDeclaration(table) {
     return Reference.prototype.table.getByKey(key);
   };
 
-  Reference.fork = function () {
+  Reference.copy = function () {
     return new ReferenceDeclaration(Reference.prototype.table.name);
   };
 
@@ -7544,13 +7595,15 @@ State.prototype.forEachEntity = function (callback) {
 };
 
 State.prototype.propagate = function () {
+  // console.log('propagating');
   var self = this;
   var changed = false;
   this.forEachEntity(function (entity) {
     entity.forEachState(function (key) {
-      // console.log(entity.name +"["+key+"] deleted?");
       if (entity.exists(key) && self.deleted(key, entity)) {
+        console.log(entity.name +"["+key+"] deleted....!");
         entity.setDeleted(key);
+        changed = true;
       }
     });
   });
@@ -7566,6 +7619,9 @@ State.prototype.propagate = function () {
       }
     });
   });
+  if (changed) {
+    self.propagate();
+  }
 };
 
 State.prototype.deleted = function (key, entity) {
@@ -7592,8 +7648,14 @@ State.prototype.deleted = function (key, entity) {
       // if (typeof type !== 'undefined')
       //   type = self.get(type);
      // console.log('key deleted? ' + value + " of type " + type + "(" + name+ ")");
-      if (self.deleted(value, type))
+      if (self.deleted(value, type)) {
+        // console.log('keyname: ' + name);
+        // console.log(type == self.get(type.name));
+        // console.log('because deleted: ' + value);
+        // console.log(entity.states);
+        // console.log(entity.states + ' ' + key);
         del = true;
+      }
     });
     return del;
   }
@@ -7630,6 +7692,7 @@ State.prototype.dependendOn = function (child, parent) {
 
 
 State.prototype._join = function (rev, target) {
+  var tArray, tProperty;
   var master = (this === target) ? rev : this;
   var self = this;
 
@@ -7645,7 +7708,8 @@ State.prototype._join = function (rev, target) {
 
     // If the target is restricted and we got an index in the master, this means access was granted to the that index
     // -> install the complete new index (references to the new index are set in (2))
-    if (target.get(array.name) instanceof Restricted) {
+    tArray = target.get(array.name);
+    if (typeof tArray === 'undefined' || tArray instanceof Restricted) {
       // TODO: make actual copy of it for local usage (not important right now)
       return target.add(array);
 
@@ -7653,9 +7717,9 @@ State.prototype._join = function (rev, target) {
 
     // Otherwise do a property-key-wise join on each property of each entry
     array.forEachProperty(function (property) {
-
+      var tProperty = tArray.properties.get(property);
       // If target does not have the property, access was granted to the property, just add it.
-      if (rev === target && typeof target.get(array.name).properties.get(property) === 'undefined') {
+      if (rev === target && typeof tProperty === 'undefined') {
         // TODO: make actual copy of it for local usage (not important right now)
         target.get(array.name).addProperty(property); 
         return;
@@ -7684,19 +7748,21 @@ State.prototype._join = function (rev, target) {
   });
 
   // (2) Fix references to replaced Restricted Tables
-  target.forEachArray(function (index) {
-    index.forEachProperty(function (property) {
-      if (property.CType instanceof Restricted) {
-        property.CType = target.get(property.CType.name);
-      }
-    });
+  // target.forEachArray(function (index) {
+  //   index.forEachProperty(function (property) {
+  //     if (property.CType instanceof Restricted) {
+  //       property.CType = target.get(property.CType.name);
+  //     }
+  //   });
 
-    index.keys.forEach(function (key, type, i) {
-      if (type instanceof Restricted) {
-        index.keys.types[i] = target.get(type.name);
-      }
-    });
-  });
+  //   index.keys.forEach(function (key, type, i) {
+  //     if (type instanceof Restricted) {
+  //       index.keys.types[i] = target.get(type.name);
+  //     }
+  //   });
+  // });
+
+  // var created = [];
 
   // (3) Join the states of the Tables (deleted/created)
   master.forEachEntity(function (entity) {
@@ -7704,12 +7770,20 @@ State.prototype._join = function (rev, target) {
     var joinee = self.get(entity.name);
     var t = target.get(entity.name);
     entity.forEachState(function (key) {
-      t.setMax(joinee, joiner, key);
+      if (t.setMax(joinee, joiner, key)) {
+        // created.push([t, key]);
+        t.triggerCreated(key);
+      }
     });
 
   });
 
   target.propagate();
+
+  // created.forEach(function (entkey) {
+  //   entkey[0].triggerCreated(entkey[1]);
+  // });
+
 };
 
 State.prototype.joinIn = function (rev) {
@@ -7825,13 +7899,12 @@ State.prototype.restrict = function (user) {
   return self;
 };
 
+
 State.prototype.restrictedFork = function (user) {
   var view, keys, tname, index, fIndex, cgroup;
   var self = this;
   var json = self.skeletonToJSON();
   var group = user.get('group').get();
-  console.log(user.get('name').get());
-  console.log(group.get('name').get());
 
   var colAuths = self.get('SysColAuth').where(function (colAuth) {
     return (colAuth.get('user').equals(user) || colAuth.get('group').equals(group));
@@ -7840,49 +7913,51 @@ State.prototype.restrictedFork = function (user) {
 
   self.get('SysAuth').all().forEach(function (auth) {
     var g = auth.get('group');
-      console.log(auth.get('user') + " | " + g + " | " + auth.get('tname').get() + " | " + auth.get('vname') + " | " + auth.get('priv').get() + " | " + auth.get("active").get());
-    if ((auth.get('user').equals(user) || auth.get('group').equals(group))) {
-if (auth.get('priv').equals('read') &&
+      // console.log(auth.get('user') + " | " + g + " | " + auth.get('tname').get() + " | " + auth.get('vname') + " | " + auth.get('priv').get() + " | " + auth.get("active").get());
+      // console.log(g.get());
+    if ((auth.get('user').equals(user) || auth.get('group').equals(group)) &&
+        auth.get('priv').equals('read') &&
         auth.get('active').equals('Y')) {
       cgroup = auth.get('group').equals(group);
       tname = auth.get('tname').get();
-            console.log(tname);
 
       index  = self.get(tname);
       fIndex = json.arrays[tname];
       if (typeof fIndex === 'undefined') {
         fIndex = index.skeletonToJSON();
         json.arrays[tname] = fIndex;
-        if (index instanceof Table) {
-          if (auth.get('type').equals('T')) {
-            index.forEachState(function (key) {
-              fIndex.states[key] = index[key];
-            });
+      }
+      if (index instanceof Table) {
+        if (auth.get('type').equals('T')) {
+          index.forEachState(function (key) {
+            fIndex.states[key] = index.states[key];
+          });
 
-          } else {
-            keys = [];
-            view = self.views.get(auth.get('vname').get());
-            console.log('setting keys for ' + view.name);
-            index.forEachState(function (key) {
-              var entry = index.getByKey(key);
-              if (entry && view.includes(entry, user)) {
-                // console.log('adding ' + key);
-                keys.push(key);
-                fIndex.states[key] = index[key];
-              }
-            });
-          }
+        } else if (auth.get('type').equals('V')) {
+          keys = [];
+          view = self.views.get(auth.get('vname').get());
+          // console.log('setting keys for ' + view.name);
+          index.forEachState(function (key) {
+            var entry = index.getByKey(key);
+            if (entry && view.includes(entry, user)) {
+              // console.log('adding ' + key);
+              keys.push(key);
+              fIndex.states[key] = index.states[key];
+            }
+          });
+        } else {
+          throw new Error("incorrect type");
         }
       }
 
       colAuths.forEach(function (colAuth) {
-        if ((cgroup ? colAuth.get('group').equals(cgroup) : colAuth.get('user').equals(user)) &&
+        if ((cgroup ? colAuth.get('group').equals(auth.get('group').get()) : colAuth.get('user').equals(user)) &&
             colAuth.get('tname').equals(auth.get('tname').get()) &&
             colAuth.get('grantopt').equals(auth.get('grantopt').get()) &&
             colAuth.get('priv').equals('read') &&
             colAuth.get('active').equals('Y')) {
           var cname = colAuth.get('cname').get();
-          console.log('\t.'+cname);
+          // console.log('\t.'+cname);
           var property = index.getProperty(cname);
           var fProperty = fIndex.properties[cname];
           if (typeof fProperty === 'undefined') {
@@ -7905,9 +7980,15 @@ if (auth.get('priv').equals('read') &&
         }
       });
       cgroup = null;
-    }}
+    }
   });
 
+
+  propagateFilter(json);
+
+  
+
+  // Make an array of the properties instead of a map
   Object.keys(json.arrays).forEach(function (name) {
     var index = json.arrays[name];
     index.properties = Object.keys(index.properties).map(function (pname) {
@@ -7915,8 +7996,163 @@ if (auth.get('priv').equals('read') &&
     });
   });
 
-  console.log(json);
+  console.log(json.arrays.SysGroup.states);
   return json;
+};
+
+State.prototype.restrictFork = function (user) {
+  var view, keys, tname, index, fIndex, cgroup;
+  var self = this;
+  var group = user.get('group').get();
+
+  var fork = new State();
+  fork.views = self.views;
+
+  var colAuths = self.get('SysColAuth').where(function (colAuth) {
+    return (colAuth.get('user').equals(user) || colAuth.get('group').equals(group));
+  }).all();
+  console.log(colAuths.length);
+
+  self.get('SysAuth').all().forEach(function (auth) {
+    var g = auth.get('group');
+      // console.log(auth.get('user') + " | " + g + " | " + auth.get('tname').get() + " | " + auth.get('vname') + " | " + auth.get('priv').get() + " | " + auth.get("active").get());
+      // console.log(g.get());
+    if ((auth.get('user').equals(user) || auth.get('group').equals(group)) &&
+        auth.get('priv').equals('read') &&
+        auth.get('active').equals('Y')) {
+      cgroup = auth.get('group').equals(group);
+      tname = auth.get('tname').get();
+
+      index  = self.get(tname);
+      fIndex = fork.get(tname);
+      if (typeof fIndex === 'undefined') {
+        fIndex = index.shallowFork();
+        fIndex.name = tname;
+        fork.add(fIndex);
+      }
+      if (index instanceof Table) {
+        if (auth.get('type').equals('T')) {
+          index.forEachState(function (key) {
+            fIndex.states[key] = index.states[key];
+            fIndex.setKeyValues(key, index.getKeyValues(key));
+          });
+
+        } else if (auth.get('type').equals('V')) {
+          keys = [];
+          view = self.views.get(auth.get('vname').get());
+          // console.log('setting keys for ' + view.name);
+          index.forEachState(function (key) {
+            var entry = index.getByKey(key);
+            if (entry && view.includes(entry, user)) {
+              // console.log('adding ' + key);
+              keys.push(key);
+              fIndex.states[key] = index.states[key];
+              fIndex.setKeyValues(key, index.getKeyValues(key));
+            }
+          });
+        } else {
+          throw new Error("incorrect type");
+        }
+      }
+
+      colAuths.forEach(function (colAuth) {
+        if ((cgroup ? colAuth.get('group').equals(auth.get('group').get()) : colAuth.get('user').equals(user)) &&
+            colAuth.get('tname').equals(auth.get('tname').get()) &&
+            colAuth.get('grantopt').equals(auth.get('grantopt').get()) &&
+            colAuth.get('priv').equals('read') &&
+            colAuth.get('active').equals('Y')) {
+          var cname = colAuth.get('cname').get();
+          // console.log('\t.'+cname);
+          var property = index.getProperty(cname);
+          var fProperty = fIndex.getProperty(cname);
+          if (typeof fProperty === 'undefined') {
+            fProperty = property.shallowFork(fIndex);
+            fIndex.addProperty(fProperty);
+          }
+          if (colAuth.get('type').equals('T')) {
+            // console.log('full:');
+            property.forEachKey(function (key, val) {
+              fProperty.set(key, val.fork());
+            });
+          } else if (colAuth.get('vname').equals(auth.get('vname').get())) {
+            // console.log('setting columns for ' + colAuth.get('vname').get());
+             keys.forEach(function (key) {
+              // console.log('\t'+key);
+              var val = property.getByKey(key);
+              fProperty.set(key, val.fork());
+            });
+          }
+        }
+      });
+      cgroup = null;
+    }
+  });
+
+
+  // Fix Type references
+  fork.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+
+      // if reference property -> replace the table with the new table
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.CType.resolveTable(fork);
+        // property.CType.prototype.table = fork.get(property.CType.prototype.table.name);
+      }
+
+      // if CSet property -> give reference to the proxy entity
+      if (property.CType.prototype === CSetPrototype) {
+        property.CType.entity      = fork.get(index.name + property.name);
+
+        // and replace the table with the new table if it has a table as element
+        if (property.CType.elementType instanceof Table) {
+          property.CType.elementType = fork.get(property.CType.elementType.name);
+        }
+      }
+
+      
+    });
+
+    index.keys.forEach(function (key, type, i) {
+      if (type instanceof Table) {
+        // console.log('settig new key: ' + type.name);
+        index.keys.types[i] = fork.get(type.name);
+      }
+    });
+  });
+
+
+  fork.propagateFilter();
+  return fork;
+};
+
+
+State.prototype.propagateFilter = function () {
+  var self = this;
+  var changed = false;
+  this.forEachEntity(function (entity) {
+    entity.forEachState(function (key) {
+      if (entity.exists(key) && self.deleted(key, entity)) {
+        // console.log(entity.name +"["+key+"] deleted by filter");
+        entity.obliterate(key);
+        changed = true;
+      }
+    });
+  });
+  this.forEachArray(function (array) {
+    array.forEachProperty(function (property) {
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.forEachKey(function (key) {
+          var ref = property.getByKey(key);
+          if (self.deleted(ref.uid, ref.table)) {
+            ref.uid = null;
+          }
+        });
+      }
+    });
+  });
+  if (changed) {
+    self.propagateFilter();
+  }
 };
 
 State.prototype.applyFork = function () {
@@ -8038,6 +8274,7 @@ function Table(keys, columns) {
   Index.call(this, keys, columns);
   this.keyValues = {};
   this.states    = {};
+  this.callbacks = [];
   this.uid       = 0;
   this.cached = {};
 }
@@ -8146,22 +8383,26 @@ Table.prototype.forEachState = function (callback) {
 };
 
 Table.prototype.setMax = function (entity1, entity2, key) {
+  var self = this;
   var val1 = entity1.states[key];
   var val2 = entity2.states[key];
   if (val1 === DELETED || val2 === DELETED) {
-    this.states[key] = DELETED;
+    self.states[key] = DELETED;
     return;
   }
   if (val1 === OK || val2 === OK) {
-    this.states[key] = OK;
+    self.states[key] = OK;
+
     if (val1 === OK && val2 !== OK) {
       entity2.setKeyValues(key, entity1.getKeyValues(key));
       return;
     }
+
+    // newly created by client, coming in to server
     if (val2 === OK && val1 !== OK) {
       entity1.setKeyValues(key, entity2.getKeyValues(key));
+      return true;
     }
-    return false;
   }
 
 };
@@ -8189,6 +8430,7 @@ Table.prototype.forEachRow = function (callback) {
 };
 
 Table.prototype.setDeleted = function (key) {
+  console.log('setting to deleted: ' + key);
   this.states[key] = DELETED;
 };
 
@@ -8247,6 +8489,17 @@ Table.prototype.find = function (callback) {
   return result;
 }
 
+
+Table.prototype.onCreate = function (callback) {
+  this.callbacks.push(callback);
+};
+
+Table.prototype.triggerCreated = function (key) {
+  var entry = this.getByKey(key);
+  this.callbacks.forEach(function (callback) {
+    callback(entry);
+  });
+};
 
 
 Table.prototype.exists = function (idx) {
@@ -8333,7 +8586,7 @@ Table.prototype.skeletonToJSON = function () {
     keys        : this.keys.toJSON(),
     keyValues   : this.keyValues,
     properties  : {},
-    states      : this.states,
+    states      : {},
     isProxy     : this.isProxy,
     name        : this.name
   };
@@ -8502,6 +8755,7 @@ View.fromJSON = function (json, state) {
 }
 },{}],33:[function(require,module,exports){
 var View = require('./View');
+var CSetPrototype = require('./CSet').CSetPrototype;
 
 module.exports = Views;
 
@@ -8513,13 +8767,23 @@ function Views(state, auth) {
 }
 
 Views.prototype.create = function (name, table, query) {
+  var self = this;
   if (typeof table === 'string') {
     table = this.state.get(table);
+  }
+  if (typeof this.get(name) !== 'undefined') {
+    throw new Error("View " + name + " already exists!");
   }
   var view = new View(name, table, query);
   this.views[name] = view;
   this.auth.grantAllView(view);
-  return this;
+  // table.forEachProperty(function (property) {
+  //     if (property.CType.prototype === CSetPrototype) {
+  //       // console.log(property.CType.prototype);
+  //       self.create(name+'.'+property.name, property.CType.entity, query);
+  //     }
+  //   });
+  return view;
 };
 
 Views.prototype.get = function (name) {
@@ -8543,7 +8807,7 @@ Views.fromJSON = function (json, state) {
   });
   return views;
 };
-},{"./View":32}],34:[function(require,module,exports){
+},{"./CSet":16,"./View":32}],34:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {

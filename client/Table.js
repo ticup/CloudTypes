@@ -18,7 +18,7 @@ Table.prototype.setFreshCreated = function (uid) {
 };
 
 Table.prototype.isFreshCreated = function (uid) {
-  return this.freshCreated[uid];
+  return ((typeof this.freshCreated !== 'undefined') && this.freshCreated[uid]);
 };
 
 Table.prototype.resetFreshCreated = function () {

@@ -43,7 +43,7 @@ IndexQuery.prototype.entries = function (propertyName) {
   }
 
   if (self.orderProperty) {
-    var property = self.index.get(self.orderProperty);
+    var property = self.index.getProperty(self.orderProperty);
     if (typeof property === 'undefined') {
       throw new Error("orderBy only allowed on properties for the moment");
     }

@@ -34,7 +34,7 @@ function CString(value, written, cond) {
 // put CloudType in prototype chain.
 CString.prototype = Object.create(CloudType.prototype);
 
-CString.fork = function () {
+CString.copy = function () {
   return CString;
 };
 

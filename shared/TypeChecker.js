@@ -12,7 +12,7 @@ var TypeChecker = {
         throw new Error("uncompatible key for declared type string: " + val);
       }
     } else {
-      if (typeof val.index === 'undefined' || !type.isTypeOf(value)) {
+      if (typeof val.index === 'undefined' || !type.isTypeOf(val)) {
         throw new Error("uncompatible key for declared type " + type.index.name + " : " + val);
       }
     }
@@ -24,7 +24,7 @@ var TypeChecker = {
         throw new Error("uncompatible property for declared property " + type.tag + " : " + val);
       }
     // Reference property: value has to be an entry of declared Table or null.
-    } else if (val !== null && (val.index === 'undefined' || !type.isTypeOf(value))) {
+    } else if (val !== null && (val.index === 'undefined' || !type.isTypeOf(val))) {
         throw new Error("uncompatible property for declared property " + type + " : " + val);
     }
   },

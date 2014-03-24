@@ -12,6 +12,9 @@ function IndexEntry(index, keys) {
 
 IndexEntry.prototype.get = function (propertyName) {
   var property = this.index.getProperty(propertyName);
+  if (typeof property === 'undefined') {
+    throw new Error(this.index.name + " does not have property: " + propertyName);
+  }
   var key = this.key();
   return property.getByKey(key);
 };

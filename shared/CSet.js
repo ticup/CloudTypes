@@ -33,6 +33,10 @@ function CSetDeclaration(elementType) {
     return "CSet<" + CSet.elementType.toString() + ">";
   };
 
+  CSet.copy = function () {
+    return new CSetDeclaration(elementType);
+  };
+
   CSet.declareProxyTable = function (state, index, property, grant) {
     var Table = require('./Table');
     if (!(index instanceof Table)) {
@@ -47,7 +51,7 @@ function CSetDeclaration(elementType) {
 }
 
 CSetDeclaration.declare = function (elementType) {
-  new CSsetDeclaration(elementType);
+  new CSetDeclaration(elementType);
 };
 
 // called by CloudType to initialize the parametrized CSet for a property

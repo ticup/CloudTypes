@@ -31,9 +31,9 @@ Property.prototype.forEachKey = function (callback) {
 
 // Sets given value for given key and checks the type
 Property.prototype.set = function (key, val) {
-  if (this.CType.prototype === CSet.CSetPrototype) {
-    throw new Error("Can not call set on a CSet propety");
-  }
+  // if (this.CType.prototype === CSet.CSetPrototype) {
+  //   throw new Error("Can not call set on a CSet propety");
+  // }
   TypeChecker.property(val, this.CType);
   
   // If it's a reference, simply store its uid
@@ -187,7 +187,10 @@ Property.prototype.fork = function (index) {
 };
 
 Property.prototype.shallowFork = function (index) {
-  return fProperty = new Property(this.name, this.CType, index);
+  // Cloud Types need to be forked
+  var fType;
+  fType = this.CType.copy();
+  return fProperty = new Property(this.name, fType, index);
 };
 
 // Property.prototype.restrictedFork = function (index, group) {

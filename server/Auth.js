@@ -72,38 +72,42 @@ Auth.prototype.initProtection = function (views) {
   var guest = this.state.get('SysGroup').getByProperties({name: 'Guest'});
 
   // Guest can only see password of his own
+  this.state.grant('read', this.User, guest);
   this.state.revoke('read', this.User.getProperty('password'), guest);
-  this.state.views.create('MyUser', 'SysUser', function (user, context) {
+  var MySysUser = this.state.views.create('MySysUser', this.User, function (user, context) {
     return user.equals(context.current_user);
   });
+  this.state.grantView('read', MySysUser, guest);
 
   // Only see your own group
-  this.state.revoke('all', this.Group, guest);
-  this.state.views.create('MyGroup', 'SysGroup', function (group, context) {
+  // this.state.revoke('all', this.Group, guest);
+  var MySysGroup = this.state.views.create('MySysGroup', this.Group, function (group, context) {
     return (group.equals(context.current_user.get('group').get()));
   });
+  this.state.grantView('read', MySysGroup, guest);
+
 
   // Only see you own authorizations
-  this.state.revoke('all', this.Auth, guest);
-  this.state.views.create('MyAuth', 'SysAuth', function (auth, context) {
-    return (auth.get('user').equals(context.current_user) || auth.get('group').equals(context.current_user.get('group').get()));
-  });
-  // this.state.revokeView('delete', 'MyAuth', guest);
+  // this.state.revoke('all', this.Auth, guest);
+  // this.state.views.create('MyAuth', 'SysAuth', function (auth, context) {
+  //   return (auth.get('user').equals(context.current_user) || auth.get('group').equals(context.current_user.get('group').get()));
+  // });
+  // // this.state.revokeView('delete', 'MyAuth', guest);
 
-  this.state.views.create('MyGrantAuth', 'SysAuth', function (auth, context) {
-    return self.state.canGrantAuth(auth, context.current_user);
-  });
-  // this.state.revokeView('delete', 'MyGrantAuth', guest)
+  // this.state.views.create('MyGrantAuth', 'SysAuth', function (auth, context) {
+  //   return self.state.canGrantAuth(auth, context.current_user);
+  // });
+  // // this.state.revokeView('delete', 'MyGrantAuth', guest)
 
-  this.state.views.create('MyGrantColAuth', 'SysColAuth', function (colAuth, context) {
-    return self.state.canGrantColAuth(colAuth, context.current_user);
-  });
+  // this.state.views.create('MyGrantColAuth', 'SysColAuth', function (colAuth, context) {
+  //   return self.state.canGrantColAuth(colAuth, context.current_user);
+  // });
   // this.state.revokeView('delete', 'MyGrantColAuth', guest)
-  
-  this.state.revoke('all', this.ColAuth, guest);
-  this.state.views.create('MyColAuth', 'SysColAuth', function (auth, context) {
-    return (auth.get('user').equals(context.current_user) || auth.get('group').equals(context.current_user.get('group').get()));
-  });
+
+  // this.state.revoke('all', this.ColAuth, guest);
+  // this.state.views.create('MyColAuth', 'SysColAuth', function (auth, context) {
+  //   return (auth.get('user').equals(context.current_user) || auth.get('group').equals(context.current_user.get('group').get()));
+  // });
 
 
 
@@ -170,6 +174,15 @@ Auth.prototype.login = function (username, password, finish) {
   return finish("incorrect password");
 };
 
+Auth.prototype.register = function (username, password, finish) {
+  console.log('registering: ' + username + ' : ' + password);
+  var user = this.User.create();
+  user.set('name', username)
+      .set('password', password)
+      .set('group', this.guestGroup);
+  return finish(null, user);
+};
+
 Auth.prototype.grantAllView = function (view) {
   return this.grantAll(view.table.name, 'V', false, view.name);
 };
@@ -179,7 +192,7 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
   // var auth = self.Auth.create();
   var table = this.state.get(tableName);
   var ops = ['read', 'update', 'create', 'delete'];
-  console.log()
+  console.log('granting all for ' + tableName + ' | ' + viewName + ' | ' + type);
   // Guest group
   // 1) with grantopt: no access
   // 2) without grantopt:
@@ -201,18 +214,18 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
 
   } else {
     // b) only read access otherwise
-    auth = self.Auth.create();
-    console.log('granting ' + self.guestGroup);
-    auth.set('group', self.guestGroup)
-        .set('tname', tableName)
-        .set('priv', 'read')
-        .set('active', 'Y')
-        .set('type', type)
-        .set('grantopt', 'N');
-    if (type === 'V') {
-      auth.set('vname', viewName);
-    }
-  self.createColAuths('Y', 'N', tableName, self.guestGroup, type, 'N', viewName);
+  //   auth = self.Auth.create();
+  //   console.log('granting ' + self.guestGroup);
+  //   auth.set('group', self.guestGroup)
+  //       .set('tname', tableName)
+  //       .set('priv', 'read')
+  //       .set('active', 'Y')
+  //       .set('type', type)
+  //       .set('grantopt', 'N');
+  //   if (type === 'V') {
+  //     auth.set('vname', viewName);
+  //   }
+  // self.createColAuths('Y', 'N', tableName, self.guestGroup, type, 'N', viewName);
 
   }
 
@@ -250,7 +263,7 @@ Auth.prototype.grantAll = function (tableName, type, sys, viewName) {
 
   table.forEachProperty(function (property) {
     if (property.CType.prototype === CSetPrototype) {
-      self.grantAll(property.CType.entity.name, type, sys);
+      self.grantAll(property.CType.entity.name, 'T', sys);
     }
   });
 };

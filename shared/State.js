@@ -252,13 +252,15 @@ State.prototype.forEachEntity = function (callback) {
 };
 
 State.prototype.propagate = function () {
+  // console.log('propagating');
   var self = this;
   var changed = false;
   this.forEachEntity(function (entity) {
     entity.forEachState(function (key) {
-      // console.log(entity.name +"["+key+"] deleted?");
       if (entity.exists(key) && self.deleted(key, entity)) {
+        console.log(entity.name +"["+key+"] deleted....!");
         entity.setDeleted(key);
+        changed = true;
       }
     });
   });
@@ -274,6 +276,9 @@ State.prototype.propagate = function () {
       }
     });
   });
+  if (changed) {
+    self.propagate();
+  }
 };
 
 State.prototype.deleted = function (key, entity) {
@@ -300,8 +305,14 @@ State.prototype.deleted = function (key, entity) {
       // if (typeof type !== 'undefined')
       //   type = self.get(type);
      // console.log('key deleted? ' + value + " of type " + type + "(" + name+ ")");
-      if (self.deleted(value, type))
+      if (self.deleted(value, type)) {
+        // console.log('keyname: ' + name);
+        // console.log(type == self.get(type.name));
+        // console.log('because deleted: ' + value);
+        // console.log(entity.states);
+        // console.log(entity.states + ' ' + key);
         del = true;
+      }
     });
     return del;
   }
@@ -338,6 +349,7 @@ State.prototype.dependendOn = function (child, parent) {
 
 
 State.prototype._join = function (rev, target) {
+  var tArray, tProperty;
   var master = (this === target) ? rev : this;
   var self = this;
 
@@ -353,7 +365,8 @@ State.prototype._join = function (rev, target) {
 
     // If the target is restricted and we got an index in the master, this means access was granted to the that index
     // -> install the complete new index (references to the new index are set in (2))
-    if (target.get(array.name) instanceof Restricted) {
+    tArray = target.get(array.name);
+    if (typeof tArray === 'undefined' || tArray instanceof Restricted) {
       // TODO: make actual copy of it for local usage (not important right now)
       return target.add(array);
 
@@ -361,9 +374,9 @@ State.prototype._join = function (rev, target) {
 
     // Otherwise do a property-key-wise join on each property of each entry
     array.forEachProperty(function (property) {
-
+      var tProperty = tArray.properties.get(property);
       // If target does not have the property, access was granted to the property, just add it.
-      if (rev === target && typeof target.get(array.name).properties.get(property) === 'undefined') {
+      if (rev === target && typeof tProperty === 'undefined') {
         // TODO: make actual copy of it for local usage (not important right now)
         target.get(array.name).addProperty(property); 
         return;
@@ -392,19 +405,21 @@ State.prototype._join = function (rev, target) {
   });
 
   // (2) Fix references to replaced Restricted Tables
-  target.forEachArray(function (index) {
-    index.forEachProperty(function (property) {
-      if (property.CType instanceof Restricted) {
-        property.CType = target.get(property.CType.name);
-      }
-    });
+  // target.forEachArray(function (index) {
+  //   index.forEachProperty(function (property) {
+  //     if (property.CType instanceof Restricted) {
+  //       property.CType = target.get(property.CType.name);
+  //     }
+  //   });
 
-    index.keys.forEach(function (key, type, i) {
-      if (type instanceof Restricted) {
-        index.keys.types[i] = target.get(type.name);
-      }
-    });
-  });
+  //   index.keys.forEach(function (key, type, i) {
+  //     if (type instanceof Restricted) {
+  //       index.keys.types[i] = target.get(type.name);
+  //     }
+  //   });
+  // });
+
+  // var created = [];
 
   // (3) Join the states of the Tables (deleted/created)
   master.forEachEntity(function (entity) {
@@ -412,12 +427,20 @@ State.prototype._join = function (rev, target) {
     var joinee = self.get(entity.name);
     var t = target.get(entity.name);
     entity.forEachState(function (key) {
-      t.setMax(joinee, joiner, key);
+      if (t.setMax(joinee, joiner, key)) {
+        // created.push([t, key]);
+        t.triggerCreated(key);
+      }
     });
 
   });
 
   target.propagate();
+
+  // created.forEach(function (entkey) {
+  //   entkey[0].triggerCreated(entkey[1]);
+  // });
+
 };
 
 State.prototype.joinIn = function (rev) {
@@ -533,13 +556,12 @@ State.prototype.restrict = function (user) {
   return self;
 };
 
+
 State.prototype.restrictedFork = function (user) {
   var view, keys, tname, index, fIndex, cgroup;
   var self = this;
   var json = self.skeletonToJSON();
   var group = user.get('group').get();
-  console.log(user.get('name').get());
-  console.log(group.get('name').get());
 
   var colAuths = self.get('SysColAuth').where(function (colAuth) {
     return (colAuth.get('user').equals(user) || colAuth.get('group').equals(group));
@@ -555,7 +577,6 @@ State.prototype.restrictedFork = function (user) {
         auth.get('active').equals('Y')) {
       cgroup = auth.get('group').equals(group);
       tname = auth.get('tname').get();
-      console.log(tname);
 
       index  = self.get(tname);
       fIndex = json.arrays[tname];
@@ -569,10 +590,10 @@ State.prototype.restrictedFork = function (user) {
             fIndex.states[key] = index.states[key];
           });
 
-        } else {
+        } else if (auth.get('type').equals('V')) {
           keys = [];
           view = self.views.get(auth.get('vname').get());
-          console.log('setting keys for ' + view.name);
+          // console.log('setting keys for ' + view.name);
           index.forEachState(function (key) {
             var entry = index.getByKey(key);
             if (entry && view.includes(entry, user)) {
@@ -581,6 +602,8 @@ State.prototype.restrictedFork = function (user) {
               fIndex.states[key] = index.states[key];
             }
           });
+        } else {
+          throw new Error("incorrect type");
         }
       }
 
@@ -591,7 +614,7 @@ State.prototype.restrictedFork = function (user) {
             colAuth.get('priv').equals('read') &&
             colAuth.get('active').equals('Y')) {
           var cname = colAuth.get('cname').get();
-          console.log('\t.'+cname);
+          // console.log('\t.'+cname);
           var property = index.getProperty(cname);
           var fProperty = fIndex.properties[cname];
           if (typeof fProperty === 'undefined') {
@@ -606,7 +629,7 @@ State.prototype.restrictedFork = function (user) {
           } else if (colAuth.get('vname').equals(auth.get('vname').get())) {
             // console.log('setting columns for ' + colAuth.get('vname').get());
              keys.forEach(function (key) {
-              console.log('\t'+key);
+              // console.log('\t'+key);
               var val = property.getByKey(key);
               fProperty.values[key] = val.fork().toJSON();
             });
@@ -617,6 +640,12 @@ State.prototype.restrictedFork = function (user) {
     }
   });
 
+
+  propagateFilter(json);
+
+  
+
+  // Make an array of the properties instead of a map
   Object.keys(json.arrays).forEach(function (name) {
     var index = json.arrays[name];
     index.properties = Object.keys(index.properties).map(function (pname) {
@@ -626,6 +655,161 @@ State.prototype.restrictedFork = function (user) {
 
   console.log(json.arrays.SysGroup.states);
   return json;
+};
+
+State.prototype.restrictFork = function (user) {
+  var view, keys, tname, index, fIndex, cgroup;
+  var self = this;
+  var group = user.get('group').get();
+
+  var fork = new State();
+  fork.views = self.views;
+
+  var colAuths = self.get('SysColAuth').where(function (colAuth) {
+    return (colAuth.get('user').equals(user) || colAuth.get('group').equals(group));
+  }).all();
+  console.log(colAuths.length);
+
+  self.get('SysAuth').all().forEach(function (auth) {
+    var g = auth.get('group');
+      // console.log(auth.get('user') + " | " + g + " | " + auth.get('tname').get() + " | " + auth.get('vname') + " | " + auth.get('priv').get() + " | " + auth.get("active").get());
+      // console.log(g.get());
+    if ((auth.get('user').equals(user) || auth.get('group').equals(group)) &&
+        auth.get('priv').equals('read') &&
+        auth.get('active').equals('Y')) {
+      cgroup = auth.get('group').equals(group);
+      tname = auth.get('tname').get();
+
+      index  = self.get(tname);
+      fIndex = fork.get(tname);
+      if (typeof fIndex === 'undefined') {
+        fIndex = index.shallowFork();
+        fIndex.name = tname;
+        fork.add(fIndex);
+      }
+      if (index instanceof Table) {
+        if (auth.get('type').equals('T')) {
+          index.forEachState(function (key) {
+            fIndex.states[key] = index.states[key];
+            fIndex.setKeyValues(key, index.getKeyValues(key));
+          });
+
+        } else if (auth.get('type').equals('V')) {
+          keys = [];
+          view = self.views.get(auth.get('vname').get());
+          // console.log('setting keys for ' + view.name);
+          index.forEachState(function (key) {
+            var entry = index.getByKey(key);
+            if (entry && view.includes(entry, user)) {
+              // console.log('adding ' + key);
+              keys.push(key);
+              fIndex.states[key] = index.states[key];
+              fIndex.setKeyValues(key, index.getKeyValues(key));
+            }
+          });
+        } else {
+          throw new Error("incorrect type");
+        }
+      }
+
+      colAuths.forEach(function (colAuth) {
+        if ((cgroup ? colAuth.get('group').equals(auth.get('group').get()) : colAuth.get('user').equals(user)) &&
+            colAuth.get('tname').equals(auth.get('tname').get()) &&
+            colAuth.get('grantopt').equals(auth.get('grantopt').get()) &&
+            colAuth.get('priv').equals('read') &&
+            colAuth.get('active').equals('Y')) {
+          var cname = colAuth.get('cname').get();
+          // console.log('\t.'+cname);
+          var property = index.getProperty(cname);
+          var fProperty = fIndex.getProperty(cname);
+          if (typeof fProperty === 'undefined') {
+            fProperty = property.shallowFork(fIndex);
+            fIndex.addProperty(fProperty);
+          }
+          if (colAuth.get('type').equals('T')) {
+            // console.log('full:');
+            property.forEachKey(function (key, val) {
+              fProperty.set(key, val.fork());
+            });
+          } else if (colAuth.get('vname').equals(auth.get('vname').get())) {
+            // console.log('setting columns for ' + colAuth.get('vname').get());
+             keys.forEach(function (key) {
+              // console.log('\t'+key);
+              var val = property.getByKey(key);
+              fProperty.set(key, val.fork());
+            });
+          }
+        }
+      });
+      cgroup = null;
+    }
+  });
+
+
+  // Fix Type references
+  fork.forEachArray(function (index) {
+    index.forEachProperty(function (property) {
+
+      // if reference property -> replace the table with the new table
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.CType.resolveTable(fork);
+        // property.CType.prototype.table = fork.get(property.CType.prototype.table.name);
+      }
+
+      // if CSet property -> give reference to the proxy entity
+      if (property.CType.prototype === CSetPrototype) {
+        property.CType.entity      = fork.get(index.name + property.name);
+
+        // and replace the table with the new table if it has a table as element
+        if (property.CType.elementType instanceof Table) {
+          property.CType.elementType = fork.get(property.CType.elementType.name);
+        }
+      }
+
+      
+    });
+
+    index.keys.forEach(function (key, type, i) {
+      if (type instanceof Table) {
+        // console.log('settig new key: ' + type.name);
+        index.keys.types[i] = fork.get(type.name);
+      }
+    });
+  });
+
+
+  fork.propagateFilter();
+  return fork;
+};
+
+
+State.prototype.propagateFilter = function () {
+  var self = this;
+  var changed = false;
+  this.forEachEntity(function (entity) {
+    entity.forEachState(function (key) {
+      if (entity.exists(key) && self.deleted(key, entity)) {
+        // console.log(entity.name +"["+key+"] deleted by filter");
+        entity.obliterate(key);
+        changed = true;
+      }
+    });
+  });
+  this.forEachArray(function (array) {
+    array.forEachProperty(function (property) {
+      if (Reference.isReferenceDeclaration(property.CType)) {
+        property.forEachKey(function (key) {
+          var ref = property.getByKey(key);
+          if (self.deleted(ref.uid, ref.table)) {
+            ref.uid = null;
+          }
+        });
+      }
+    });
+  });
+  if (changed) {
+    self.propagateFilter();
+  }
 };
 
 State.prototype.applyFork = function () {

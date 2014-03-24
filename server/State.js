@@ -133,23 +133,23 @@ State.prototype.checkChanges = function (state, user) {
   // });
 
   // Check update operations
-  state.forEachArray(function (array) {
-    array.forEachProperty(function (property) {
-      property.forEachKey(function (key) {
-        var joiner = state.getProperty(property).getByKey(key);
-        var joinee = self.getProperty(property).getByKey(key);
-        if (isChanged(joinee, joiner, property)) {
-          var entry = array.getByKey(key);
-          console.log(key + ' changed ');
-          if (!self.authedForEntryProperty('update', entry, property, user)) {
-            state.getProperty(property).obliterate(key);
-            console.log(user.get('name').get() + ' not authed for update of ' + array.name);
-            valid = false;
-          }
-        }
-      });
-    });
-  });
+  // state.forEachArray(function (array) {
+  //   array.forEachProperty(function (property) {
+  //     property.forEachKey(function (key) {
+  //       var joiner = state.getProperty(property).getByKey(key);
+  //       var joinee = self.getProperty(property).getByKey(key);
+  //       if (isChanged(joinee, joiner, property)) {
+  //         var entry = array.getByKey(key);
+  //         console.log(key + ' changed ');
+  //         if (!self.authedForEntryProperty('update', entry, property, user)) {
+  //           state.getProperty(property).obliterate(key);
+  //           console.log(user.get('name').get() + ' not authed for update of ' + array.name);
+  //           valid = false;
+  //         }
+  //       }
+  //     });
+  //   });
+  // });
   return valid;
 };
 

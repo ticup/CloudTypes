@@ -53,7 +53,10 @@ Server.prototype.open = function (target, staticPath) {
     socket.on('init', function (initClient) {
       uid = self.generateUID();
       var user = self.getUser(cuser);
-      var fork = self.state.restrictedFork(user);
+            // console.log(self.state.get('Group') == self.state.get('Groupusers').keys.getTypeOf('entry'));
+
+      var fork = self.state.restrictFork(user);
+            // console.log(self.state.get('Group') == self.state.get('Groupusers').keys.getTypeOf('entry'));
       initClient({ uid: uid, cid: ++cid, state: fork, views: fork.views});
     });
 
@@ -67,8 +70,15 @@ Server.prototype.open = function (target, staticPath) {
         console.log('UNAUTHORIZED ACCESS');
         return yieldPull("Unauthorized Access!");
       }
+      // console.log(state.get('Groupusers').states);
+      // console.log(state.get('Group').states);
+      // console.log('joining');
       self.state.join(state);
-      var fork = self.state.restrictedFork(user);
+      // console.log(self.state.get('Groupusers').states);
+      // console.log(self.state.get('Group').states);
+      var fork = self.state.restrictFork(user);
+            console.log(fork.get('Groupusers').states);
+
       yieldPull(null, fork);
     });
 
@@ -86,7 +96,7 @@ Server.prototype.open = function (target, staticPath) {
       console.log('authorized');
       self.state.join(state);
       console.log('joined');
-      var fork = self.state.restrictedFork(user);
+      var fork = self.state.restrictFork(user);
       console.log('forked');
       flushPull(null, fork);
     });
@@ -98,17 +108,20 @@ Server.prototype.open = function (target, staticPath) {
         if (err)
           return finish(err);
         cuser = user;
-        finish(null, user.get('name').get());
+        finish(null, user.serialKey());
       });
     });
 
-    // socket.on('Register', function (json, finish) {
-    //   self.auth.register(json.username,
-    //                      json.password,
-    //                      json.group,
-    //                      cuser,
-    //                      function (err, user) { if (user) { user = user.toJSON(); } finish(err, user);});
-    // });
+    socket.on('Register', function (json, finish) {
+      self.auth.register(json.username,
+                         json.password,
+                         function (err, user) {
+        if (err)
+          return finish(err);
+        cuser = user;
+        finish(null, user.serialKey());
+      });
+    });
     
   });
 };

@@ -71,6 +71,13 @@ function addAuthentication(State) {
       action = ['read', 'update', 'create', 'delete'];
     }
 
+    if (action instanceof Array) {
+      action.forEach(function (act) {
+        self.grantView(act, view, column, user, grantopt);
+      });
+      return;
+    }
+
     if (typeof user === 'undefined') {
       user = 'N';
     }
@@ -79,13 +86,15 @@ function addAuthentication(State) {
     if (user === 'Y' || user === 'N') {
       grantopt = user;
       user = column;
-      if (typeof user === 'string') {
-        user = self.get('SysUser').getByProperties({name: user});
-      }
+      // if (typeof user === 'string') {
+      //   user = self.get('SysUser').getByProperties({name: user});
+      // }
 
-      var theView = self.views.get(view);
-      if (typeof theView !== 'undefined') {
-        return this.grantViewTable(action, theView, user, grantopt);
+      // if (typeof view === 'string') {
+      //   view = self.views.get(view);
+      // }
+      if (typeof view !== 'undefined') {
+        return this.grantViewTable(action, view, user, grantopt);
       }
 
     // granting column on view
@@ -95,13 +104,14 @@ function addAuthentication(State) {
         grantopt = 'N';
       }
 
-      if (typeof user === 'string') {
-        user = self.get('SysUser').getByProperties({name: user});
-      }
-
-      var theView = self.views.get(view);
-      if (typeof theView !== 'undefined') {
-        return this.grantViewColumn(action, theView, column, user, grantopt);
+      // if (typeof user === 'string') {
+      //   user = self.get('SysUser').getByProperties({name: user});
+      // }
+      // if (typeof view === 'string') {
+      //   view = self.views.get(view);
+      // }
+      if (typeof view !== 'undefined') {
+        return this.grantViewColumn(action, view, column, user, grantopt);
       }
 
     }
@@ -168,7 +178,7 @@ function addAuthentication(State) {
         self.grantTable(action, property.CType.entity, user, grantopt);
       }
     });
-    console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
+    console.log('granted ' + action + ' to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
   }
 
     // Table 
@@ -180,16 +190,8 @@ function addAuthentication(State) {
     self.checkGrantViewPermission(action, view, self.getUser());
 
     // console.log('granted');
-
     self.doGrantViewTable(action, view, user, grantopt);
 
-    // Perform same grant on the proxy table of CSet properties of given table
-    // table.forEachProperty(function (property) {
-    //   if (property.CType.prototype === CSetPrototype) {
-    //     // console.log(property.CType.prototype);
-    //     self.grantView(action, property.CType.entity, user, grantopt);
-    //   }
-    // });
     console.log('granted read to ' + user.get('name').get() + ' grantOpt: ' + grantopt);
     return this;
   };
@@ -214,6 +216,7 @@ function addAuthentication(State) {
       var auth = self.get('SysAuth').create();
       auth.set('type', 'V')
           .set('vname', view.name)
+          .set('tname', view.table.name)
           .set('priv', action)
           .set('grantopt', grantopt)
           .set('active', 'Y');
@@ -223,9 +226,24 @@ function addAuthentication(State) {
     // Grant to all columns if column action (read/update)
     if (action === 'read' || action === 'update') {
       view.table.forEachProperty(function (property) {
-        self.doGrantViewColumn(action, view, property.name, user, grantopt);
+        // Perform same grant on the proxy table of CSet properties of given table
+          // if (property.CType.prototype !== CSetPrototype) {
+          //   // console.log(property.CType.prototype);
+          //   var propertyView = self.views.get(view.name+'.'+property.name, user, grantopt);
+          //   self.grantViewTable(action, propertyView, user, grantopt);
+          // } else {
+            self.doGrantViewColumn(action, view, property.name, user, grantopt);
+          // }
       }); 
-    }   
+    } 
+
+    // Perform same grant on the proxy table of CSet properties of given table
+    view.table.forEachProperty(function (property) {
+      if (property.CType.prototype === CSetPrototype) {
+        // console.log(property.CType.prototype);
+        self.grantTable(action, property.CType.entity, user, grantopt);
+      }
+    });
 
 
     return this;
@@ -313,6 +331,8 @@ function addAuthentication(State) {
     var group = self.setIfGroup(user);
     var granted = false;
 
+    console.log('granting view on column ' + columnName);
+
     self.get('SysColAuth').all().forEach(function (colAuth) {
       if (colAuth.get('type').equals('V') &&
           colAuth.get('vname').equals(view.name) &&
@@ -329,6 +349,7 @@ function addAuthentication(State) {
       var auth = self.get('SysColAuth').create();
       auth.set('type', 'V')
           .set('vname', view.name)
+          .set('tname', view.table.name)
           .set('cname', columnName)
           .set('grantopt', grantopt)
           .set('priv', action)
@@ -691,7 +712,7 @@ function addAuthentication(State) {
 
   State.prototype.checkGrantViewPermission = function (action, view, grantingUser) {
     if (!this.canGrantView(action, view, grantingUser)) {
-      throw new Error("You don't have " + action + " grant permissions for " + table.name);
+      throw new Error("You don't have " + action + " grant permissions for " + view.name);
     }
   };
 
@@ -1033,6 +1054,7 @@ function addAuthentication(State) {
     var self = this;
     var permission = false;
     var group = user.get('group').get();
+    var table = entry.index;
 
      // already restricted
     if (table instanceof Restricted)

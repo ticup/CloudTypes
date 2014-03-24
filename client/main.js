@@ -30,8 +30,8 @@ var CloudTypes = {
   EditableListView: EditableListView,
 
   // Types
-  Table: Table,
-  Index: Index,
+  Table: Table.declare,
+  Index: Index.declare,
   Restricted: Restricted,
   CInt: CInt,
   CString: CString

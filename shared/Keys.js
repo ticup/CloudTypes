@@ -74,11 +74,10 @@ Keys.fromJSON = function (json) {
   return keys;
 };
 
-// Forking keys: names can be shared, because they are immutable.
 Keys.prototype.fork = function () {
   var keys = new Keys();
-  keys.names = this.names;
-  keys.types = this.types;
+  keys.names = Array.prototype.slice.call(this.names);
+  keys.types = Array.prototype.slice.call(this.types);
   return keys;
 };
 

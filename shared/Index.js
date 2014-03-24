@@ -83,7 +83,7 @@ Index.prototype.shallowFork = function () {
   var fKeys = this.keys.fork();
   var index = new Index();
   index.keys = fKeys;
-  index.properties = new Properties;
+  index.properties = new Properties();
   index.isProxy = this.isProxy;
   return index;
 };

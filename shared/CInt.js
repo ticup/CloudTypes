@@ -36,7 +36,7 @@ function CInt(base, offset, isSet) {
 // put CloudType in prototype chain.
 CInt.prototype = Object.create(CloudType.prototype);
 
-CInt.fork = function () {
+CInt.copy = function () {
   return CInt;
 };
 

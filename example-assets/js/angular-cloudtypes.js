@@ -3,8 +3,10 @@
  */
 angular
     .module('cloudtypes', [])
-    .service('$client', function ($window) {
+    .service('$client', function ($window, $q) {
       var status = 'disconnected';
+
+      var loggedIn = false;
 
       // Callbacks
       var connected    = [];
@@ -62,6 +64,36 @@ angular
           this.client.disconnect();
         },
 
+        isLoggedIn: function isLoggedIn() {
+          return loggedIn;
+        },
+
+        login: function login(username, password, callback) {
+          var deferred = $q.defer();
+          this.client.login(username, password, function (err, user) {
+            if (err)
+              return deferred.reject(err);
+            loggedIn = true;
+            deferred.resolve(user);
+          });
+          return deferred.promise;
+        },
+
+        register: function register(username, password, callback) {
+          var deferred = $q.defer();
+          this.client.register(username, password, function (err, user) {
+            if (err)
+              return deferred.reject(err);
+            loggedIn = true;
+            deferred.resolve(user);
+          });
+          return deferred.promise;
+        },
+
+        getUser: function getUser() {
+          return this.client.getUser();
+        },
+
         // CloudTypes Client event handlers
         onConnect: function (callback) {
           connected.push(callback);
@@ -88,7 +120,7 @@ angular
     })
 
     // Connects to the CloudTypes server and provides a promise for a state.
-    .service('$state', function ($window, $q, $client) {
+    .service('$ctstate', function ($window, $q, $client) {
       var deferred = $q.defer();
 
       $client.connect($window.location.hostname, 1000)

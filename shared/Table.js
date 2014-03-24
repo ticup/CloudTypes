@@ -29,6 +29,7 @@ function Table(keys, columns) {
   Index.call(this, keys, columns);
   this.keyValues = {};
   this.states    = {};
+  this.callbacks = [];
   this.uid       = 0;
   this.cached = {};
 }
@@ -137,22 +138,26 @@ Table.prototype.forEachState = function (callback) {
 };
 
 Table.prototype.setMax = function (entity1, entity2, key) {
+  var self = this;
   var val1 = entity1.states[key];
   var val2 = entity2.states[key];
   if (val1 === DELETED || val2 === DELETED) {
-    this.states[key] = DELETED;
+    self.states[key] = DELETED;
     return;
   }
   if (val1 === OK || val2 === OK) {
-    this.states[key] = OK;
+    self.states[key] = OK;
+
     if (val1 === OK && val2 !== OK) {
       entity2.setKeyValues(key, entity1.getKeyValues(key));
       return;
     }
+
+    // newly created by client, coming in to server
     if (val2 === OK && val1 !== OK) {
       entity1.setKeyValues(key, entity2.getKeyValues(key));
+      return true;
     }
-    return false;
   }
 
 };
@@ -180,6 +185,7 @@ Table.prototype.forEachRow = function (callback) {
 };
 
 Table.prototype.setDeleted = function (key) {
+  console.log('setting to deleted: ' + key);
   this.states[key] = DELETED;
 };
 
@@ -238,6 +244,17 @@ Table.prototype.find = function (callback) {
   return result;
 }
 
+
+Table.prototype.onCreate = function (callback) {
+  this.callbacks.push(callback);
+};
+
+Table.prototype.triggerCreated = function (key) {
+  var entry = this.getByKey(key);
+  this.callbacks.forEach(function (callback) {
+    callback(entry);
+  });
+};
 
 
 Table.prototype.exists = function (idx) {

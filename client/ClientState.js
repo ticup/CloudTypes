@@ -28,15 +28,6 @@ State.prototype.yieldPull = function (state) {
 
 State.prototype.yield = function () {
   var self = this;
-  // Check authorization for created rows
-  self.forEachEntity(function (table) {
-    table.forEachFreshCreated(function (key) {
-      var entry = table.getBykey(key);
-      if (!self.canCreateTableEntry(entry, self.getUser())) {
-        throw new Error("Not authorized to create " + entry);
-      }
-    });
-  });
 
   // (B) Revision from the server arrived, merge
   if (this.received) {
@@ -52,10 +43,24 @@ State.prototype.yield = function () {
   }
   // (A) Not expecting server response, send state to server
   console.log('yield: pushing to server');
+  this.checkCreations();
   this.client.yieldPush(this);
   this.applyFork();
   this.pending  = true;
   this.received = false;
+};
+
+State.prototype.checkCreations = function () {
+  var self = this;
+  self.forEachEntity(function (table) {
+    // table.forEachFreshCreated(function (key) {
+  //     var entry = table.getByKey(key);
+  //     if (!self.canCreateTableEntry(entry, self.getUser())) {
+  //       throw new Error("Not authorized to create " + entry);
+  //     }
+  //   });
+    table.resetFreshCreated();
+  });
 };
 
 // callback should take 1 argument that is set if it could not flush with server
@@ -97,9 +102,9 @@ State.prototype.joinIn = function (state) {
   // Retract data to which the state has no access anymore
   state.forEachArray(function (array) {
     var mArray = self.get(array.name);
-    if (mArray instanceof Restricted) {
+    if (typeof mArray === 'undefined' || mArray instanceof Restricted) {
       deleted[array.name] = state.arrays[array.name];
-      state.arrays[array.name] = mArray;
+      delete state.arrays[array.name];
       return;
     }
     array.forEachProperty(function (property) {
@@ -122,7 +127,8 @@ State.prototype.joinIn = function (state) {
     });
     if (array instanceof Table) {
         array.forEachState(function (key) {
-          if (!mArray.defined(key)) {
+          if (!mArray.defined(key) && !array.isFreshCreated(key)) {
+            console.log('removing ' + key);
             array.obliterate(key);
           }
         });
