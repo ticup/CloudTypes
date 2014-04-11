@@ -34,6 +34,8 @@ angular
         yieldclbcks.push(clbck);
       }
 
+      var u, p;
+
       var API = {
         // Yielding functions
         stopYielding  : function () { },
@@ -50,7 +52,9 @@ angular
             onYield(function () { state.yield(); });
           }, function (state) {
             status = 'reconnected';
+                        this.client.login(u, p, function (err, user) {
             reconnected.forEach(function (clbck) { clbck(state); });
+          });
           }, function () {
             status = 'disconnected';
             disconnected.forEach(function (clbck) { clbck(); });
@@ -73,6 +77,8 @@ angular
           this.client.login(username, password, function (err, user) {
             if (err)
               return deferred.reject(err);
+            u = username;
+            p = password;
             loggedIn = true;
             deferred.resolve(user);
           });
@@ -104,7 +110,7 @@ angular
         onReconnect: function (callback) {
           reconnected.push(callback);
           if (status == 'reconnected') {
-            callback();
+              callback();
           }
         },
         onDisconnect: function (callback) {

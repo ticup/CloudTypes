@@ -7184,6 +7184,12 @@ CloudType.isCloudType = function (CType) {
           (typeof CloudType.types[CType.tag] !== 'undefined'));
 };
 
+CloudType.isCloudTypeVal = function (val) {
+  return ((typeof val.constructor !== 'undefined') &&
+          (typeof val.constructor.tag !== 'undefined') &&
+          (typeof CloudType.types[val.constructor.tag] !== 'undefined'));
+};
+
 CloudType.fromJSON = function (json, entry, property) {
   return CloudType.fromTag(json.tag).fromJSON(json, entry, property);
 };
@@ -7197,7 +7203,7 @@ CloudType.prototype.joinIn = function (cint) {
 };
 
 CloudType.prototype.equals = function (val) {
-  if (CloudType.isCloudType(val))
+  if (CloudType.isCloudTypeVal(val))
       return this.get() === val.get();
   return this.get() === val;
 };
@@ -9509,7 +9515,7 @@ var TypeChecker = {
         throw new Error("uncompatible key for declared type string: " + val);
       }
     } else {
-      if (typeof val.index === 'undefined' || !type.isTypeOf(value)) {
+      if (typeof val.index === 'undefined' || !type.isTypeOf(val)) {
         throw new Error("uncompatible key for declared type " + type.index.name + " : " + val);
       }
     }
@@ -9521,7 +9527,7 @@ var TypeChecker = {
         throw new Error("uncompatible property for declared property " + type.tag + " : " + val);
       }
     // Reference property: value has to be an entry of declared Table or null.
-    } else if (val !== null && (val.index === 'undefined' || !type.isTypeOf(value))) {
+    } else if (val !== null && (val.index === 'undefined' || !type.isTypeOf(val))) {
         throw new Error("uncompatible property for declared property " + type + " : " + val);
     }
   },

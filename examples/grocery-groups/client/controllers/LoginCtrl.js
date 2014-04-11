@@ -12,10 +12,15 @@ angular.module('groceryApp').controller('LoginCtrl', function ($scope, $client, 
   $scope.register = function (username, password) {
     $client.register(username, password)
       .then(function (user) {
-        $state.go('groups');
       })
       .catch(function (err) {
         aler(err);
       });
+  }
+
+  $scope.goToGroups = function () {
+    
+    $state.go('groups');
+
   }
 });
