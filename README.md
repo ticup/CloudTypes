@@ -11,7 +11,7 @@ CloudTypes is a JavaScript library implementation of the CloudTypes model demons
 
 [![Build Status](https://travis-ci.org/ticup/CloudTypes.png)](https://travis-ci.org/ticup/CloudTypes-paper)
 
-Live Examples: [Grocery List](http://cloudtypes-paper.herokuapp.com/examples/grocery/client/index.html), [Grocery List Angularjs](http://cloudtypes-paper.herokuapp.com/examples/grocery-ng/client/index.html), [Projects Manager](http://cloudtypes-paper.herokuapp.com/examples/projects/client/index.html)
+Live Examples: [Grocery List](http://cloudtypes-paper.herokuapp.com/examples/grocery/client/index.html), [Grocery List Angularjs](http://cloudtypes-paper.herokuapp.com/examples/grocery-ng/client/index.html), [Grocery List Service] (http://cloudtypes.herokuapp.com/examples/grocery-groups/client/index.html#/login), [Projects Manager](http://cloudtypes-paper.herokuapp.com/examples/projects/client/index.html)
 
 The Model
 ----------
